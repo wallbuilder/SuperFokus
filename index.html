@@ -81,9 +81,17 @@
           <label for="reminder-interval">Reminder Interval (minutes):</label>
           <input type="text" id="reminder-interval" placeholder="e.g. 15">
         </div>
+        <div class="form-group" id="rounds-container">
+          <label for="reminder-rounds">Number of Rounds:</label>
+          <input type="text" id="reminder-rounds" placeholder="e.g. 5">
+        </div>
         <div class="form-group">
-          <label for="reminder-message">Reminder Message:</label>
-          <input type="text" id="reminder-message" placeholder="e.g. Take a break!">
+          <label class="switch-label">
+            <input type="checkbox" id="infinite-rounds"> Infinite Rounds
+          </label>
+          <div id="infinite-status" style="display: none; color: #27ae60; font-weight: bold; margin-top: 0.5rem;">
+            Infinite rounds selected
+          </div>
         </div>
       </div>
     </div>
