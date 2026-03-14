@@ -2,32 +2,92 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Fokus</title>
+    <title>Fokus Dashboard</title>
     <style>
       body {
-        font-family: sans-serif;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
-        height: 100vh;
+        justify-content: flex-start;
+        min-height: 100vh;
         margin: 0;
-        background-color: #f0f4f8;
+        background-color: #f4f7f9;
+        color: #333;
       }
-      h1 { color: #333; }
-      .container {
+      header {
+        width: 100%;
+        padding: 1.5rem 0;
+        background-color: #2c3e50;
+        color: white;
         text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .container {
+        width: 80%;
+        max-width: 600px;
+        margin-top: 2rem;
         padding: 2rem;
         background: white;
-        border-radius: 8px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      }
+      h2 { margin-top: 0; color: #2c3e50; }
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+      }
+      select, input[type="text"] {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 1rem;
+        box-sizing: border-box;
+      }
+      .config-section {
+        display: none; /* Hidden by default, shown by renderer.js */
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #eee;
+      }
+      .config-section.active {
+        display: block;
       }
     </style>
   </head>
   <body>
+    <header>
+      <h1>Fokus</h1>
+    </header>
     <div class="container">
-      <h1>Welcome to Fokus</h1>
-      <p>Helping you regulate your time and stay focused.</p>
+      <h2>Dashboard</h2>
+      
+      <div class="form-group">
+        <label for="fokus-mode">Choose Fokus Mode:</label>
+        <select id="fokus-mode">
+          <option value="none">-- Select a mode --</option>
+          <option value="repeating-reminders">Repeating Reminders</option>
+        </select>
+      </div>
+
+      <div id="config-repeating-reminders" class="config-section">
+        <h3>Repeating Reminders Config</h3>
+        <div class="form-group">
+          <label for="reminder-interval">Reminder Interval (minutes):</label>
+          <input type="text" id="reminder-interval" placeholder="e.g. 15">
+        </div>
+        <div class="form-group">
+          <label for="reminder-message">Reminder Message:</label>
+          <input type="text" id="reminder-message" placeholder="e.g. Take a break!">
+        </div>
+      </div>
     </div>
+
+    <script src="renderer.js"></script>
   </body>
 </html>
