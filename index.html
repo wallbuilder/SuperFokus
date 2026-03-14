@@ -2,26 +2,30 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Fokus Dashboard</title>
+    <title>SuperFokus Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
       body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-family: 'Roboto', sans-serif;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: flex-start;
         min-height: 100vh;
         margin: 0;
-        background-color: #f4f7f9;
-        color: #333;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        color: #4a4a4a;
         position: relative;
+        overflow-x: hidden;
       }
       
       /* Startup Screen */
       #startup-screen {
         position: fixed;
         top: 0; left: 0; width: 100%; height: 100%;
-        background-color: #2c3e50;
+        background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
         color: white;
         display: flex;
         align-items: center;
@@ -30,55 +34,71 @@
         transition: opacity 1s ease-in-out;
       }
       #startup-screen h1 {
-        font-size: 4rem;
+        font-size: 5rem;
+        font-weight: 300;
+        letter-spacing: 2px;
         animation: scaleIn 1s ease-out forwards;
       }
       @keyframes scaleIn {
-        0% { transform: scale(0.5); opacity: 0; }
+        0% { transform: scale(0.8); opacity: 0; }
         100% { transform: scale(1); opacity: 1; }
       }
 
       /* Dashboard UI */
       header {
         width: 100%;
-        padding: 1.5rem 0;
-        background-color: #2c3e50;
+        padding: 2rem 0;
+        background: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%);
         color: white;
         text-align: center;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      }
+      header h1 {
+        margin: 0;
+        font-weight: 500;
+        letter-spacing: 1px;
       }
       .container {
         width: 80%;
         max-width: 600px;
         margin-top: 2rem;
-        padding: 2rem;
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        padding: 2.5rem;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         margin-bottom: 3rem;
+        backdrop-filter: blur(10px);
       }
-      h2, h3 { color: #2c3e50; }
-      h2 { margin-top: 0; }
+      h2, h3 { color: #2c3e50; font-weight: 500; }
+      h2 { margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
       .form-group {
         margin-bottom: 1.5rem;
       }
       label {
         display: block;
-        margin-bottom: 0.5rem;
-        font-weight: 600;
+        margin-bottom: 0.6rem;
+        font-weight: 500;
+        font-size: 0.95rem;
       }
       .inline-label {
         display: inline-block;
-        margin-right: 1rem;
+        margin-right: 1.2rem;
         font-weight: normal;
       }
       select, input[type="text"], input[type="number"], textarea {
         width: 100%;
-        padding: 0.75rem;
-        border: 1px solid #ddd;
-        border-radius: 6px;
+        padding: 0.85rem;
+        border: 1px solid #dfe6e9;
+        border-radius: 10px;
         font-size: 1rem;
         box-sizing: border-box;
+        background-color: #fcfdfe;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+      select:focus, input:focus, textarea:focus {
+        outline: none;
+        border-color: #6a11cb;
+        box-shadow: 0 0 0 3px rgba(106, 17, 203, 0.1);
       }
       textarea {
         resize: vertical;
@@ -90,58 +110,72 @@
         margin-top: 1.5rem;
         padding-top: 1.5rem;
         border-top: 1px solid #eee;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.4s ease-out;
       }
       .config-section.active {
         display: block;
+        opacity: 1;
+        transform: translateY(0);
       }
 
       /* Buttons */
       .action-btn {
         width: 100%;
-        padding: 1rem;
+        padding: 1.1rem;
         border: none;
-        border-radius: 6px;
-        font-size: 1.2rem;
-        font-weight: bold;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 500;
         color: white;
         cursor: pointer;
-        transition: background-color 0.2s;
+        transition: all 0.3s ease;
         margin-top: 1rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
       }
       .start-btn {
-        background-color: #27ae60;
+        background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
       }
-      .start-btn:hover { background-color: #219653; }
+      .start-btn:hover {
+          background: linear-gradient(135deg, #219653 0%, #27ae60 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 12px rgba(39, 174, 96, 0.3);
+      }
       
       .stop-btn {
-        background-color: #e74c3c;
+        background: linear-gradient(135deg, #e74c3c 0%, #ff6b6b 100%);
       }
-      .stop-btn:hover { background-color: #c0392b; }
+      .stop-btn:hover {
+          background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 12px rgba(231, 76, 60, 0.3);
+      }
 
       /* Version */
       #version {
         position: fixed;
-        bottom: 10px;
-        right: 15px;
-        font-size: 0.9rem;
-        color: #7f8c8d;
-        font-weight: bold;
+        bottom: 15px;
+        right: 20px;
+        font-size: 0.85rem;
+        color: #95a5a6;
+        font-weight: 500;
       }
 
       /* Utility */
       .hidden { display: none !important; }
-      .error-msg { color: #e74c3c; font-size: 0.9rem; margin-top: 0.5rem; display: none; }
+      .error-msg { color: #e74c3c; font-size: 0.9rem; margin-top: 0.5rem; display: none; font-weight: 500; }
     </style>
   </head>
   <body>
     <!-- Startup Screen -->
     <div id="startup-screen">
-      <h1>Fokus</h1>
+      <h1>SuperFokus</h1>
     </div>
 
     <!-- Main Dashboard -->
     <header>
-      <h1>Fokus</h1>
+      <h1>SuperFokus</h1>
     </header>
     <div class="container">
       <h2>Dashboard</h2>
@@ -175,6 +209,16 @@
             Infinite rounds selected
           </div>
         </div>
+        <div class="form-group">
+          <label for="reminder-message">Custom Popup Message:</label>
+          <input type="text" id="reminder-message" value="Time for a break!">
+        </div>
+        
+        <div id="repeating-timer-display" class="hidden" style="text-align: center; margin-top: 1rem; padding: 1.5rem; background: #f8f9fa; border-radius: 15px; border: 1px solid #eee;">
+          <div id="repeating-time-left" style="font-size: 3rem; font-weight: 700; color: #2c3e50;">00:00</div>
+          <div id="repeating-rounds-left" style="font-size: 1rem; color: #7f8c8d; margin-top: 0.5rem;">Rounds remaining: 0</div>
+        </div>
+
         <button class="action-btn start-btn" id="start-repeating-btn">Start ➤</button>
       </div>
 
@@ -218,6 +262,12 @@
           <input type="number" id="pomo-long-count" placeholder="e.g. 1" min="0">
         </div>
 
+        <div id="pomo-timer-display" class="hidden" style="text-align: center; margin-top: 1rem; padding: 1.5rem; background: #f8f9fa; border-radius: 15px; border: 1px solid #eee;">
+          <div id="pomo-status-text" style="font-size: 1.4rem; font-weight: 500; color: #6a11cb;">Work Session</div>
+          <div id="pomo-time-left" style="font-size: 3rem; font-weight: 700; color: #2c3e50;">00:00</div>
+          <div id="pomo-rounds-left" style="font-size: 1rem; color: #7f8c8d; margin-top: 0.5rem;">Next: Short Break</div>
+        </div>
+
         <button class="action-btn start-btn" id="start-pomo-btn">Start ➤</button>
       </div>
 
@@ -249,7 +299,7 @@
     </div>
 
     <!-- Version Number -->
-    <div id="version">v0.1</div>
+    <div id="version">v0.2</div>
 
     <script src="renderer.js"></script>
   </body>
