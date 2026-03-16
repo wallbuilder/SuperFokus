@@ -7,6 +7,57 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
+      /* Smooth Theme Variable Transitions */
+      @property --bg-grad-1 { syntax: '<color>'; initial-value: #f5f7fa; inherits: true; }
+      @property --bg-grad-2 { syntax: '<color>'; initial-value: #c3cfe2; inherits: true; }
+      @property --header-grad-1 { syntax: '<color>'; initial-value: #6a11cb; inherits: true; }
+      @property --header-grad-2 { syntax: '<color>'; initial-value: #2575fc; inherits: true; }
+      @property --container-bg { syntax: '<color>'; initial-value: rgba(255, 255, 255, 0.9); inherits: true; }
+      @property --text-color { syntax: '<color>'; initial-value: #4a4a4a; inherits: true; }
+      @property --heading-color { syntax: '<color>'; initial-value: #2c3e50; inherits: true; }
+      @property --border-color { syntax: '<color>'; initial-value: #eee; inherits: true; }
+      @property --input-border { syntax: '<color>'; initial-value: #dfe6e9; inherits: true; }
+      @property --input-bg { syntax: '<color>'; initial-value: #fcfdfe; inherits: true; }
+      @property --timer-bg { syntax: '<color>'; initial-value: #f8f9fa; inherits: true; }
+      @property --timer-text { syntax: '<color>'; initial-value: #2c3e50; inherits: true; }
+      @property --timer-subtext { syntax: '<color>'; initial-value: #7f8c8d; inherits: true; }
+      @property --drawer-bg { syntax: '<color>'; initial-value: #ffffff; inherits: true; }
+
+      :root {
+        --bg-grad-1: #f5f7fa;
+        --bg-grad-2: #c3cfe2;
+        --text-color: #4a4a4a;
+        --header-grad-1: #6a11cb;
+        --header-grad-2: #2575fc;
+        --container-bg: rgba(255, 255, 255, 0.9);
+        --heading-color: #2c3e50;
+        --border-color: #eee;
+        --input-border: #dfe6e9;
+        --input-bg: #fcfdfe;
+        --timer-bg: #f8f9fa;
+        --timer-text: #2c3e50;
+        --timer-subtext: #7f8c8d;
+        --drawer-bg: #ffffff;
+        --overlay-bg: rgba(0, 0, 0, 0.6);
+      }
+
+      body.dark-mode {
+        --bg-grad-1: #1a1a2e;
+        --bg-grad-2: #16213e;
+        --text-color: #e0e0e0;
+        --header-grad-1: #0f3460;
+        --header-grad-2: #e94560;
+        --container-bg: rgba(26, 26, 46, 0.9);
+        --heading-color: #f1f2f6;
+        --border-color: #2c3e50;
+        --input-border: #34495e;
+        --input-bg: #0f3460;
+        --timer-bg: #16213e;
+        --timer-text: #f1f2f6;
+        --timer-subtext: #a4b0be;
+        --drawer-bg: #1a1a2e;
+      }
+
       body {
         font-family: 'Roboto', sans-serif;
         display: flex;
@@ -15,154 +66,194 @@
         justify-content: flex-start;
         min-height: 100vh;
         margin: 0;
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        color: #4a4a4a;
+        background: linear-gradient(135deg, var(--bg-grad-1) 0%, var(--bg-grad-2) 100%);
+        color: var(--text-color);
         position: relative;
         overflow-x: hidden;
+        transition: background 0.5s ease, color 0.5s ease, --bg-grad-1 0.5s, --bg-grad-2 0.5s;
       }
       
+      /* Smooth Transitions for Components */
+      header, .container, #side-menu, .modal-content, .timer-display, .menu-item, .sequence-item, select, input, textarea, button {
+        transition: background-color 0.4s ease, background 0.4s ease, color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease, transform 0.3s ease, --header-grad-1 0.4s, --header-grad-2 0.4s, --container-bg 0.4s, --drawer-bg 0.4s, --timer-bg 0.4s;
+      }
+
       /* Startup Screen */
       #startup-screen {
         position: fixed;
         top: 0; left: 0; width: 100%; height: 100%;
-        background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        background: linear-gradient(135deg, var(--header-grad-1) 0%, var(--header-grad-2) 100%);
         color: white;
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 1000;
+        z-index: 2000; /* Higher than everything (1200) to overlay header */
         transition: opacity 1s ease-in-out;
+      }
+      .startup-content {
+        display: flex;
+        align-items: baseline;
+        opacity: 0;
+        transform: translateY(20px);
+        animation: slideUpFade 1.2s ease-out forwards;
       }
       #startup-screen h1 {
         font-size: 5rem;
-        font-weight: 300;
-        letter-spacing: 2px;
-        animation: scaleIn 1s ease-out forwards;
+        font-weight: 700;
+        margin: 0;
+        letter-spacing: 1px;
       }
-      @keyframes scaleIn {
-        0% { transform: scale(0.8); opacity: 0; }
-        100% { transform: scale(1); opacity: 1; }
+      #startup-version {
+        font-size: 1.2rem;
+        margin-left: 10px;
+        opacity: 0.8;
+      }
+      @keyframes slideUpFade {
+        0% { transform: translateY(30px); opacity: 0; }
+        100% { transform: translateY(0); opacity: 1; }
       }
 
-      /* Dashboard UI */
+      /* Header & Drawer Controls */
       header {
         width: 100%;
-        padding: 2rem 0;
-        background: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%);
+        padding: 1.5rem 0;
+        background: linear-gradient(90deg, var(--header-grad-1) 0%, var(--header-grad-2) 100%);
         color: white;
-        text-align: center;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        z-index: 1100; /* Higher than sidebar (500) and modals (600) */
+        position: sticky;
+        top: 0;
       }
+      .header-left { margin-left: 20px; display: flex; align-items: center;}
+      .header-right { margin-right: 20px; }
       header h1 {
-        margin: 0;
+        margin: 0 0 0 15px;
         font-weight: 500;
         letter-spacing: 1px;
       }
+      
+      .hamburger-btn {
+        background: none; border: none; color: white; font-size: 2rem; cursor: pointer;
+        width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        transition: background 0.3s, transform 0.2s; position: relative;
+        z-index: 1200; /* Ensure button itself is at the absolute front */
+      }
+      .hamburger-btn:hover { background: rgba(255,255,255,0.1); transform: scale(1.1); }
+      .hamburger-btn:active { transform: scale(0.95); }
+      .hamburger-btn .icon { transition: 0.3s; display: inline-block; }
+
+      .dark-mode-toggle {
+        background: rgba(255,255,255,0.2); border: none; padding: 8px 12px; border-radius: 20px; color: white; cursor: pointer; transition: 0.3s;
+      }
+      .dark-mode-toggle:hover { background: rgba(255,255,255,0.3); }
+
+      /* Drawer */
+      #side-menu {
+        position: fixed; top: 80px; left: -350px; width: 300px; height: calc(100% - 80px);
+        background: var(--drawer-bg); color: var(--text-color);
+        box-shadow: 4px 0 15px rgba(0,0,0,0.2);
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 500; padding: 2rem; box-sizing: border-box;
+      }
+      #side-menu.open { left: 0; }
+      #side-menu h2 { color: var(--heading-color); margin-top: 0; margin-bottom: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;}
+      
+      .menu-item {
+        padding: 12px 15px; margin: 5px 0; border-radius: 10px; cursor: pointer; transition: 0.2s;
+        display: flex; align-items: center; font-weight: 500;
+      }
+      .menu-item:hover { background: var(--timer-bg); color: var(--header-grad-1); }
+
+      /* Dialog Overlay & Modal */
+      .modal-overlay {
+          position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+          background: var(--overlay-bg); backdrop-filter: blur(8px);
+          display: none; align-items: flex-start; justify-content: center; z-index: 1500;
+          opacity: 0; transition: opacity 0.3s; padding-top: 10vh; box-sizing: border-box;
+      }
+      .modal-overlay.active { display: flex; opacity: 1; }
+      .modal-content {
+          background: var(--container-bg); padding: 2.5rem; border-radius: 20px;
+          max-width: 500px; width: 90%; position: relative;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+          color: var(--text-color);
+          transform: scale(0.9); transition: transform 0.3s;
+          max-height: 80vh; overflow-y: auto;
+      }
+      .modal-overlay.active .modal-content { transform: scale(1); }
+      .modal-close { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; cursor: pointer; color: var(--text-color); }
+
+      /* Dashboard UI */
       .container {
         width: 80%;
         max-width: 600px;
         margin-top: 2rem;
         padding: 2.5rem;
-        background: rgba(255, 255, 255, 0.9);
+        background: var(--container-bg);
         border-radius: 20px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         margin-bottom: 3rem;
         backdrop-filter: blur(10px);
+        color: var(--text-color);
       }
-      h2, h3 { color: #2c3e50; font-weight: 500; }
-      h2 { margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
-      .form-group {
-        margin-bottom: 1.5rem;
-      }
-      label {
-        display: block;
-        margin-bottom: 0.6rem;
-        font-weight: 500;
-        font-size: 0.95rem;
-      }
-      .inline-label {
-        display: inline-block;
-        margin-right: 1.2rem;
-        font-weight: normal;
-      }
+      h2, h3 { color: var(--heading-color); font-weight: 500; }
+      h2 { margin-top: 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; }
+      .form-group { margin-bottom: 1.5rem; }
+      label { display: block; margin-bottom: 0.6rem; font-weight: 500; font-size: 0.95rem; }
+      .inline-label { display: inline-block; margin-right: 1.2rem; font-weight: normal; }
       select, input[type="text"], input[type="number"], textarea {
-        width: 100%;
-        padding: 0.85rem;
-        border: 1px solid #dfe6e9;
-        border-radius: 10px;
-        font-size: 1rem;
-        box-sizing: border-box;
-        background-color: #fcfdfe;
+        width: 100%; padding: 0.85rem; border: 1px solid var(--input-border);
+        border-radius: 10px; font-size: 1rem; box-sizing: border-box;
+        background-color: var(--input-bg); color: var(--text-color);
         transition: border-color 0.2s, box-shadow 0.2s;
       }
       select:focus, input:focus, textarea:focus {
-        outline: none;
-        border-color: #6a11cb;
+        outline: none; border-color: var(--header-grad-1);
         box-shadow: 0 0 0 3px rgba(106, 17, 203, 0.1);
       }
-      textarea {
-        resize: vertical;
-        min-height: 80px;
-      }
+      textarea { resize: vertical; min-height: 80px; }
       
       .config-section {
-        display: none;
-        margin-top: 1.5rem;
-        padding-top: 1.5rem;
-        border-top: 1px solid #eee;
-        opacity: 0;
-        transform: translateY(20px);
-        transition: all 0.4s ease-out;
+        display: none; margin-top: 1.5rem; padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+        opacity: 0; transform: translateY(20px); transition: all 0.4s ease-out;
       }
-      .config-section.active {
-        display: block;
-        opacity: 1;
-        transform: translateY(0);
+      .config-section.active { display: block; opacity: 1; transform: translateY(0); }
+
+      /* Dynamic Sequence Builder */
+      .sequence-item {
+        display: flex; justify-content: space-between; align-items: center;
+        background: var(--timer-bg); padding: 10px; border-radius: 8px; margin-bottom: 10px;
       }
+      .sequence-item span { font-weight: bold; color: var(--timer-text); }
+      .sequence-item input { width: 80px; margin: 0 10px; }
+      .sequence-item .remove-btn { background: #e74c3c; color: white; border: none; border-radius: 50px; cursor: pointer; padding: 5px 10px; }
+      .add-phase-btns { display: flex; gap: 10px; margin-bottom: 15px; }
+      .add-btn { background: #3498db; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; flex: 1; }
+      .add-btn.break { background: #f39c12; }
 
       /* Buttons */
       .action-btn {
-        width: 100%;
-        padding: 1.1rem;
-        border: none;
-        border-radius: 12px;
-        font-size: 1.1rem;
-        font-weight: 500;
-        color: white;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        margin-top: 1rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        width: 100%; padding: 1.1rem; border: none; border-radius: 12px;
+        font-size: 1.1rem; font-weight: 500; color: white; cursor: pointer;
+        transition: all 0.3s ease; margin-top: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
       }
-      .start-btn {
-        background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
-      }
-      .start-btn:hover {
-          background: linear-gradient(135deg, #219653 0%, #27ae60 100%);
-          transform: translateY(-2px);
-          box-shadow: 0 6px 12px rgba(39, 174, 96, 0.3);
-      }
-      
-      .stop-btn {
-        background: linear-gradient(135deg, #e74c3c 0%, #ff6b6b 100%);
-      }
-      .stop-btn:hover {
-          background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%);
-          transform: translateY(-2px);
-          box-shadow: 0 6px 12px rgba(231, 76, 60, 0.3);
+      .start-btn { background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); }
+      .start-btn:hover { background: linear-gradient(135deg, #219653 0%, #27ae60 100%); transform: translateY(-2px); }
+      .stop-btn { background: linear-gradient(135deg, #e74c3c 0%, #ff6b6b 100%); }
+      .stop-btn:hover { background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%); transform: translateY(-2px); }
+      .continue-btn { background: #3498db; margin-top: 10px; display: none; }
+
+      /* Timer Display */
+      .timer-display {
+          text-align: center; margin-top: 1rem; padding: 1.5rem;
+          background: var(--timer-bg); border-radius: 15px; border: 1px solid var(--border-color);
       }
 
       /* Version */
-      #version {
-        position: fixed;
-        bottom: 15px;
-        right: 20px;
-        font-size: 0.85rem;
-        color: #95a5a6;
-        font-weight: 500;
-      }
-
-      /* Utility */
+      #version { position: fixed; bottom: 15px; right: 20px; font-size: 0.85rem; color: #95a5a6; font-weight: 500; }
       .hidden { display: none !important; }
       .error-msg { color: #e74c3c; font-size: 0.9rem; margin-top: 0.5rem; display: none; font-weight: 500; }
     </style>
@@ -170,13 +261,89 @@
   <body>
     <!-- Startup Screen -->
     <div id="startup-screen">
-      <h1>SuperFokus</h1>
+      <div class="startup-content">
+        <h1>SuperFokus</h1>
+        <div id="startup-version">v0.3.5</div>
+      </div>
     </div>
+
+    <!-- Modal Overlays for Sidebar Dialogs -->
+    <div id="modal-focus-stats" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close">✕</span>
+            <h2>Fokus Stats</h2>
+            <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                <div style="flex: 1; background: var(--timer-bg); padding: 1rem; border-radius: 10px; text-align: center;">
+                    <div style="color: var(--timer-subtext); font-size: 0.8rem;">Total Focus Time</div>
+                    <div id="stat-total-time" style="font-size: 1.8rem; font-weight: bold; color: var(--timer-text);">0m</div>
+                </div>
+                <div style="flex: 1; background: var(--timer-bg); padding: 1rem; border-radius: 10px; text-align: center;">
+                    <div style="color: var(--timer-subtext); font-size: 0.8rem;">Completed Rounds</div>
+                    <div id="stat-rounds" style="font-size: 1.8rem; font-weight: bold; color: var(--timer-text);">0</div>
+                </div>
+            </div>
+            <h3>Activity (Last 7 Days)</h3>
+            <div style="height: 250px; position: relative;">
+                <canvas id="statsChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-session-history" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close">✕</span>
+            <h2>Session History</h2>
+            <div id="session-history-log" style="max-height: 350px; overflow-y: auto; background: var(--timer-bg); border-radius: 10px; padding: 15px;">
+                <div style="color: var(--timer-subtext); text-align: center;">No history yet.</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-customization" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close">✕</span>
+            <h2>Customization</h2>
+            <div class="form-group">
+                <label>Theme Preference:</label>
+                <button class="action-btn" id="theme-toggle-modal" style="background: var(--header-grad-1);">Toggle Dark Mode</button>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="toggle-header-dark-mode" checked> Show Dark Mode Toggle in Header
+                </label>
+            </div>
+            <div class="form-group">
+                <label>Chime Sound:</label>
+                <select id="chime-selector">
+                    <option value="chime.mp3">Classic Chime</option>
+                    <option value="gentle.mp3">Gentle Notification</option>
+                </select>
+                <button class="add-btn" style="margin-top: 10px; width: 100%;">Upload Custom Chime</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Side Bar Selection Menu -->
+    <aside id="side-menu">
+        <h2>Side Bar</h2>
+        <div class="menu-item" data-modal="modal-focus-stats">📊 Fokus Stats</div>
+        <div class="menu-item" data-modal="modal-session-history">📜 Session History</div>
+        <div class="menu-item" data-modal="modal-customization">⚙️ Customization</div>
+    </aside>
 
     <!-- Main Dashboard -->
     <header>
-      <h1>SuperFokus</h1>
+      <div class="header-left">
+          <button class="hamburger-btn" id="menu-toggle">
+            <span class="icon">☰</span>
+          </button>
+          <h1>SuperFokus</h1>
+      </div>
+      <div class="header-right">
+          <button class="dark-mode-toggle" id="theme-toggle">🌙 Dark Mode</button>
+      </div>
     </header>
+
     <div class="container">
       <h2>Dashboard</h2>
       
@@ -211,12 +378,12 @@
         </div>
         <div class="form-group">
           <label for="reminder-message">Custom Popup Message:</label>
-          <input type="text" id="reminder-message" value="Time for a break!">
+          <input type="text" id="reminder-message" value="Hello! If any distractions are open, please close them and get back to work.">
         </div>
         
-        <div id="repeating-timer-display" class="hidden" style="text-align: center; margin-top: 1rem; padding: 1.5rem; background: #f8f9fa; border-radius: 15px; border: 1px solid #eee;">
-          <div id="repeating-time-left" style="font-size: 3rem; font-weight: 700; color: #2c3e50;">00:00</div>
-          <div id="repeating-rounds-left" style="font-size: 1rem; color: #7f8c8d; margin-top: 0.5rem;">Rounds remaining: 0</div>
+        <div id="repeating-timer-display" class="hidden timer-display">
+          <div id="repeating-time-left" style="font-size: 3rem; font-weight: 700; color: var(--timer-text);">00:00</div>
+          <div id="repeating-rounds-left" style="font-size: 1rem; color: var(--timer-subtext); margin-top: 0.5rem;">Rounds remaining: 0</div>
         </div>
 
         <button class="action-btn start-btn" id="start-repeating-btn">Start ➤</button>
@@ -224,48 +391,44 @@
 
       <!-- Pomo Style Config -->
       <div id="config-pomo-style" class="config-section">
-        <h3>Pomo Style Config</h3>
+        <h3>Dynamic Pomo Config</h3>
         
         <div class="form-group">
-          <label>Action at end of round:</label>
+          <label>Action at end of phase:</label>
           <label class="inline-label"><input type="radio" name="pomo-action" value="remind" checked> Remind to take a break</label><br>
           <label class="inline-label"><input type="radio" name="pomo-action" value="block"> Block screen AND remind</label>
         </div>
 
         <div class="form-group">
-          <label for="pomo-short-break">Short Break Duration (minutes):</label>
-          <input type="number" id="pomo-short-break" placeholder="e.g. 5" min="1">
-        </div>
-
-        <div class="form-group" id="pomo-long-break-container">
-          <label for="pomo-long-break">Long Break Duration (minutes):</label>
-          <input type="number" id="pomo-long-break" placeholder="e.g. 15" min="2">
-          <div id="pomo-error" class="error-msg">Short break must be less than long break.</div>
-        </div>
-        
-        <div class="form-group">
-          <label>
-            <input type="checkbox" id="pomo-infinite-long"> Infinite Long Break
-          </label>
-          <div id="pomo-infinite-status" style="display: none; color: #27ae60; font-weight: bold; margin-top: 0.5rem;">
-            Infinite long break selected
-          </div>
+            <label>Phase Sequence:</label>
+            <div id="pomo-sequence-list">
+                <!-- Dynamically populated -->
+            </div>
+            <div class="add-phase-btns">
+                <button class="add-btn" id="add-work-btn">+ Work Phase</button>
+                <button class="add-btn break" id="add-break-btn">+ Break Phase</button>
+            </div>
         </div>
 
         <div class="form-group">
-          <label for="pomo-short-count">Number of Short Breaks:</label>
-          <input type="number" id="pomo-short-count" placeholder="e.g. 4" min="0">
+            <label>Repeat Configuration:</label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="number" id="pomo-repeats" placeholder="Repeats" min="1" style="flex: 1;">
+                <label class="inline-label" style="margin: 0;"><input type="checkbox" id="pomo-infinite"> Infinite</label>
+            </div>
         </div>
 
         <div class="form-group">
-          <label for="pomo-long-count">Number of Long Breaks:</label>
-          <input type="number" id="pomo-long-count" placeholder="e.g. 1" min="0">
+            <label>
+              <input type="checkbox" id="pomo-autostart" checked> Auto-Start Next Phase
+            </label>
         </div>
 
-        <div id="pomo-timer-display" class="hidden" style="text-align: center; margin-top: 1rem; padding: 1.5rem; background: #f8f9fa; border-radius: 15px; border: 1px solid #eee;">
-          <div id="pomo-status-text" style="font-size: 1.4rem; font-weight: 500; color: #6a11cb;">Work Session</div>
-          <div id="pomo-time-left" style="font-size: 3rem; font-weight: 700; color: #2c3e50;">00:00</div>
-          <div id="pomo-rounds-left" style="font-size: 1rem; color: #7f8c8d; margin-top: 0.5rem;">Next: Short Break</div>
+        <div id="pomo-timer-display" class="hidden timer-display">
+          <div id="pomo-status-text" style="font-size: 1.4rem; font-weight: 500; color: var(--header-grad-1);">Work Session</div>
+          <div id="pomo-time-left" style="font-size: 3rem; font-weight: 700; color: var(--timer-text);">00:00</div>
+          <div id="pomo-rounds-left" style="font-size: 1rem; color: var(--timer-subtext); margin-top: 0.5rem;">Next: --</div>
+          <button class="action-btn continue-btn" id="continue-pomo-btn">Continue to Next Phase</button>
         </div>
 
         <button class="action-btn start-btn" id="start-pomo-btn">Start ➤</button>
@@ -273,8 +436,21 @@
 
       <!-- Site Blocker Config -->
       <div id="config-site-blocker" class="config-section">
-        <h3>Site Blocker Config <span style="font-size: 0.8rem; font-weight: normal; color: #e67e22;">(UI Preview)</span></h3>
+        <h3>Site Blocker Config</h3>
         
+        <div class="form-group">
+            <label>Site Blocker Switch:</label>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="site-blocker-enabled" style="width: auto;"> <span>Active</span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="site-blocker-always-run"> Continue running even if other Fokus Modes are active
+            </label>
+        </div>
+
         <div class="form-group">
           <label>Blocker Mode:</label>
           <select id="site-blocker-mode">
@@ -286,20 +462,23 @@
         <div class="form-group">
           <label for="domain-list">Domain List (one per line):</label>
           <textarea id="domain-list" placeholder="e.g. youtube.com&#10;reddit.com"></textarea>
-          <small style="color: #7f8c8d;">Blocks all webpages connected to the domain.</small>
+          <small style="color: var(--timer-subtext);">Blocks all webpages connected to the domain.</small>
         </div>
 
         <div class="form-group">
           <label for="url-list">Specific URLs List (one per line):</label>
           <textarea id="url-list" placeholder="e.g. https://twitter.com/home"></textarea>
-          <small style="color: #7f8c8d;">Blocks only the specific URLs provided.</small>
+          <small style="color: var(--timer-subtext);">Blocks only the specific URLs provided.</small>
         </div>
-        <!-- No start button for Site Blocker in v0.1 -->
+        
+        <button class="action-btn" id="save-blocker-btn" style="background: #3498db;">Save & Apply Blocker</button>
       </div>
     </div>
 
-    <!-- Version Number -->
-    <div id="version">v0.2</div>
+    <div id="version">v0.3.5</div>
+    
+    <!-- Audio for chimes -->
+    <audio id="chime-audio" src="chime.mp3" preload="auto"></audio>
 
     <script src="renderer.js"></script>
   </body>
