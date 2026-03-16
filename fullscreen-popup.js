@@ -1,10 +1,11 @@
 const { ipcRenderer } = require('electron');
 
-const breakTypeEl = document.getElementById('break-type');
-const timerEl = document.getElementById('timer');
-
-let timeLeft = 0;
+let timerSeconds = 0;
 let timerInterval = null;
+let isAutoStart = true;
+
+const timerDisplay = document.getElementById('timer');
+const nextBtn = document.getElementById('next-btn');
 
 function formatTime(seconds) {
     const mins = Math.floor(seconds / 60);
@@ -13,18 +14,39 @@ function formatTime(seconds) {
 }
 
 ipcRenderer.on('set-fullscreen-data', (event, data) => {
-    breakTypeEl.innerText = data.type;
-    timeLeft = data.duration;
-    timerEl.innerText = formatTime(timeLeft);
+    document.getElementById('title').innerText = `${data.type} Time`;
+    timerSeconds = data.duration;
+    isAutoStart = data.autoStart;
     
-    if (timerInterval) clearInterval(timerInterval);
-    
+    updateDisplay();
+    startTimer();
+});
+
+function updateDisplay() {
+    timerDisplay.innerText = formatTime(timerSeconds);
+}
+
+function startTimer() {
     timerInterval = setInterval(() => {
-        timeLeft--;
-        if (timeLeft < 0) {
+        timerSeconds--;
+        if (timerSeconds <= 0) {
+            timerSeconds = 0;
             clearInterval(timerInterval);
-        } else {
-            timerEl.innerText = formatTime(timeLeft);
+            onTimerComplete();
         }
+        updateDisplay();
     }, 1000);
+}
+
+function onTimerComplete() {
+    if (isAutoStart) {
+        // Automatically close when time is up if autostart is on
+        // The main process usually handles this but we'll show button as fallback
+    } else {
+        nextBtn.style.display = 'block';
+    }
+}
+
+nextBtn.addEventListener('click', () => {
+    ipcRenderer.send('next-phase-triggered');
 });

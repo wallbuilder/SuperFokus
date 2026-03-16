@@ -13,5 +13,9 @@
   "type": "commonjs",
   "devDependencies": {
     "electron": "^41.0.2"
+  },
+  "dependencies": {
+    "chart.js": "^4.5.1",
+    "electron-store": "^11.0.2"
   }
 }
