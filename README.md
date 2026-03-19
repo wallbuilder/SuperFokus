@@ -1,6 +1,6 @@
-# Fokus
+# SuperFokus
 
-Fokus is an Electron application designed to help regulate computer and homework time while minimizing distractions.
+SuperFokus is an Electron application designed to help regulate computer and homework time while minimizing distractions.
 
 ## v0.3.5 - Improvements Update Rework
 
