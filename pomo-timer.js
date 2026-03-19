@@ -9,3 +9,11 @@ ipcRenderer.on('update-display', (event, data) => {
     timerDisplay.innerText = data.timeLeft;
     progressBar.style.width = `${data.percent}%`;
 });
+
+ipcRenderer.on('set-theme', (event, isDark) => {
+    if (isDark) {
+        document.body.classList.add('dark-mode');
+    } else {
+        document.body.classList.remove('dark-mode');
+    }
+});

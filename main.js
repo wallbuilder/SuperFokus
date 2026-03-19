@@ -1,5 +1,9 @@
-const { app, BrowserWindow, ipcMain, session, Tray, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, session, Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
+const fs = require('fs');
+
+app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
+app.commandLine.appendSwitch('disable-http-cache');
 
 let mainWindow = null;
 let popupWindow = null;
@@ -38,10 +42,18 @@ function createWindow() {
 }
 
 function createTray() {
-    // Note: In a real app, you'd have a tray icon file.
-    // For this prototype, we'll use a placeholder if icon.png doesn't exist.
     const iconPath = path.join(__dirname, 'icon.png');
-    tray = new Tray(iconPath);
+    let trayIcon;
+    
+    if (fs.existsSync(iconPath)) {
+        trayIcon = nativeImage.createFromPath(iconPath);
+    } else {
+        // Fallback robust icon (a simple 16x16 red square)
+        const fallbackBase64 = 'iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAcSURBVDhPY3D///9/MAwwYIAmHwwYNRBAwMAwAAD+aAYg0HpxHgAAAABJRU5ErkJggg==';
+        trayIcon = nativeImage.createFromDataURL(`data:image/png;base64,${fallbackBase64}`);
+    }
+
+    tray = new Tray(trayIcon);
     const contextMenu = Menu.buildFromTemplate([
         { label: 'Show SuperFokus', click: () => mainWindow.show() },
         { type: 'separator' },
@@ -83,6 +95,15 @@ function createPopupWindow(message) {
     });
 }
 
+let currentThemeIsDark = false;
+
+ipcMain.on('theme-changed', (event, isDark) => {
+    currentThemeIsDark = isDark;
+    if (pomoTimerWindow) {
+        pomoTimerWindow.webContents.send('set-theme', isDark);
+    }
+});
+
 function createPomoTimerWindow() {
     if (pomoTimerWindow) return;
 
@@ -101,8 +122,15 @@ function createPomoTimerWindow() {
 
     pomoTimerWindow.loadFile('pomo-timer.html');
 
+    pomoTimerWindow.webContents.on('did-finish-load', () => {
+        pomoTimerWindow.webContents.send('set-theme', currentThemeIsDark);
+    });
+
     pomoTimerWindow.on('closed', () => {
         pomoTimerWindow = null;
+        if (mainWindow) {
+            mainWindow.webContents.send('pomo-popup-closed');
+        }
     });
 }
 
@@ -133,7 +161,76 @@ function createFullscreenWindow(data) {
     });
 }
 
+// --- Timer State (Main Process) ---
+let timers = {};
+
 // --- IPC Listeners ---
+
+ipcMain.on('start-timer', (event, data) => {
+    const { id, seconds } = data;
+    if (timers[id] && timers[id].interval) clearInterval(timers[id].interval);
+    
+    timers[id] = {
+        seconds: seconds,
+        endTime: Date.now() + (seconds * 1000),
+        interval: setInterval(() => {
+            const remaining = Math.round((timers[id].endTime - Date.now()) / 1000);
+            timers[id].seconds = Math.max(0, remaining);
+            if (mainWindow) {
+                mainWindow.webContents.send(`timer-tick-${id}`, timers[id].seconds);
+            }
+            if (id === 'pomo' && pomoTimerWindow) {
+                pomoTimerWindow.webContents.send('timer-tick', timers[id].seconds);
+            }
+
+            if (timers[id].seconds <= 0) {
+                clearInterval(timers[id].interval);
+                timers[id].interval = null;
+                if (mainWindow) {
+                    mainWindow.webContents.send(`timer-complete-${id}`);
+                }
+            }
+        }, 1000)
+    };
+});
+
+ipcMain.on('stop-timer', (event, id) => {
+    if (timers[id] && timers[id].interval) {
+        clearInterval(timers[id].interval);
+        timers[id].interval = null;
+    }
+});
+
+ipcMain.on('pause-timer', (event, id) => {
+    if (timers[id] && timers[id].interval) {
+        clearInterval(timers[id].interval);
+        timers[id].interval = null;
+    }
+});
+
+ipcMain.on('resume-timer', (event, id) => {
+    if (timers[id] && !timers[id].interval && timers[id].seconds > 0) {
+        timers[id].endTime = Date.now() + (timers[id].seconds * 1000);
+        timers[id].interval = setInterval(() => {
+            const remaining = Math.round((timers[id].endTime - Date.now()) / 1000);
+            timers[id].seconds = Math.max(0, remaining);
+            if (mainWindow) {
+                mainWindow.webContents.send(`timer-tick-${id}`, timers[id].seconds);
+            }
+            if (id === 'pomo' && pomoTimerWindow) {
+                pomoTimerWindow.webContents.send('timer-tick', timers[id].seconds);
+            }
+
+            if (timers[id].seconds <= 0) {
+                clearInterval(timers[id].interval);
+                timers[id].interval = null;
+                if (mainWindow) {
+                    mainWindow.webContents.send(`timer-complete-${id}`);
+                }
+            }
+        }, 1000);
+    }
+});
 
 ipcMain.on('show-popup', (event, message) => {
     createPopupWindow(message);
@@ -172,6 +269,12 @@ ipcMain.on('show-break-popup', (event, data) => {
 ipcMain.on('close-fullscreen', () => {
     if (fullscreenWindow) {
         fullscreenWindow.close();
+    }
+    if (pomoTimerWindow) {
+        pomoTimerWindow.show();
+        pomoTimerWindow.focus();
+        pomoTimerWindow.setAlwaysOnTop(true);
+        pomoTimerWindow.setAlwaysOnTop(false);
     }
 });
 

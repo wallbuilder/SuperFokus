@@ -27,8 +27,10 @@ function updateDisplay() {
 }
 
 function startTimer() {
+    const endTime = Date.now() + (timerSeconds * 1000);
     timerInterval = setInterval(() => {
-        timerSeconds--;
+        const remaining = Math.round((endTime - Date.now()) / 1000);
+        timerSeconds = Math.max(0, remaining);
         if (timerSeconds <= 0) {
             timerSeconds = 0;
             clearInterval(timerInterval);

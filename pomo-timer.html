@@ -15,8 +15,15 @@
             height: 100vh;
             overflow: hidden;
             border-top: 5px solid #6a11cb;
+            transition: background 0.3s, color 0.3s, border-color 0.3s;
         }
-        #phase { font-size: 1.2rem; font-weight: 500; margin-bottom: 0.5rem; color: #6a11cb; }
+        body.dark-mode {
+            background: #1e1e1e;
+            color: #e0e0e0;
+            border-top: 5px solid #bb86fc;
+        }
+        #phase { font-size: 1.2rem; font-weight: 500; margin-bottom: 0.5rem; color: #6a11cb; transition: color 0.3s; }
+        body.dark-mode #phase { color: #bb86fc; }
         #timer { font-size: 3.5rem; font-weight: bold; margin-bottom: 1rem; }
         .progress-container {
             width: 100%;
@@ -24,7 +31,9 @@
             background: #eee;
             border-radius: 6px;
             overflow: hidden;
+            transition: background 0.3s;
         }
+        body.dark-mode .progress-container { background: #333; }
         #progress-bar {
             height: 100%;
             width: 0%;

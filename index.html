@@ -263,8 +263,21 @@
     <div id="startup-screen">
       <div class="startup-content">
         <h1>SuperFokus</h1>
-        <div id="startup-version">v0.3.5</div>
+        <div id="startup-version">v0.5</div>
       </div>
+    </div>
+
+    <div id="modal-about" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close">✕</span>
+            <h2>About SuperFokus</h2>
+            <p><strong>Introduction:</strong> SuperFokus is a versatile productivity tool designed to help you stay concentrated, manage your time, and minimize distractions. Built on core principles of focused work sessions, it provides three distinct "Fokus Modes" that you can configure to perfectly match your workflow and personal habits.</p>
+            <p><strong>Repeating Reminders:</strong> The "original" mode of Fokus. It involves a popup that continuously flashes on your screen after a set amount of minutes and seconds. You can configure custom messages and define the exact number of reminder rounds.</p>
+            <p><strong>Pomo Style:</strong> A structured time-management mode that functions similarly to Repeating Reminders, but incorporates scheduled breaks. You can configure dynamic work and break sequences, and either receive a gentle reminder or have the application completely block your screen to enforce downtime.</p>
+            <p><strong>Site Blocker:</strong> A powerful tool to keep you away from digital distractions. You can create lists of specific domains or URLs to either block completely or exclusively allow, ensuring your browser remains a tool for work rather than procrastination.</p>
+            <p><strong>Sidebar Features:</strong> The robust sidebar gives you access to real-time productivity statistics, a visual heatmap of your activity, comprehensive session history logs, and customization options to tailor themes and audio notifications to your liking.</p>
+            <p><strong>Conclusion:</strong> Together, these features make SuperFokus not just a simple timer, but a comprehensive environment for mastering your attention. Whether you are studying, coding, or just trying to get through the day's tasks, SuperFokus is here to keep you on track.</p>
+        </div>
     </div>
 
     <!-- Modal Overlays for Sidebar Dialogs -->
@@ -314,11 +327,20 @@
             </div>
             <div class="form-group">
                 <label>Chime Sound:</label>
-                <select id="chime-selector">
-                    <option value="chime.mp3">Classic Chime</option>
-                    <option value="gentle.mp3">Gentle Notification</option>
-                </select>
-                <button class="add-btn" style="margin-top: 10px; width: 100%;">Upload Custom Chime</button>
+                <div style="display: flex; gap: 10px;">
+                    <select id="chime-selector" style="flex: 1;">
+                        <option value="chime.mp3">Classic Chime</option>
+                        <option value="gentle.mp3">Gentle Notification</option>
+                        <option value="custom">Custom (Upload below)</option>
+                    </select>
+                    <button class="action-btn" id="test-chime-btn" style="margin-top: 0; width: auto; padding: 0.85rem; background: var(--header-grad-1);">Test</button>
+                </div>
+                <div style="margin-top: 10px;">
+                    <label>Volume:</label>
+                    <input type="range" id="chime-volume" min="0" max="1" step="0.1" value="1" style="width: 100%;">
+                </div>
+                <input type="file" id="chime-file-input" accept="audio/*" style="display: none;">
+                <button class="action-btn" id="upload-chime-btn" style="margin-top: 10px; width: 100%; background: var(--header-grad-1);">Upload Custom Chime</button>
             </div>
         </div>
     </div>
@@ -326,6 +348,7 @@
     <!-- Side Bar Selection Menu -->
     <aside id="side-menu">
         <h2>Side Bar</h2>
+        <div class="menu-item" data-modal="modal-about">ℹ️ About SuperFokus</div>
         <div class="menu-item" data-modal="modal-focus-stats">📊 Fokus Stats</div>
         <div class="menu-item" data-modal="modal-session-history">📜 Session History</div>
         <div class="menu-item" data-modal="modal-customization">⚙️ Customization</div>
@@ -360,9 +383,15 @@
       <!-- Repeating Reminders Config -->
       <div id="config-repeating-reminders" class="config-section">
         <h3>Repeating Reminders Config</h3>
-        <div class="form-group">
-          <label for="reminder-interval">Reminder Interval (minutes):</label>
-          <input type="number" id="reminder-interval" placeholder="e.g. 15" min="1">
+        <div class="form-group" style="display: flex; gap: 10px;">
+          <div style="flex: 1;">
+            <label for="reminder-interval">Reminder Interval (minutes):</label>
+            <input type="number" id="reminder-interval" placeholder="e.g. 15" min="0">
+          </div>
+          <div style="flex: 1;">
+            <label for="reminder-interval-seconds">Reminder Interval (seconds):</label>
+            <input type="number" id="reminder-interval-seconds" placeholder="e.g. 0" min="0" max="59">
+          </div>
         </div>
         <div class="form-group" id="rounds-container">
           <label for="reminder-rounds">Number of Rounds:</label>
@@ -386,13 +415,34 @@
           <div id="repeating-rounds-left" style="font-size: 1rem; color: var(--timer-subtext); margin-top: 0.5rem;">Rounds remaining: 0</div>
         </div>
 
-        <button class="action-btn start-btn" id="start-repeating-btn">Start ➤</button>
+        <div style="display: flex; gap: 10px;">
+          <button class="action-btn start-btn" id="start-repeating-btn" style="flex: 2;">Start ➤</button>
+          <button class="action-btn" id="pause-repeating-btn" style="flex: 1; background: #f39c12; display: none;">Pause ⏸</button>
+        </div>
       </div>
 
       <!-- Pomo Style Config -->
       <div id="config-pomo-style" class="config-section">
         <h3>Dynamic Pomo Config</h3>
         
+        <div class="form-group">
+          <label>Pomo Presets:</label>
+          <div style="display: flex; gap: 10px;">
+            <select id="pomo-presets" style="flex: 1;">
+              <option value="custom">Custom</option>
+              <option value="deep-work">Deep Work - 50/10</option>
+              <option value="quick-study">Quick Study - 25/5</option>
+            </select>
+            <button class="action-btn" id="delete-pomo-preset-btn" style="margin-top: 0; width: auto; padding: 0.85rem; background: #e74c3c; display: none;">Delete</button>
+            <button class="action-btn" id="save-pomo-preset-btn" style="margin-top: 0; width: auto; padding: 0.85rem; background: var(--header-grad-1);">Save Preset</button>
+          </div>
+          <div id="save-preset-container" style="display: none; gap: 10px; margin-top: 10px;">
+             <input type="text" id="preset-name-input" placeholder="Preset name..." style="flex: 1;">
+             <button class="action-btn" id="confirm-save-preset-btn" style="margin-top: 0; width: auto; padding: 0.85rem; background: #27ae60;">Save</button>
+             <button class="action-btn" id="cancel-save-preset-btn" style="margin-top: 0; width: auto; padding: 0.85rem; background: #e74c3c;">Cancel</button>
+          </div>
+        </div>
+
         <div class="form-group">
           <label>Action at end of phase:</label>
           <label class="inline-label"><input type="radio" name="pomo-action" value="remind" checked> Remind to take a break</label><br>
@@ -410,11 +460,16 @@
             </div>
         </div>
 
+        <div class="form-group" id="pomo-cycles-container">
+            <label for="pomo-repeats">Repeat Configuration (Cycles):</label>
+            <input type="number" id="pomo-repeats" placeholder="e.g. 4" min="1">
+        </div>
         <div class="form-group">
-            <label>Repeat Configuration:</label>
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <input type="number" id="pomo-repeats" placeholder="Repeats" min="1" style="flex: 1;">
-                <label class="inline-label" style="margin: 0;"><input type="checkbox" id="pomo-infinite"> Infinite</label>
+            <label>
+              <input type="checkbox" id="pomo-infinite"> Infinite Rounds
+            </label>
+            <div id="pomo-infinite-status" style="display: none; color: #27ae60; font-weight: bold; margin-top: 0.5rem;">
+              Infinite rounds selected
             </div>
         </div>
 
@@ -431,7 +486,10 @@
           <button class="action-btn continue-btn" id="continue-pomo-btn">Continue to Next Phase</button>
         </div>
 
-        <button class="action-btn start-btn" id="start-pomo-btn">Start ➤</button>
+        <div style="display: flex; gap: 10px;">
+          <button class="action-btn start-btn" id="start-pomo-btn" style="flex: 2;">Start ➤</button>
+          <button class="action-btn" id="pause-pomo-btn" style="flex: 1; background: #f39c12; display: none;">Pause ⏸</button>
+        </div>
       </div>
 
       <!-- Site Blocker Config -->
@@ -475,7 +533,7 @@
       </div>
     </div>
 
-    <div id="version">v0.3.5</div>
+    <div id="version">v0.5</div>
     
     <!-- Audio for chimes -->
     <audio id="chime-audio" src="chime.mp3" preload="auto"></audio>
