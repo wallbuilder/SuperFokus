@@ -167,22 +167,35 @@
       .menu-item:hover { background: var(--timer-bg); color: var(--header-grad-1); }
 
       /* Dialog Overlay & Modal */
-      .modal-overlay {
+        .modal-overlay {
           position: fixed; top: 0; left: 0; width: 100%; height: 100%;
           background: var(--overlay-bg); backdrop-filter: blur(8px);
           display: none; align-items: flex-start; justify-content: center; z-index: 1500;
           opacity: 0; transition: opacity 0.3s; padding-top: 10vh; box-sizing: border-box;
-      }
-      .modal-overlay.active { display: flex; opacity: 1; }
-      .modal-content {
+        }
+        .modal-overlay.active {
+          display: flex;
+          animation: modalOverlayFadeIn 0.35s cubic-bezier(0.4,0,0.2,1);
+          opacity: 1;
+        }
+        @keyframes modalOverlayFadeIn {
+        0% { opacity: 0; }
+        100% { opacity: 1; }
+        }
+        .modal-content {
           background: var(--container-bg); padding: 2.5rem; border-radius: 20px;
           max-width: 500px; width: 90%; position: relative;
           box-shadow: 0 20px 50px rgba(0,0,0,0.5);
           color: var(--text-color);
-          transform: scale(0.9); transition: transform 0.3s;
+          transform: translateY(40px) scale(0.96);
+          opacity: 0;
+          transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.35s cubic-bezier(0.4,0,0.2,1);
           max-height: 80vh; overflow-y: auto;
-      }
-      .modal-overlay.active .modal-content { transform: scale(1); }
+        }
+        .modal-overlay.active .modal-content {
+          transform: translateY(0) scale(1);
+          opacity: 1;
+        }
       .modal-close { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; cursor: pointer; color: var(--text-color); }
 
       /* Dashboard UI */
@@ -203,6 +216,46 @@
       .form-group { margin-bottom: 1.5rem; }
       label { display: block; margin-bottom: 0.6rem; font-weight: 500; font-size: 0.95rem; }
       .inline-label { display: inline-block; margin-right: 1.2rem; font-weight: normal; }
+      /* Modern Toggle Switches */
+      .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 48px;
+        height: 28px;
+        vertical-align: middle;
+      }
+      .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: #ccc;
+        transition: 0.4s;
+        border-radius: 28px;
+      }
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 22px;
+        width: 22px;
+        left: 3px;
+        bottom: 3px;
+        background: white;
+        transition: 0.4s;
+        border-radius: 50%;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      }
+      .toggle-switch input:checked + .slider {
+        background: linear-gradient(90deg, var(--header-grad-1), var(--header-grad-2));
+      }
+      .toggle-switch input:checked + .slider:before {
+        transform: translateX(20px);
+      }
+
       select, input[type="text"], input[type="number"], textarea {
         width: 100%; padding: 0.85rem; border: 1px solid var(--input-border);
         border-radius: 10px; font-size: 1rem; box-sizing: border-box;
@@ -228,7 +281,7 @@
         background: var(--timer-bg); padding: 10px; border-radius: 8px; margin-bottom: 10px;
       }
       .sequence-item span { font-weight: bold; color: var(--timer-text); }
-      .sequence-item input { width: 80px; margin: 0 10px; }
+      .sequence-item input { width: 120px; margin: 0 10px; }
       .sequence-item .remove-btn { background: #e74c3c; color: white; border: none; border-radius: 50px; cursor: pointer; padding: 5px 10px; }
       .add-phase-btns { display: flex; gap: 10px; margin-bottom: 15px; }
       .add-btn { background: #3498db; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; flex: 1; }
@@ -263,7 +316,7 @@
     <div id="startup-screen">
       <div class="startup-content">
         <h1>SuperFokus</h1>
-        <div id="startup-version">v0.5</div>
+        <div id="startup-version">v0.8</div>
       </div>
     </div>
 
@@ -321,9 +374,10 @@
                 <button class="action-btn" id="theme-toggle-modal" style="background: var(--header-grad-1);">Toggle Dark Mode</button>
             </div>
             <div class="form-group">
-                <label>
-                    <input type="checkbox" id="toggle-header-dark-mode" checked> Show Dark Mode Toggle in Header
-                </label>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="toggle-header-dark-mode" checked>
+                  <span class="slider"></span>
+                </label> Show Dark Mode Toggle in Header
             </div>
             <div class="form-group">
                 <label>Chime Sound:</label>
@@ -342,16 +396,96 @@
                 <input type="file" id="chime-file-input" accept="audio/*" style="display: none;">
                 <button class="action-btn" id="upload-chime-btn" style="margin-top: 10px; width: 100%; background: var(--header-grad-1);">Upload Custom Chime</button>
             </div>
+            <div class="form-group">
+                <label>Failsafe:</label>
+                <button class="action-btn" id="clear-blocker-modal-btn" style="margin-top: 0; width: 100%; background: #e74c3c;">Clear All Site Blocks</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-health" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close">✕</span>
+            <h2>Health Mode</h2>
+            <div class="form-group">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="health-eye-saver" checked>
+                  <span class="slider"></span>
+                </label> Enable Eye Saver (20-20-20 Rule)
+                <small style="color: var(--timer-subtext); display: block; margin-top: 5px;">Every 20 minutes, you will be reminded to look 20 feet away for 20 seconds.</small>
+            </div>
+            <div class="form-group">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="health-posture-check" checked>
+                  <span class="slider"></span>
+                </label> Enable Posture Check
+                <small style="color: var(--timer-subtext); display: block; margin-top: 5px;">Every 45 minutes, you will be reminded to stretch and adjust your posture.</small>
+            </div>
+            <div style="display: flex; gap: 10px;">
+              <button class="action-btn start-btn" id="start-health-btn" style="flex: 2;">Start Health Mode ➤</button>
+              <button class="action-btn" id="stop-health-btn" style="flex: 1; background: #e74c3c; display: none;">Stop ⏹</button>
+            </div>
+            <div id="health-status" style="margin-top: 15px; font-weight: bold; color: #27ae60; display: none; text-align: center;">Health Mode is active! Running in background.</div>
+        </div>
+    </div>
+
+    <div id="modal-site-blocker" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close">✕</span>
+            <h2>Site Blocker</h2>
+            
+            <div class="form-group">
+                <label>Site Blocker Switch:</label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="site-blocker-enabled">
+                      <span class="slider"></span>
+                    </label> <span>Active</span>
+                </div>
+                <small style="color: #e74c3c; display: block; margin-top: 5px;">System-wide blocking requires Administrator privileges. You will be prompted to grant permissions when activating this feature.</small>
+            </div>
+
+            <div class="form-group">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="site-blocker-always-run">
+                  <span class="slider"></span>
+                </label> Continue running even if other Fokus Modes are active
+            </div>
+
+            <div class="form-group">
+              <label>Blocker Mode:</label>
+              <select id="site-blocker-mode">
+                <option value="block">Block only entered websites</option>
+                <option value="allow">Allow only entered websites</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="domain-list">Domain List (one per line):</label>
+              <textarea id="domain-list" placeholder="e.g. youtube.com&#10;reddit.com"></textarea>
+              <small style="color: var(--timer-subtext);">Blocks all webpages connected to the domain.</small>
+            </div>
+
+            <div class="form-group">
+              <label for="url-list">Specific URLs List (one per line):</label>
+              <textarea id="url-list" placeholder="e.g. https://twitter.com/home"></textarea>
+              <small style="color: var(--timer-subtext);">Blocks only the specific URLs provided.</small>
+            </div>
+            
+            <button class="action-btn" id="save-blocker-btn" style="background: #3498db;">Save & Apply Blocker</button>
+            <button class="action-btn" id="clear-blocker-btn" style="background: #e74c3c; margin-top: 10px;">Clear All Blocks (Failsafe)</button>
         </div>
     </div>
 
     <!-- Side Bar Selection Menu -->
     <aside id="side-menu">
         <h2>Side Bar</h2>
-        <div class="menu-item" data-modal="modal-about">ℹ️ About SuperFokus</div>
-        <div class="menu-item" data-modal="modal-focus-stats">📊 Fokus Stats</div>
         <div class="menu-item" data-modal="modal-session-history">📜 Session History</div>
+        <div class="menu-item" data-modal="modal-focus-stats">📊 Fokus Stats</div>
+        <div class="menu-item" data-modal="modal-site-blocker">🔒 Site Blocker</div>
+        <div class="menu-item" data-modal="modal-health">❤️ Health Mode</div>
         <div class="menu-item" data-modal="modal-customization">⚙️ Customization</div>
+        <div class="menu-item" data-modal="modal-about">ℹ️ About SuperFokus</div>
     </aside>
 
     <!-- Main Dashboard -->
@@ -376,7 +510,7 @@
           <option value="none">-- Select a mode --</option>
           <option value="repeating-reminders">Repeating Reminders</option>
           <option value="pomo-style">Pomo Style</option>
-          <option value="site-blocker">Site Blocker</option>
+          <option value="micro-sprint">Micro-Task Sprint</option>
         </select>
       </div>
 
@@ -398,9 +532,10 @@
           <input type="number" id="reminder-rounds" placeholder="e.g. 5" min="1">
         </div>
         <div class="form-group">
-          <label>
-            <input type="checkbox" id="infinite-rounds"> Infinite Rounds
-          </label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="infinite-rounds">
+            <span class="slider"></span>
+          </label> Infinite Rounds
           <div id="infinite-status" style="display: none; color: #27ae60; font-weight: bold; margin-top: 0.5rem;">
             Infinite rounds selected
           </div>
@@ -432,6 +567,7 @@
               <option value="custom">Custom</option>
               <option value="deep-work">Deep Work - 50/10</option>
               <option value="quick-study">Quick Study - 25/5</option>
+              <option value="homework">Homework - 45/15</option>
             </select>
             <button class="action-btn" id="delete-pomo-preset-btn" style="margin-top: 0; width: auto; padding: 0.85rem; background: #e74c3c; display: none;">Delete</button>
             <button class="action-btn" id="save-pomo-preset-btn" style="margin-top: 0; width: auto; padding: 0.85rem; background: var(--header-grad-1);">Save Preset</button>
@@ -465,18 +601,20 @@
             <input type="number" id="pomo-repeats" placeholder="e.g. 4" min="1">
         </div>
         <div class="form-group">
-            <label>
-              <input type="checkbox" id="pomo-infinite"> Infinite Rounds
-            </label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="pomo-infinite">
+              <span class="slider"></span>
+            </label> Infinite Rounds
             <div id="pomo-infinite-status" style="display: none; color: #27ae60; font-weight: bold; margin-top: 0.5rem;">
               Infinite rounds selected
             </div>
         </div>
 
         <div class="form-group">
-            <label>
-              <input type="checkbox" id="pomo-autostart" checked> Auto-Start Next Phase
-            </label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="pomo-autostart" checked>
+              <span class="slider"></span>
+            </label> Auto-Start Next Phase
         </div>
 
         <div id="pomo-timer-display" class="hidden timer-display">
@@ -492,51 +630,50 @@
         </div>
       </div>
 
-      <!-- Site Blocker Config -->
-      <div id="config-site-blocker" class="config-section">
-        <h3>Site Blocker Config</h3>
-        
-        <div class="form-group">
-            <label>Site Blocker Switch:</label>
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <input type="checkbox" id="site-blocker-enabled" style="width: auto;"> <span>Active</span>
-            </div>
-        </div>
 
-        <div class="form-group">
-            <label>
-                <input type="checkbox" id="site-blocker-always-run"> Continue running even if other Fokus Modes are active
-            </label>
-        </div>
 
+      <!-- Micro-Task Sprint Config -->
+      <div id="config-micro-sprint" class="config-section">
+        <h3>Micro-Task Sprint Mode</h3>
         <div class="form-group">
-          <label>Blocker Mode:</label>
-          <select id="site-blocker-mode">
-            <option value="block">Block only entered websites</option>
-            <option value="allow">Allow only entered websites</option>
+          <label for="sprint-duration">Sprint Duration (minutes):</label>
+          <select id="sprint-duration">
+            <option value="5">5 Minutes</option>
+            <option value="10">10 Minutes</option>
+            <option value="15">15 Minutes</option>
           </select>
         </div>
-
         <div class="form-group">
-          <label for="domain-list">Domain List (one per line):</label>
-          <textarea id="domain-list" placeholder="e.g. youtube.com&#10;reddit.com"></textarea>
-          <small style="color: var(--timer-subtext);">Blocks all webpages connected to the domain.</small>
-        </div>
-
-        <div class="form-group">
-          <label for="url-list">Specific URLs List (one per line):</label>
-          <textarea id="url-list" placeholder="e.g. https://twitter.com/home"></textarea>
-          <small style="color: var(--timer-subtext);">Blocks only the specific URLs provided.</small>
+          <label for="sprint-tasks">Tasks (one per line):</label>
+          <textarea id="sprint-tasks" placeholder="e.g. Reply to emails&#10;Organize desk"></textarea>
         </div>
         
-        <button class="action-btn" id="save-blocker-btn" style="background: #3498db;">Save & Apply Blocker</button>
+        <div id="sprint-timer-display" class="hidden timer-display">
+          <div id="sprint-current-task" style="font-size: 1.4rem; font-weight: 500; color: var(--header-grad-1);">Task</div>
+          <div id="sprint-time-left" style="font-size: 3rem; font-weight: 700; color: var(--timer-text);">00:00</div>
+          <div id="sprint-tasks-left" style="font-size: 1rem; color: var(--timer-subtext); margin-top: 0.5rem;">Remaining Tasks: 0</div>
+          <button class="action-btn continue-btn" id="next-sprint-btn" style="display: none;">Next Task</button>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <button class="action-btn start-btn" id="start-sprint-btn" style="flex: 2;">Start Sprints ➤</button>
+          <button class="action-btn" id="stop-sprint-btn" style="flex: 1; background: #e74c3c; display: none;">Stop ⏹</button>
+        </div>
       </div>
     </div>
 
-    <div id="version">v0.5</div>
+    <div id="version">v0.8</div>
     
     <!-- Audio for chimes -->
     <audio id="chime-audio" src="chime.mp3" preload="auto"></audio>
+
+    <!-- Custom Alert Modal for JS alert() replacement -->
+    <div id="custom-alert-modal" class="modal-overlay" tabindex="-1">
+      <div class="modal-content" style="max-width: 350px; text-align: center;">
+        <div id="custom-alert-message" style="margin-bottom: 2rem; font-size: 1.1rem;"></div>
+        <button id="custom-alert-ok" class="action-btn start-btn" style="width: 120px; margin: 0 auto;">OK</button>
+      </div>
+    </div>
 
     <script src="renderer.js"></script>
   </body>

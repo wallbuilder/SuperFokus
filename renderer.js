@@ -11,6 +11,34 @@ const store = {
     }
 };
 
+// --- Custom Modal Alert Replacement ---
+function customAlert(message, options = {}) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('custom-alert-modal');
+        const msgEl = document.getElementById('custom-alert-message');
+        const okBtn = document.getElementById('custom-alert-ok');
+        let previousActive = document.activeElement;
+        msgEl.textContent = message;
+        modal.classList.add('active');
+        modal.style.display = 'flex';
+        okBtn.focus();
+        function closeModal() {
+            modal.classList.remove('active');
+            setTimeout(() => { modal.style.display = 'none'; }, 300);
+            okBtn.removeEventListener('click', onOk);
+            modal.removeEventListener('keydown', onKey);
+            if (previousActive && typeof previousActive.focus === 'function') {
+                previousActive.focus();
+            }
+            resolve();
+        }
+        function onOk() { closeModal(); }
+        function onKey(e) { if (e.key === 'Enter' || e.key === 'Escape') closeModal(); }
+        okBtn.addEventListener('click', onOk);
+        modal.addEventListener('keydown', onKey);
+    });
+}
+
 // --- Theme & Setup ---
 const themeToggleBtn = document.getElementById('theme-toggle');
 const themeToggleModalBtn = document.getElementById('theme-toggle-modal');
@@ -98,7 +126,8 @@ function playFallbackBeep() {
 }
 
 function playChime() {
-    if (chimeAudio && chimeAudio.src && !chimeAudio.src.includes('chime.mp3') && !chimeAudio.src.includes('gentle.mp3')) {
+    if (chimeAudio && chimeAudio.src) {
+        chimeAudio.currentTime = 0;
         chimeAudio.play().catch(e => {
             console.log('Audio play failed:', e);
             playFallbackBeep();
@@ -180,7 +209,19 @@ function closeSidebar() {
     }
 }
 
+
 menuToggleBtn.addEventListener('click', toggleSidebar);
+
+// Sidebar click-outside-to-close logic
+window.addEventListener('click', (e) => {
+    const sidebarOpen = sideMenu.classList.contains('open');
+    if (!sidebarOpen) return;
+    const isSidebar = sideMenu.contains(e.target);
+    const isToggle = menuToggleBtn.contains(e.target);
+    if (!isSidebar && !isToggle) {
+        closeSidebar();
+    }
+});
 
 // Modal Logic
 const modalOverlays = document.querySelectorAll('.modal-overlay');
@@ -321,7 +362,8 @@ const fokusModeSelect = document.getElementById('fokus-mode');
 const configSections = {
   'repeating-reminders': document.getElementById('config-repeating-reminders'),
   'pomo-style': document.getElementById('config-pomo-style'),
-  'site-blocker': document.getElementById('config-site-blocker')
+  'site-blocker': document.getElementById('config-site-blocker'),
+  'micro-sprint': document.getElementById('config-micro-sprint')
 };
 
 fokusModeSelect.addEventListener('change', (event) => {
@@ -430,7 +472,7 @@ if (deletePomoPresetBtn) {
 if (savePomoPresetBtn) {
     savePomoPresetBtn.addEventListener('click', () => {
         if (pomoSequence.length === 0) {
-            alert('Add phases to sequence before saving as preset.');
+            customAlert('Add phases to sequence before saving as preset.');
             return;
         }
         savePresetContainer.style.display = 'flex';
@@ -474,7 +516,7 @@ function renderSequence() {
         div.innerHTML = `
             <span>${item.type === 'work' ? 'Work' : 'Break'} Phase</span>
             <div style="display: flex; align-items: center;">
-                <input type="number" min="1" value="${item.duration}" data-index="${index}" style="width: 60px;">
+                <input type="number" min="1" value="${item.duration}" data-index="${index}" style="width: 90px;">
                 <select data-index="${index}" style="margin-left: 5px; width: 70px; padding: 5px;">
                     <option value="mins" ${unit === 'mins' ? 'selected' : ''}>mins</option>
                     <option value="secs" ${unit === 'secs' ? 'selected' : ''}>secs</option>
@@ -696,7 +738,7 @@ function stopPomoStyle() {
 startPomoBtn.addEventListener('click', () => {
     if (!isPomoRunning) {
         if (pomoSequence.length === 0) {
-            alert('Please add at least one phase to the sequence.');
+            customAlert('Please add at least one phase to the sequence.');
             return;
         }
         
@@ -729,20 +771,21 @@ startPomoBtn.addEventListener('click', () => {
     }
 });
 
-if (pausePomoBtn) {
-    pausePomoBtn.addEventListener('click', () => {
+// More robust pause button handling for Pomo Style using event delegation
+document.addEventListener('click', (e) => {
+    if (e.target.id === 'pause-pomo-btn') {
         if (!isPomoRunning) return;
         if (isPomoPaused) {
             ipcRenderer.send('resume-timer', 'pomo');
             isPomoPaused = false;
-            pausePomoBtn.innerText = 'Pause ⏸';
+            e.target.innerText = 'Pause ⏸';
         } else {
             ipcRenderer.send('pause-timer', 'pomo');
             isPomoPaused = true;
-            pausePomoBtn.innerText = 'Resume ▶️';
+            e.target.innerText = 'Resume ▶️';
         }
-    });
-}
+    }
+});
 
 continuePomoBtn.addEventListener('click', startPomoPhase);
 
@@ -819,8 +862,14 @@ function startRepeatingReminders() {
     const rounds = parseInt(reminderRoundsInput.value, 10);
     const isInfinite = infiniteRoundsCheckbox.checked;
 
-    if (totalSeconds <= 0) return alert('Please enter a valid interval.');
-    if (!isInfinite && (isNaN(rounds) || rounds <= 0)) return alert('Please enter a valid number of rounds.');
+    if (totalSeconds <= 0) {
+        customAlert('Please enter a valid interval.');
+        return;
+    }
+    if (!isInfinite && (isNaN(rounds) || rounds <= 0)) {
+        customAlert('Please enter a valid number of rounds.');
+        return;
+    }
 
     currentRepeatingTotalSeconds = totalSeconds;
     isRepeatingRunning = true;
@@ -859,24 +908,27 @@ startRepeatingBtn.addEventListener('click', () => {
     else stopRepeatingReminders();
 });
 
-if (pauseRepeatingBtn) {
-    pauseRepeatingBtn.addEventListener('click', () => {
+// More robust pause button handling using event delegation
+document.addEventListener('click', (e) => {
+    if (e.target.id === 'pause-repeating-btn') {
         if (!isRepeatingRunning) return;
         if (isRepeatingPaused) {
             ipcRenderer.send('resume-timer', 'repeating');
             isRepeatingPaused = false;
-            pauseRepeatingBtn.innerText = 'Pause ⏸';
+            e.target.innerText = 'Pause ⏸';
         } else {
             ipcRenderer.send('pause-timer', 'repeating');
             isRepeatingPaused = true;
-            pauseRepeatingBtn.innerText = 'Resume ▶️';
+            e.target.innerText = 'Resume ▶️';
         }
-    });
-}
+    }
+});
 
 
 // --- Site Blocker ---
 const saveBlockerBtn = document.getElementById('save-blocker-btn');
+const clearBlockerBtn = document.getElementById('clear-blocker-btn');
+const clearBlockerModalBtn = document.getElementById('clear-blocker-modal-btn');
 const siteBlockerMode = document.getElementById('site-blocker-mode');
 const domainListInput = document.getElementById('domain-list');
 const urlListInput = document.getElementById('url-list');
@@ -903,6 +955,144 @@ saveBlockerBtn.addEventListener('click', () => {
     }, 2000);
 });
 
+function handleClearBlocks(btn) {
+    if (confirm('Are you sure you want to clear all SuperFokus block entries from your system hosts file?')) {
+        ipcRenderer.send('clear-all-blocks');
+        const oldText = btn.innerText;
+        const oldBg = btn.style.background;
+        btn.innerText = 'Cleared!';
+        btn.style.background = '#2ecc71';
+        setTimeout(() => {
+            btn.innerText = oldText;
+            btn.style.background = oldBg;
+        }, 2000);
+    }
+}
+
+if (clearBlockerBtn) {
+    clearBlockerBtn.addEventListener('click', () => handleClearBlocks(clearBlockerBtn));
+}
+
+if (clearBlockerModalBtn) {
+    clearBlockerModalBtn.addEventListener('click', () => handleClearBlocks(clearBlockerModalBtn));
+}
+
 // Sync blocker state to main if it should always run
 siteBlockerEnabled.addEventListener('change', updateBlocker);
 siteBlockerAlwaysRun.addEventListener('change', updateBlocker);
+
+// --- Health & Posture Mode ---
+const startHealthBtn = document.getElementById('start-health-btn');
+const stopHealthBtn = document.getElementById('stop-health-btn');
+const healthEyeSaver = document.getElementById('health-eye-saver');
+const healthPostureCheck = document.getElementById('health-posture-check');
+const healthStatus = document.getElementById('health-status');
+
+let isHealthRunning = false;
+
+startHealthBtn.addEventListener('click', () => {
+    isHealthRunning = true;
+    startHealthBtn.style.display = 'none';
+    stopHealthBtn.style.display = 'block';
+    healthStatus.style.display = 'block';
+    setInputsLocked('modal-health', true);
+
+    ipcRenderer.send('start-health-mode', {
+        eyeSaver: healthEyeSaver.checked,
+        postureCheck: healthPostureCheck.checked
+    });
+});
+
+stopHealthBtn.addEventListener('click', () => {
+    isHealthRunning = false;
+    startHealthBtn.style.display = 'block';
+    stopHealthBtn.style.display = 'none';
+    healthStatus.style.display = 'none';
+    setInputsLocked('modal-health', false);
+
+    ipcRenderer.send('stop-health-mode');
+});
+// --- Micro-Task Sprint Mode ---
+const sprintDurationSelect = document.getElementById('sprint-duration');
+const sprintTasksInput = document.getElementById('sprint-tasks');
+const startSprintBtn = document.getElementById('start-sprint-btn');
+const stopSprintBtn = document.getElementById('stop-sprint-btn');
+const sprintTimerDisplay = document.getElementById('sprint-timer-display');
+const sprintCurrentTask = document.getElementById('sprint-current-task');
+const sprintTimeLeft = document.getElementById('sprint-time-left');
+const sprintTasksLeft = document.getElementById('sprint-tasks-left');
+const nextSprintBtn = document.getElementById('next-sprint-btn');
+
+let isSprintRunning = false;
+let sprintTasks = [];
+let currentSprintTaskIndex = 0;
+let sprintTimerSeconds = 0;
+let sprintDurationSeconds = 0;
+
+function updateSprintDisplay() {
+    sprintTimeLeft.innerText = formatTime(sprintTimerSeconds);
+    const taskName = sprintTasks[currentSprintTaskIndex] || `Sprint ${currentSprintTaskIndex + 1}`;
+    sprintCurrentTask.innerText = taskName;
+    sprintTasksLeft.innerText = `Remaining Tasks: ${Math.max(0, sprintTasks.length - currentSprintTaskIndex - 1)}`;
+}
+
+ipcRenderer.on('timer-tick-sprint', (event, secondsLeft) => {
+    sprintTimerSeconds = secondsLeft;
+    updateSprintDisplay();
+});
+
+ipcRenderer.on('timer-complete-sprint', () => {
+    playChime();
+    recordFocusSession(Math.round(sprintDurationSeconds / 60), 'Micro-Task Sprint');
+    nextSprintBtn.style.display = 'block';
+});
+
+function startNextSprintTask() {
+    if (currentSprintTaskIndex >= sprintTasks.length && sprintTasks.length > 0) {
+        stopSprintMode();
+        return;
+    }
+    nextSprintBtn.style.display = 'none';
+    sprintTimerSeconds = sprintDurationSeconds;
+    updateSprintDisplay();
+    ipcRenderer.send('start-timer', { id: 'sprint', seconds: sprintTimerSeconds });
+}
+
+function stopSprintMode() {
+    isSprintRunning = false;
+    ipcRenderer.send('stop-timer', 'sprint');
+    startSprintBtn.style.display = 'block';
+    stopSprintBtn.style.display = 'none';
+    setInputsLocked('config-micro-sprint', false);
+    sprintTimerDisplay.classList.add('hidden');
+    nextSprintBtn.style.display = 'none';
+}
+
+startSprintBtn.addEventListener('click', () => {
+    const rawTasks = sprintTasksInput.value.split('\n').map(t => t.trim()).filter(Boolean);
+    sprintTasks = rawTasks.length > 0 ? rawTasks : ['Unnamed Sprint'];
+    currentSprintTaskIndex = 0;
+    
+    sprintDurationSeconds = parseInt(sprintDurationSelect.value, 10) * 60;
+    
+    isSprintRunning = true;
+    startSprintBtn.style.display = 'none';
+    stopSprintBtn.style.display = 'block';
+    setInputsLocked('config-micro-sprint', true);
+    sprintTimerDisplay.classList.remove('hidden');
+    
+    startNextSprintTask();
+});
+
+stopSprintBtn.addEventListener('click', () => {
+    stopSprintMode();
+});
+
+nextSprintBtn.addEventListener('click', () => {
+    currentSprintTaskIndex++;
+    if (currentSprintTaskIndex >= sprintTasks.length) {
+        stopSprintMode();
+    } else {
+        startNextSprintTask();
+    }
+});

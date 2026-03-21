@@ -34,6 +34,5 @@ This update focuses on polishing the user experience and resolving interface iss
 - **Visual Velocity:** A countdown timer for each small task to maintain momentum and focus.
 
 ### Additional Features
-- Time regulation for computer usage
 - Homework session management
 - Distraction blocking

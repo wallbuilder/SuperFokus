@@ -73,8 +73,8 @@ function createPopupWindow(message) {
     }
 
     popupWindow = new BrowserWindow({
-        width: 400,
-        height: 250,
+        width: 500,
+        height: 350,
         alwaysOnTop: true,
         frame: true,
         resizable: false,
@@ -292,49 +292,8 @@ app.whenReady().then(() => {
       console.log("Tray creation failed (likely missing icon.png)");
   }
 
-  // --- WebRequest Blocker Intercept ---
-  session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
-    if (!blockerRules.active || (!blockerRules.domains.length && !blockerRules.urls.length)) {
-      return callback({ cancel: false });
-    }
-
-    try {
-      const urlObj = new URL(details.url);
-      const hostname = urlObj.hostname;
-
-      let isMatch = false;
-
-      // Check Domains
-      for (const domain of blockerRules.domains) {
-        if (hostname === domain || hostname.endsWith(`.${domain}`)) {
-          isMatch = true;
-          break;
-        }
-      }
-
-      // Check specific URLs
-      if (!isMatch) {
-        for (const blockedUrl of blockerRules.urls) {
-          if (details.url.startsWith(blockedUrl)) {
-            isMatch = true;
-            break;
-          }
-        }
-      }
-
-      if (blockerRules.mode === 'block') {
-        callback({ cancel: isMatch });
-      } else {
-        if (details.url.startsWith('devtools://') || details.url.startsWith('file://') || details.url.startsWith('chrome-extension://')) {
-             callback({ cancel: false });
-        } else {
-             callback({ cancel: !isMatch });
-        }
-      }
-    } catch (e) {
-      callback({ cancel: false });
-    }
-  });
+  // Note: WebRequest API is deprecated in Electron 14+
+  // Site blocking is now handled via hosts file modification in fokus-sb-helper.js
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -346,8 +305,81 @@ app.whenReady().then(() => {
 });
 
 // IPC for Blocker
+const util = require('util');
+if (!util.isObject) {
+  util.isObject = function(val) {
+    return val !== null && typeof val === 'object';
+  };
+}
+const sudo = require('sudo-prompt');
+const helperPath = path.join(__dirname, 'fokus-sb-helper.js');
+let blocksApplied = false;
+
 ipcMain.on('update-blocker-rules', (event, rules) => {
     blockerRules = rules;
+    if (rules.active && rules.mode === 'block' && rules.domains.length > 0) {
+        const domainsList = rules.domains.join(',');
+        sudo.exec(`node "${helperPath}" apply "${domainsList}"`, { name: 'SuperFokus' }, (error, stdout, stderr) => {
+            if (error) console.error('Blocker elevation error:', error);
+            else {
+                console.log('Blocker applied:', stdout);
+                blocksApplied = true;
+            }
+        });
+    } else if (blocksApplied) {
+        sudo.exec(`node "${helperPath}" clear`, { name: 'SuperFokus' }, (error, stdout, stderr) => {
+            if (error) console.error('Blocker elevation error:', error);
+            else {
+                console.log('Blocker cleared:', stdout);
+                blocksApplied = false;
+            }
+        });
+    }
+});
+
+ipcMain.on('clear-all-blocks', () => {
+    sudo.exec(`node "${helperPath}" clear`, { name: 'SuperFokus' }, (error, stdout, stderr) => {
+        if (error) console.error('Blocker elevation error:', error);
+        else {
+            console.log('All blocks cleared manually:', stdout);
+            blocksApplied = false;
+        }
+    });
+});
+
+let healthIntervals = { eye: null, posture: null };
+
+ipcMain.on('start-health-mode', (event, data) => {
+    if (healthIntervals.eye) clearInterval(healthIntervals.eye);
+    if (healthIntervals.posture) clearInterval(healthIntervals.posture);
+    
+    if (data.eyeSaver) {
+        healthIntervals.eye = setInterval(() => {
+            createPopupWindow("Eye Saver: Look at something 20 feet away for 20 seconds.");
+        }, 20 * 60 * 1000); // 20 mins
+    }
+    if (data.postureCheck) {
+        healthIntervals.posture = setInterval(() => {
+            createPopupWindow("Posture Check: Time to sit up straight and stretch for a minute.");
+        }, 45 * 60 * 1000); // 45 mins
+    }
+});
+
+ipcMain.on('stop-health-mode', () => {
+    if (healthIntervals.eye) clearInterval(healthIntervals.eye);
+    if (healthIntervals.posture) clearInterval(healthIntervals.posture);
+});
+
+let isClearingOnQuit = false;
+app.on('will-quit', (e) => {
+    if (blocksApplied && !isClearingOnQuit) {
+        e.preventDefault();
+        isClearingOnQuit = true;
+        sudo.exec(`node "${helperPath}" clear`, { name: 'SuperFokus' }, () => {
+            blocksApplied = false;
+            app.quit();
+        });
+    }
 });
 
 app.on('window-all-closed', () => {
@@ -355,3 +387,5 @@ app.on('window-all-closed', () => {
     // app.quit(); // Handled by tray/isQuitting
   }
 });
+
+

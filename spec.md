@@ -182,7 +182,7 @@ To optimze this, we need to switch to a timestamp-based approach. When the timer
 
 -------------------------------------------------------------------
 # v0.6 {3/18/2026}
-This update focuses on updating the Site Blocker to be actually functional, since using Electron's webrequest API doesn't actually help the Site Blocker work as intended. Other things the update focuses on will be revealed later. (Also, update the version number to 0.6)
+This update focuses on updating the Site Blocker to be actually functional, since using Electron's webrequest API doesn't actually help the Site Blocker work as intended. Other things the update focuses on include some bug fixes and QOL/design changes. (Also, update the version number to 0.6)
 
 ### Section 1. Hybrid Site Blocker Implementation
 To achieve system-wide site blocking without completely rewriting SuperFokus as a native Windows app, we will use a "Hybrid" approach. This involves keeping the UI in Electron and using a separate, elevated script to modify the system's `hosts` file.
@@ -199,21 +199,56 @@ To achieve system-wide site blocking without completely rewriting SuperFokus as 
   **Step 4: Failsafe and Cleanup (Crucial)**
   You must ensure the user's internet isn't permanently restricted if the app crashes or is closed abruptly. 
   - Add a listener for the app quitting (`app.on('will-quit')`) to run the helper script one last time to remove all SuperFokus entries from the `hosts` file.
-  - Add a "Clear All Blocks" failsafe button in the SuperFokus Customization settings to manually trigger the cleanup.
+  - Add a "Clear All Blocks" failsafe button in the SuperFokus Customization (and Site Blocker config) settings to manually trigger the cleanup.
 
   **Step 5: UI/UX Updates**
-  Update the Site Blocker UI to clearly inform the user: "System-wide blocking requires Administrator privileges. You will see a prompt asking for the administrator's permission when activating this feature."
+  Update the Site Blocker UI to clearly inform the user: "System-wide blocking requires Administrator privileges." You will see a prompt asking for the administrator's permission when activating this feature.
 
-### Section 2. ???
-There's nothing in here for now.
 
-### Section 3. ???
-There's nothing in here for now.
+### Section 2. Program Issues (Bugs)
+   - After an alert pops up, I can no longer edit any of the input boxes using text. (I have to use the arrows that pop up whenever I move my mouse over the box instead.)
+   - The sidebar doesn't automiatically close whenever I click anywhere outside of it. 
+   - There's only one type of chime that plays. Where's the variety?
+
+### Section 3. QOL/Design Changes
+   - Sidebar Modals should have a sliding animation AND a "fading in" animation when opened. The screen shouldn't snap to a blur, but fade into it instead.
+   - Text boxes for the Dynamic Pomo Builder should be wider so the arrows don't obsure the text. (only by 1.5x)
+   - Switches should look more like the modern "sliders" we see today instead of checkboxes.
 
 -------------------------------------------------------------------
-# v0.7 {3/19/2026}
-This update focuses on (???). (Also, update the version number to 0.7.)
+# v0.7 {3/20/2026}
+This update focuses on introducing entirely new, user-focused functionality for health and high-speed productivity, specifically Health & Posture Mode and Micro-Task Sprint Mode. (Also, update the version number to 0.7.)
+
+### Section 1. Health & Posture Mode (The "Body Guard")
+- **Eye Saver:** Implementing the 20-20-20 rule (every 20 minutes, look at something 20 feet away for 20 seconds) to prevent eye strain during long sessions.
+- **Posture Check:** Adding regular reminders to stretch and adjust posture, with a mandatory check-in to ensure physical health.
+
+### Section 2. Micro-Task Sprint Mode (The "Speed Run")
+- **Rapid Tasks:** A mode specifically designed to break down work into 5–10 minute high-speed sprints, ideal for knocking out small tasks quickly.
+- **Visual Velocity:** A dedicated countdown timer for these small tasks to maintain momentum and a high level of focus.
+
+### Section 3. Additional Focus Management Features
+- **Time Regulation:** Adding features to regulate overall computer usage time.
+- **Homework Sessions:** Dedicated tools or presets for managing structured homework sessions.
+- **Enhanced Distraction Blocking:** Building upon the recent Site Blocker improvements to block other potential distractions.
+
+## v0.7.1 {3/20/2026}
+Remove Time regulation from SuperFokus.
+
+## v0.7.2 {3/20/2026}
+- Health and safety mode should become a modal in the sidebar labeled "Health Mode", with the icon being a heart emoji. It should function EXACTLY as before.
+- There's an issue with the site blocker where an error popup appears when trying to activate the program. Details will probably be shown if you're being asked to carry this update out.
+
+# v0.8 {3/21/2026}
+
+### Section 1. Bugs
+- The Pause button simply doesn't work. I keep clicking it and yet nothing even happens to the timer or the button itself.
+- A JavaScript error happens whenver I try to activate Site Blocker. Analyze the code to see if it is outdated and (replace it with code that works if it's actually outdated).
 
 
-### Section 1. ???
-There's nothing in here for now.
+### Section 2. QOL/Design Changes
+- The popups opened by Repeating Reminders need to be bigger, as the close button is barely visible (obscured by the bottom edge of the popup window).
+- The full Site Blocker Setup needs to be moved to the sidebar as well. (Only after fixing the bug above)
+- The sidebar should be rearranged in this order (from top to bottom): Session History, Fokus Stats > Site Blocker > Health Mode > Customization > About SuperFokus.
+
+# v0.8.1 {3/21/2026}
