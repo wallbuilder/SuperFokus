@@ -21,6 +21,9 @@ let blockerRules = {
     alwaysRun: false
 };
 
+// Mac-specific blocker active flag
+let macBlockActive = false;
+let macFocusEnforcer = null;
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 900,
@@ -84,6 +87,17 @@ function createPopupWindow(message) {
         },
     });
 
+    // Mac-specific visibility and level to keep popup on top of other apps/workspaces
+    if (process.platform === 'darwin') {
+        try {
+            popupWindow.setAlwaysOnTop(true, 'screen-saver');
+            popupWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+            popupWindow.setFullScreenable(false);
+        } catch (e) {
+            console.warn('Mac popup window tuning failed', e);
+        }
+    }
+
     popupWindow.loadFile('popup.html');
     
     popupWindow.webContents.on('did-finish-load', () => {
@@ -92,6 +106,18 @@ function createPopupWindow(message) {
 
     popupWindow.on('closed', () => {
         popupWindow = null;
+    });
+
+    // Focus-lock while blocker is active
+    popupWindow.on('blur', () => {
+        if (macBlockActive) {
+            try {
+                popupWindow.focus();
+                // small toggle to try to keep it above other apps
+                popupWindow.setAlwaysOnTop(true);
+                popupWindow.setAlwaysOnTop(false);
+            } catch (e) {}
+        }
     });
 }
 
@@ -150,6 +176,19 @@ function createFullscreenWindow(data) {
         },
     });
 
+    // Mac-specific tuning to try and keep the fullscreen blocker above other apps
+    if (process.platform === 'darwin') {
+        try {
+            // Try to enable kiosk/fullscreen immediately to reduce race where user can switch away
+            try { fullscreenWindow.setKiosk(true); } catch (e) {}
+            fullscreenWindow.setAlwaysOnTop(true, 'screen-saver');
+            fullscreenWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+            fullscreenWindow.setFullScreen(true);
+        } catch (e) {
+            console.warn('Mac fullscreen window tuning failed', e);
+        }
+    }
+
     fullscreenWindow.loadFile('fullscreen-popup.html');
 
     fullscreenWindow.webContents.on('did-finish-load', () => {
@@ -159,6 +198,47 @@ function createFullscreenWindow(data) {
     fullscreenWindow.on('closed', () => {
         fullscreenWindow = null;
     });
+
+    // Focus-lock while blocker is active
+    fullscreenWindow.on('blur', () => {
+        if (macBlockActive) {
+            try {
+                fullscreenWindow.focus();
+                fullscreenWindow.setAlwaysOnTop(true);
+                fullscreenWindow.setAlwaysOnTop(false);
+            } catch (e) {}
+        }
+    });
+
+    // If user minimizes or hides the window, immediately restore it while blocking
+    fullscreenWindow.on('minimize', () => {
+        if (macBlockActive) {
+            try { fullscreenWindow.restore(); fullscreenWindow.focus(); } catch (e) {}
+        }
+    });
+    fullscreenWindow.on('hide', () => {
+        if (macBlockActive) {
+            try { fullscreenWindow.show(); fullscreenWindow.focus(); } catch (e) {}
+        }
+    });
+
+    // Start a periodic enforcer to keep focus on mac while blocker active
+    if (process.platform === 'darwin') {
+        try {
+            if (macFocusEnforcer) clearInterval(macFocusEnforcer);
+            macFocusEnforcer = setInterval(() => {
+                if (macBlockActive && fullscreenWindow) {
+                    try {
+                        if (!fullscreenWindow.isDestroyed()) {
+                            fullscreenWindow.focus();
+                            fullscreenWindow.setAlwaysOnTop(true);
+                            fullscreenWindow.setAlwaysOnTop(false);
+                        }
+                    } catch (e) {}
+                }
+            }, 1000);
+        } catch (e) {}
+    }
 }
 
 // --- Timer State (Main Process) ---
@@ -305,6 +385,47 @@ app.whenReady().then(() => {
 });
 
 // IPC for Blocker
+// macOS-focused IPC controls for popup -> fullscreen blocker flow
+ipcMain.on('blocker-show-popup', (event, message) => {
+    createPopupWindow(message);
+});
+
+ipcMain.on('blocker-expand-fullscreen', (event, data) => {
+    macBlockActive = true;
+    createFullscreenWindow(data);
+    // try to enable kiosk for stricter lock on mac
+    if (process.platform === 'darwin' && fullscreenWindow) {
+        try {
+            fullscreenWindow.setKiosk(true);
+        } catch (e) {}
+    }
+});
+
+ipcMain.on('blocker-start', (event, data) => {
+    // Only enable the mac-specific focus-lock flag on macOS
+    macBlockActive = (process.platform === 'darwin');
+    // Pass the whole data object to the popup so renderer can show countdown and expand
+    if (data) createPopupWindow(data);
+    else createPopupWindow('');
+});
+
+ipcMain.on('blocker-stop', () => {
+    macBlockActive = false;
+    try {
+        if (fullscreenWindow) {
+            if (process.platform === 'darwin') {
+                try { fullscreenWindow.setKiosk(false); } catch (e) {}
+            }
+            fullscreenWindow.close();
+        }
+    } catch (e) {}
+    if (popupWindow) popupWindow.close();
+    // Clear enforcer interval
+    if (macFocusEnforcer) {
+        clearInterval(macFocusEnforcer);
+        macFocusEnforcer = null;
+    }
+});
 const util = require('util');
 if (!util.isObject) {
   util.isObject = function(val) {
