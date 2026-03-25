@@ -1,6 +1,7 @@
 const { ipcRenderer } = require('electron');
 
 let countdownInterval = null;
+let autoCloseTimer = null;
 
 function clearCountdown() {
     if (countdownInterval) {
@@ -45,21 +46,75 @@ function startCountdown(delaySeconds, fullscreenData) {
     }, 1000);
 }
 
+function setCloseButtonState(closeBtn, remaining) {
+    if (!closeBtn) return;
+
+    if (remaining > 1) {
+        closeBtn.disabled = false;
+        closeBtn.style.backgroundColor = '#2c3e50';
+        closeBtn.style.color = 'white';
+        closeBtn.style.boxShadow = '0 0 10px rgba(0,0,0,0.25)';
+        closeBtn.title = 'Click to close now';
+    } else if (remaining === 1) {
+        closeBtn.disabled = true; // final lock at 1s
+        closeBtn.style.backgroundColor = '#b0bec5';
+        closeBtn.style.color = '#495057';
+        closeBtn.style.boxShadow = 'none';
+        closeBtn.title = 'Auto-closing momentarily';
+    } else {
+        closeBtn.disabled = true;
+        closeBtn.style.backgroundColor = '#9e9e9e';
+        closeBtn.style.color = '#ffffff';
+        closeBtn.title = '';
+    }
+}
+
+function startAutoCloseCountdown(totalSeconds) {
+    let remaining = totalSeconds;
+    const timerEl = document.getElementById('timer');
+    const closeBtn = document.getElementById('close-btn');
+    
+    if (timerEl) timerEl.innerText = remaining;
+    setCloseButtonState(closeBtn, remaining);
+
+    countdownInterval = setInterval(() => {
+        remaining -= 1;
+        if (timerEl) timerEl.innerText = Math.max(0, remaining);
+
+        setCloseButtonState(closeBtn, Math.max(0, remaining));
+
+        if (remaining <= 0) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
+    }, 1000);
+}
+
 ipcRenderer.on('display-message', (event, payload) => {
     clearCountdown();
+    
+    if (autoCloseTimer) {
+        clearTimeout(autoCloseTimer);
+        autoCloseTimer = null;
+    }
 
     let message = '';
     let delay = null;
     let fullscreenData = null;
+    let healthType = null;
+    let isBlocking = false;
+    let closeDelay = 10000; // default 10s
 
     if (typeof payload === 'string') {
         message = payload;
     } else if (payload && typeof payload === 'object') {
-        // Some callers pass an object (e.g., { type, duration, fullScreen, autoStart })
         message = payload.message || payload.text || (payload.type ? `Time for a ${payload.type}!` : '');
         delay = payload.delaySeconds || payload.delay || null;
         fullscreenData = payload.fullscreenData || payload.data || null;
-        // If no explicit fullscreenData provided, build one from common fields
+        healthType = payload.healthType || null;
+        isBlocking = payload.isBlocking || false;
+        closeDelay = payload.closeDelay || 10000;
+        
         if (!fullscreenData) {
             fullscreenData = {
                 type: payload.type || 'Break',
@@ -72,6 +127,13 @@ ipcRenderer.on('display-message', (event, payload) => {
 
     const msgEl = document.getElementById('message-content');
     if (msgEl) msgEl.innerText = message;
+    
+    // Apply blocking style if in fullscreen mode
+    if (isBlocking) {
+        document.body.classList.add('blocking');
+    } else {
+        document.body.classList.remove('blocking');
+    }
 
     // Determine effective delay: payload -> localStorage -> default 5s
     const stored = localStorage.getItem('macPopupDelay');
@@ -88,5 +150,24 @@ ipcRenderer.on('display-message', (event, payload) => {
     // Only auto-start countdown on macOS; on other platforms show message only
     if (process.platform === 'darwin' && delay && Number(delay) > 0) {
         startCountdown(Number(delay), fullscreenData);
+    }
+    
+    // Start auto-close countdown for health breaks
+    if (healthType) {
+        // Convert ms to seconds for display
+        const closeDelaySeconds = Math.ceil(closeDelay / 1000);
+        startAutoCloseCountdown(closeDelaySeconds);
+    }
+});
+
+// Handle close button click
+document.addEventListener('DOMContentLoaded', () => {
+    const closeBtn = document.getElementById('close-btn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            if (!closeBtn.disabled) {
+                ipcRenderer.send('close-popup');
+            }
+        });
     }
 });

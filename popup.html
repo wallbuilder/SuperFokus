@@ -20,8 +20,26 @@
             padding: 20px;
             overflow: hidden;
         }
-        h2 { color: #2c3e50; margin-top: 0; }
-        p { font-size: 1.2rem; color: #333; }
+        body.blocking {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        h2 { 
+            color: #2c3e50; 
+            margin-top: 0;
+            font-size: 2.5rem;
+        }
+        body.blocking h2 {
+            color: white;
+            font-size: 3rem;
+        }
+        p { 
+            font-size: 1.2rem; 
+            color: #333; 
+        }
+        body.blocking p {
+            color: white;
+            font-size: 1.5rem;
+        }
         .close-btn {
             margin-top: 15px;
             padding: 8px 20px;
@@ -34,13 +52,25 @@
             font-size: 1rem;
             min-width: 120px;
         }
+        body.blocking .close-btn {
+            padding: 12px 30px;
+            background-color: rgba(255, 255, 255, 0.2);
+            font-size: 1.2rem;
+        }
         .close-btn:hover:not(:disabled) {
             background-color: #a8b8c8;
             color: #2c3e50;
+            transform: translateY(-1px);
+        }
+        body.blocking .close-btn:hover:not(:disabled) {
+            background-color: rgba(255, 255, 255, 0.4);
+            color: white;
+            transform: translateY(-1px);
         }
         .close-btn:disabled {
             cursor: not-allowed;
             opacity: 0.6;
+            transform: none;
         }
     </style>
 </head>
