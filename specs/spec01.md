@@ -216,6 +216,7 @@ To achieve system-wide site blocking without completely rewriting SuperFokus as 
    - Switches should look more like the modern "sliders" we see today instead of checkboxes.
 
 -------------------------------------------------------------------
+
 # v0.7 {3/20/2026}
 This update focuses on introducing entirely new, user-focused functionality for health and high-speed productivity, specifically Health & Posture Mode and Micro-Task Sprint Mode. (Also, update the version number to 0.7.)
 
@@ -232,10 +233,10 @@ This update focuses on introducing entirely new, user-focused functionality for 
 - **Homework Sessions:** Dedicated tools or presets for managing structured homework sessions.
 - **Enhanced Distraction Blocking:** Building upon the recent Site Blocker improvements to block other potential distractions.
 
-## v0.7.1 {3/20/2026}
+# v0.7.1 {3/20/2026}
 Remove Time regulation from SuperFokus.
 
-## v0.7.2 {3/20/2026}
+# v0.7.2 {3/20/2026}
 - Health and safety mode should become a modal in the sidebar labeled "Health Mode", with the icon being a heart emoji. It should function EXACTLY as before.
 - There's an issue with the site blocker where an error popup appears when trying to activate the program. Details will probably be shown if you're being asked to carry this update out.
 
@@ -251,4 +252,4 @@ Remove Time regulation from SuperFokus.
 - The full Site Blocker Setup needs to be moved to the sidebar as well. (Only after fixing the bug above)
 - The sidebar should be rearranged in this order (from top to bottom): Session History, Fokus Stats > Site Blocker > Health Mode > Customization > About SuperFokus.
 
-# v0.8.1 {3/21/2026}
+# END OF FILE

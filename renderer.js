@@ -1,6 +1,17 @@
 const { ipcRenderer } = require('electron');
 const Chart = require('chart.js/auto');
 
+// Listen for blocker errors (Site Blocker Phase)
+ipcRenderer.on('blocker-error', (event, errorMsg) => {
+    console.error('Site Blocker error:', errorMsg);
+    customAlert(`Site Blocker Error: ${errorMsg}`);
+});
+
+// Listen for blocker status updates
+ipcRenderer.on('blocker-status', (event, statusMsg) => {
+    console.log('Site Blocker status:', statusMsg);
+});
+
 const store = {
     get: (key, defaultValue) => {
         const val = localStorage.getItem(key);
@@ -774,15 +785,19 @@ startPomoBtn.addEventListener('click', () => {
 // More robust pause button handling for Pomo Style using event delegation
 document.addEventListener('click', (e) => {
     if (e.target.id === 'pause-pomo-btn') {
-        if (!isPomoRunning) return;
-        if (isPomoPaused) {
-            ipcRenderer.send('resume-timer', 'pomo');
-            isPomoPaused = false;
-            e.target.innerText = 'Pause ⏸';
-        } else {
+        // Allow pause/resume if timer has been started, regardless of current state
+        if (!isPomoPaused) {
             ipcRenderer.send('pause-timer', 'pomo');
             isPomoPaused = true;
+            const timerDisplay = document.getElementById('pomo-timer-display');
+            if (timerDisplay) timerDisplay.classList.add('paused');
             e.target.innerText = 'Resume ▶️';
+        } else {
+            ipcRenderer.send('resume-timer', 'pomo');
+            isPomoPaused = false;
+            const timerDisplay = document.getElementById('pomo-timer-display');
+            if (timerDisplay) timerDisplay.classList.remove('paused');
+            e.target.innerText = 'Pause ⏸';
         }
     }
 });
@@ -911,15 +926,19 @@ startRepeatingBtn.addEventListener('click', () => {
 // More robust pause button handling using event delegation
 document.addEventListener('click', (e) => {
     if (e.target.id === 'pause-repeating-btn') {
-        if (!isRepeatingRunning) return;
-        if (isRepeatingPaused) {
-            ipcRenderer.send('resume-timer', 'repeating');
-            isRepeatingPaused = false;
-            e.target.innerText = 'Pause ⏸';
-        } else {
+        // Allow pause/resume if timer has been started, regardless of current state
+        if (!isRepeatingPaused) {
             ipcRenderer.send('pause-timer', 'repeating');
             isRepeatingPaused = true;
+            const repeatingDisplay = document.getElementById('repeating-timer-display');
+            if (repeatingDisplay) repeatingDisplay.classList.add('paused');
             e.target.innerText = 'Resume ▶️';
+        } else {
+            ipcRenderer.send('resume-timer', 'repeating');
+            isRepeatingPaused = false;
+            const repeatingDisplay = document.getElementById('repeating-timer-display');
+            if (repeatingDisplay) repeatingDisplay.classList.remove('paused');
+            e.target.innerText = 'Pause ⏸';
         }
     }
 });

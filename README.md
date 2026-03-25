@@ -1,38 +1,71 @@
 # SuperFokus
 
-SuperFokus is an Electron application designed to help regulate computer and homework time while minimizing distractions.
+SuperFokus is a versatile, Electron-based productivity application designed to help you regulate computer time, maintain healthy habits, and minimize digital distractions.
 
-## v0.3.5 - Improvements Update Rework
+## Core Features (Fokus Modes)
 
-This update focuses on polishing the user experience and resolving interface issues.
+SuperFokus offers three primary modes to suit your workflow:
 
-### Core Enhancements
-- **Sticky Header**: The main dashboard header (title and menu toggle) is now sticky, meaning it stays at the top of the screen as you scroll, ensuring controls are always accessible.
-- **Improved Sidebar**:
-    - **Interactive Toggle**: The sidebar button now features a "shapeshifting" icon that transforms from a hamburger (☰) to an 'X' when open.
-    - **Selection Menu**: The sidebar now acts as a selection panel for different app dialogs (Stats, History, Customization).
-    - **Modal Dialogs**: Selecting an item from the sidebar opens a focused modal with a darkened, blurred background overlay.
-- **Enhanced Pomo Timer**:
-    - **Reliability**: Optimized timer logic and disabled background throttling to ensure the timer runs accurately even when the app is minimized.
-    - **Repeat Logic**: Users can now configure a specific number of repeats or set the session to run infinitely.
-- **Break System Improvements**:
-    - **Countdown**: Fullscreen and popup break reminders now feature a live countdown timer.
-    - **Manual Progression**: If "Auto-Start Next Phase" is disabled, a "Next Phase" button appears once the break ends.
-- **UI/UX Refinements**:
-    - **Smooth Transitions**: Toggling Dark Mode now features a smooth color transition.
-    - **Animated Startup**: A refined "materializing" and sliding animation for the SuperFokus intro screen.
-    - **System Tray Integration**: SuperFokus now minimizes to the system tray on close, allowing it to run in the background.
+### 1. Repeating Reminders
+The classic mode. Sets up a continuous loop of reminders to keep you on track.
+- **Custom Intervals:** Set precise reminder intervals using minutes and seconds.
+- **Rounds Control:** Choose a specific number of reminder rounds or let it run infinitely.
+- **Custom Messages:** Personalize the popup message that appears when the timer goes off.
+- **Quick Pause:** Easily pause the active timer for unexpected interruptions without resetting your session.
 
-## Planned Updates
+### 2. Pomo Style
+A structured time-management mode that balances work sessions with scheduled breaks, inspired by the Pomodoro Technique.
+- **Dynamic Pomo Config:** Create completely custom sequences of Work and Break phases.
+- **Break Actions:** Choose between a gentle reminder or a strict screen-blocking popup to enforce downtime.
+- **Pomo Presets:** Save your favorite phase configurations (e.g., "Deep Work - 50/10") or use built-in presets and load them instantly.
+- **Auto-Start:** Optionally toggle auto-start for the next phase to keep your hands off the timer.
+- **Quick Pause:** Pause your work session or break at any time.
 
-### Health & Posture Mode (The "Body Guard")
-- **Eye Saver:** Implements the 20-20-20 rule (every 20 minutes, look at something 20 feet away for 20 seconds).
-- **Posture Check:** Regular reminders to stretch and adjust posture with a mandatory check-in.
+### 3. Micro-Task Sprint Mode ("Speed Run")
+Designed to break down larger tasks into rapid, high-speed intervals.
+- **Rapid Tasks:** Allocate 5, 10, or 15 minutes per task.
+- **Visual Velocity:** Dedicated countdown timer for specific tasks to maintain momentum.
 
-### Micro-Task Sprint Mode (The "Speed Run")
-- **Rapid Tasks:** Breakdown work into 5–10 minute high-speed sprints.
-- **Visual Velocity:** A countdown timer for each small task to maintain momentum and focus.
+## Sidebar Features & Tools
 
-### Additional Features
-- Homework session management
-- Distraction blocking
+The SuperFokus sidebar provides quick access to powerful tools and analytics without interrupting your active timers:
+
+- 📊 **Fokus Stats:** View your "Total Focus Time" and "Completed Rounds", alongside a visual chart of your activity over the last 7 days.
+- 📜 **Session History:** Check a local log of your past productivity sessions.
+- 🔒 **Site Blocker:**
+    - Block digital distractions system-wide.
+    - Choose to either *block* a blacklist of domains/URLs or *allow* only a whitelist.
+    - Can run independently in the background even if other Fokus modes are active.
+    - *Note: Requires Administrator privileges as it safely modifies the system hosts file.*
+- ❤️ **Health Mode (The "Body Guard"):**
+    - **Eye Saver:** Enforces the 20-20-20 rule (every 20 minutes, look 20 feet away for 20 seconds).
+    - **Posture Check:** Reminds you to stretch and adjust your posture every 45 minutes.
+- ⚙️ **Customization:**
+    - **Dark Mode:** Toggle a sleek dark theme for late-night work (with smooth transitions).
+    - **Audio Notifications:** Select from built-in chimes or upload your own custom sound. Test the chime and adjust the volume.
+
+## Usage Examples
+
+### Example 1: The "Deep Work" Session
+1. Open **SuperFokus** and select **Pomo Style** from the Dashboard dropdown.
+2. Under **Pomo Presets**, select "Deep Work - 50/10" (or create your own sequence).
+3. Set **Action at end of phase** to "Block screen AND remind" so you are forced to step away from your monitor during breaks.
+4. Select your desired number of **Cycles** and click **Start**.
+
+### Example 2: Blocking Distractions While Studying
+1. Open the sidebar (☰) and select **Site Blocker**.
+2. Toggle the Site Blocker switch to **Active** (granting administrator permissions when prompted).
+3. Set Blocker Mode to **Block only entered websites**.
+4. In the **Domain List**, enter `youtube.com`, `reddit.com`, and `twitter.com`.
+5. Click **Save & Apply Blocker**. You can now study distraction-free, optionally running a **Repeating Reminder** timer in the background.
+
+### Example 3: Health-Conscious Coding
+1. Open the sidebar (☰) and select **Health Mode**.
+2. Enable both **Eye Saver (20-20-20 Rule)** and **Posture Check**.
+3. Click **Start Health Mode**.
+4. SuperFokus will run quietly in the background, pinging you every 20 minutes to rest your eyes and every 45 minutes to fix your posture.
+
+## Technical Details
+- Built with Electron.js.
+- Site Blocker utilizes a separate elevated helper script to modify the Windows `hosts` file for true system-wide blocking.
+- Timer precision is maintained using a timestamp-based calculation approach rather than simple `setInterval` ticks to prevent timer drift over long sessions.

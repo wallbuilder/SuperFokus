@@ -67,7 +67,7 @@ function createTray() {
     tray.on('click', () => mainWindow.show());
 }
 
-function createPopupWindow(message) {
+function createPopupWindow(message, closeDelay = 10000) {
     if (popupWindow) {
         popupWindow.close();
     }
@@ -87,7 +87,7 @@ function createPopupWindow(message) {
     popupWindow.loadFile('popup.html');
     
     popupWindow.webContents.on('did-finish-load', () => {
-        popupWindow.webContents.send('display-message', message);
+        popupWindow.webContents.send('display-message', { message, closeDelay });
     });
 
     popupWindow.on('closed', () => {
@@ -320,18 +320,41 @@ ipcMain.on('update-blocker-rules', (event, rules) => {
     if (rules.active && rules.mode === 'block' && rules.domains.length > 0) {
         const domainsList = rules.domains.join(',');
         sudo.exec(`node "${helperPath}" apply "${domainsList}"`, { name: 'SuperFokus' }, (error, stdout, stderr) => {
-            if (error) console.error('Blocker elevation error:', error);
-            else {
-                console.log('Blocker applied:', stdout);
-                blocksApplied = true;
+            if (error) {
+                console.error('Blocker elevation error:', error);
+                const errorMsg = error.message || 'Failed to apply Site Blocker. Admin privileges may be required or hosts file is inaccessible.';
+                if (mainWindow) {
+                    mainWindow.webContents.send('blocker-error', errorMsg);
+                }
+            } else {
+                // Check for errors in stderr (from async helper script)
+                if (stderr && stderr.includes('error')) {
+                    console.error('Blocker helper error:', stderr);
+                    if (mainWindow) {
+                        mainWindow.webContents.send('blocker-error', `Domain format error: ${stderr}`);
+                    }
+                } else {
+                    console.log('Blocker applied:', stdout);
+                    blocksApplied = true;
+                    if (mainWindow) {
+                        mainWindow.webContents.send('blocker-status', 'Domains blocked successfully');
+                    }
+                }
             }
         });
     } else if (blocksApplied) {
         sudo.exec(`node "${helperPath}" clear`, { name: 'SuperFokus' }, (error, stdout, stderr) => {
-            if (error) console.error('Blocker elevation error:', error);
-            else {
+            if (error) {
+                console.error('Blocker elevation error:', error);
+                if (mainWindow) {
+                    mainWindow.webContents.send('blocker-error', 'Failed to clear Site Blocker blocks.');
+                }
+            } else {
                 console.log('Blocker cleared:', stdout);
                 blocksApplied = false;
+                if (mainWindow) {
+                    mainWindow.webContents.send('blocker-status', 'Blocks cleared successfully');
+                }
             }
         });
     }
@@ -339,10 +362,17 @@ ipcMain.on('update-blocker-rules', (event, rules) => {
 
 ipcMain.on('clear-all-blocks', () => {
     sudo.exec(`node "${helperPath}" clear`, { name: 'SuperFokus' }, (error, stdout, stderr) => {
-        if (error) console.error('Blocker elevation error:', error);
-        else {
+        if (error) {
+            console.error('Blocker elevation error:', error);
+            if (mainWindow) {
+                mainWindow.webContents.send('blocker-error', 'Failed to clear all blocks.');
+            }
+        } else {
             console.log('All blocks cleared manually:', stdout);
             blocksApplied = false;
+            if (mainWindow) {
+                mainWindow.webContents.send('blocker-status', 'All blocks cleared');
+            }
         }
     });
 });
