@@ -6,3 +6,4 @@
 - Pause Button for Repeating Reminders and Pomo Style doesn't work.
 - Stop Button for Micro-Task Sprint Mode doesn't work.
 - A JavaScript error happens when trying to activate Site Blocker. Analyze the code to see if it is outdated and (replace it with code that works if it's actually outdated).
+The program cannot be opened multiple times in the same Termial tab.
