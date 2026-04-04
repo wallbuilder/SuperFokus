@@ -966,6 +966,30 @@ const urlListInput = document.getElementById('url-list');
 const siteBlockerEnabled = document.getElementById('site-blocker-enabled');
 const siteBlockerAlwaysRun = document.getElementById('site-blocker-always-run');
 
+// Show/hide mode messages based on selection
+siteBlockerMode.addEventListener('change', () => {
+    const proxyMsg = document.getElementById('proxy-message');
+    const blockMsg = document.getElementById('block-message');
+    if (siteBlockerMode.value === 'allow') {
+        proxyMsg.style.display = 'block';
+        blockMsg.style.display = 'none';
+    } else {
+        proxyMsg.style.display = 'none';
+        blockMsg.style.display = 'block';
+    }
+    // Trigger change on load too
+    window.addEventListener('load', () => {
+        const currentMode = siteBlockerMode.value;
+        if (currentMode === 'allow') {
+            proxyMsg.style.display = 'block';
+            blockMsg.style.display = 'none';
+        } else {
+            proxyMsg.style.display = 'none';
+            blockMsg.style.display = 'block';
+        }
+    });
+});
+
 function normalizeHost(value) {
     const input = value.trim();
     if (!input) return null;
@@ -1010,7 +1034,6 @@ function updateBlocker() {
         if (!host.startsWith('www.')) {
             domainSet.add(`www.${host}`);
         } else {
-            // also add root domain if user typed www
             const root = host.replace(/^www\./, '');
             if (root) domainSet.add(root);
         }
@@ -1027,7 +1050,15 @@ function updateBlocker() {
     });
 
     const domains = Array.from(domainSet).sort();
+    
+    // Validation
+    if (active && domains.length === 0) {
+        alert('⚠️ No domains entered! Please add domains/URLs to block before enabling.');
+        siteBlockerEnabled.checked = false;
+        return;
+    }
 
+    console.log('[Blocker]', {mode, active, domainCount: domains.length, domains});
     ipcRenderer.send('update-blocker-rules', { mode, domains, urls: rawUrls, active, alwaysRun });
 }
 
