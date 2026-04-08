@@ -105,7 +105,40 @@ window.addEventListener('DOMContentLoaded', () => {
       startupScreen.style.display = 'none';
     }, 1000); 
   }, 2000); // v0.3.5: slightly longer to appreciate the animation
+
+  // Initialize button event listeners after DOM is fully loaded
+  initializeButtonListeners();
 });
+
+function initializeButtonListeners() {
+  // More robust pause button handling using event delegation for Repeating Reminders
+  document.addEventListener('click', (e) => {
+    if (e.target.id === 'pause-repeating-btn') {
+      // Allow pause/resume if timer has been started, regardless of current state
+      if (!isRepeatingPaused) {
+        ipcRenderer.send('pause-timer', 'repeating');
+        isRepeatingPaused = true;
+        const repeatingDisplay = document.getElementById('repeating-timer-display');
+        if (repeatingDisplay) repeatingDisplay.classList.add('paused');
+        e.target.innerText = 'Resume ▶️';
+      } else {
+        ipcRenderer.send('resume-timer', 'repeating');
+        isRepeatingPaused = false;
+        const repeatingDisplay = document.getElementById('repeating-timer-display');
+        if (repeatingDisplay) repeatingDisplay.classList.remove('paused');
+        e.target.innerText = 'Pause ⏸';
+      }
+    }
+  });
+
+  // Stop button for Micro-Task Sprint Mode
+  const stopSprintBtn = document.getElementById('stop-sprint-btn');
+  if (stopSprintBtn) {
+    stopSprintBtn.addEventListener('click', () => {
+      stopSprintMode();
+    });
+  }
+}
 
 // --- Audio ---
 const chimeAudio = document.getElementById('chime-audio');
@@ -923,27 +956,6 @@ startRepeatingBtn.addEventListener('click', () => {
     else stopRepeatingReminders();
 });
 
-// More robust pause button handling using event delegation
-document.addEventListener('click', (e) => {
-    if (e.target.id === 'pause-repeating-btn') {
-        // Allow pause/resume if timer has been started, regardless of current state
-        if (!isRepeatingPaused) {
-            ipcRenderer.send('pause-timer', 'repeating');
-            isRepeatingPaused = true;
-            const repeatingDisplay = document.getElementById('repeating-timer-display');
-            if (repeatingDisplay) repeatingDisplay.classList.add('paused');
-            e.target.innerText = 'Resume ▶️';
-        } else {
-            ipcRenderer.send('resume-timer', 'repeating');
-            isRepeatingPaused = false;
-            const repeatingDisplay = document.getElementById('repeating-timer-display');
-            if (repeatingDisplay) repeatingDisplay.classList.remove('paused');
-            e.target.innerText = 'Pause ⏸';
-        }
-    }
-});
-
-
 // --- Site Blocker ---
 const saveBlockerBtn = document.getElementById('save-blocker-btn');
 const clearBlockerBtn = document.getElementById('clear-blocker-btn');
@@ -954,14 +966,69 @@ const urlListInput = document.getElementById('url-list');
 const siteBlockerEnabled = document.getElementById('site-blocker-enabled');
 const siteBlockerAlwaysRun = document.getElementById('site-blocker-always-run');
 
+function normalizeHost(value) {
+    const input = value.trim();
+    if (!input) return null;
+
+    let host = null;
+    try {
+        let url = input;
+        if (!/^https?:\/\//i.test(url)) {
+            url = `http://${url}`;
+        }
+        host = new URL(url).hostname.toLowerCase();
+    } catch (err) {
+        // fallback: remove protocol, path, query and fragment
+        host = input.replace(/^https?:\/\//i, '')
+            .split(/[\/?#]/)[0]
+            .toLowerCase();
+    }
+
+    // Strip any port numbers
+    host = host.split(':')[0];
+
+    // Reject localhost as a blocker target
+    if (host === 'localhost') return null;
+    if (!host) return null;
+
+    return host;
+}
+
 function updateBlocker() {
     const mode = siteBlockerMode.value;
-    const domains = domainListInput.value.split('\n').map(s => s.trim()).filter(Boolean);
-    const urls = urlListInput.value.split('\n').map(s => s.trim()).filter(Boolean);
+    const rawDomains = domainListInput.value.split('\n').map(s => s.trim()).filter(Boolean);
+    const rawUrls = urlListInput.value.split('\n').map(s => s.trim()).filter(Boolean);
     const active = siteBlockerEnabled.checked;
     const alwaysRun = siteBlockerAlwaysRun.checked;
-    
-    ipcRenderer.send('update-blocker-rules', { mode, domains, urls, active, alwaysRun });
+
+    const domainSet = new Set();
+
+    function addBlockingHost(host) {
+        if (!host) return;
+        host = host.toLowerCase();
+        domainSet.add(host);
+        if (!host.startsWith('www.')) {
+            domainSet.add(`www.${host}`);
+        } else {
+            // also add root domain if user typed www
+            const root = host.replace(/^www\./, '');
+            if (root) domainSet.add(root);
+        }
+    }
+
+    rawDomains.forEach(d => {
+        const host = normalizeHost(d);
+        if (host) addBlockingHost(host);
+    });
+
+    rawUrls.forEach(u => {
+        const host = normalizeHost(u);
+        if (host) addBlockingHost(host);
+    });
+
+    const domains = Array.from(domainSet).sort();
+
+    ipcRenderer.send('update-blocker-rules', { mode, domains, urls: rawUrls, active, alwaysRun });
 }
 
 saveBlockerBtn.addEventListener('click', () => {
@@ -1101,10 +1168,6 @@ startSprintBtn.addEventListener('click', () => {
     sprintTimerDisplay.classList.remove('hidden');
     
     startNextSprintTask();
-});
-
-stopSprintBtn.addEventListener('click', () => {
-    stopSprintMode();
 });
 
 nextSprintBtn.addEventListener('click', () => {

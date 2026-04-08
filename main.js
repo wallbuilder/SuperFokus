@@ -70,22 +70,106 @@ function createTray() {
     tray.on('click', () => mainWindow.show());
 }
 
-function createPopupWindow(message, closeDelay = 10000) {
+function createApplicationMenu() {
+    const template = [
+        {
+            label: 'SuperFokus',
+            submenu: [
+                { role: 'about' },
+                { type: 'separator' },
+                { role: 'services' },
+                { type: 'separator' },
+                { role: 'hide' },
+                { role: 'hideOthers' },
+                { role: 'unhide' },
+                { type: 'separator' },
+                {
+                    label: 'Quit',
+                    accelerator: 'Command+Q',
+                    click: () => {
+                        isQuitting = true;
+                        app.quit();
+                    }
+                }
+            ]
+        },
+        {
+            label: 'Edit',
+            submenu: [
+                { role: 'undo' },
+                { role: 'redo' },
+                { type: 'separator' },
+                { role: 'cut' },
+                { role: 'copy' },
+                { role: 'paste' },
+                { role: 'selectAll' }
+            ]
+        },
+        {
+            label: 'View',
+            submenu: [
+                { role: 'reload' },
+                { role: 'forceReload' },
+                { role: 'toggleDevTools' },
+                { type: 'separator' },
+                { role: 'resetZoom' },
+                { role: 'zoomIn' },
+                { role: 'zoomOut' },
+                { type: 'separator' },
+                { role: 'togglefullscreen' }
+            ]
+        },
+        {
+            label: 'Window',
+            submenu: [
+                { role: 'minimize' },
+                { role: 'close' }
+            ]
+        }
+    ];
+
+    const menu = Menu.buildFromTemplate(template);
+    Menu.setApplicationMenu(menu);
+}
+
+function createPopupWindow(message, autoDismissMs = 10000, healthType = null) {
     if (popupWindow) {
         popupWindow.close();
     }
 
-    popupWindow = new BrowserWindow({
-        width: 500,
-        height: 350,
-        alwaysOnTop: true,
-        frame: true,
-        resizable: false,
-        webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false,
-        },
-    });
+    // Use blocking mode for health features if configured
+    const isBlocking = healthType && healthConfig.blockingMode === 'fullscreen';
+    
+    if (isBlocking) {
+        // Fullscreen blocking mode for mandatory health breaks
+        popupWindow = new BrowserWindow({
+            width: app.getPrimaryDisplay().workAreaSize.width,
+            height: app.getPrimaryDisplay().workAreaSize.height,
+            x: 0,
+            y: 0,
+            alwaysOnTop: true,
+            frame: false,
+            fullscreen: false,
+            resizable: false,
+            webPreferences: {
+                nodeIntegration: true,
+                contextIsolation: false,
+            },
+        });
+    } else {
+        // Non-blocking popup mode (floats on top, doesn't prevent interaction)
+        popupWindow = new BrowserWindow({
+            width: 500,
+            height: 350,
+            alwaysOnTop: true,
+            frame: true,
+            resizable: false,
+            webPreferences: {
+                nodeIntegration: true,
+                contextIsolation: false,
+            },
+        });
+    }
 
     // Mac-specific visibility and level to keep popup on top of other apps/workspaces
     if (process.platform === 'darwin') {
@@ -101,7 +185,12 @@ function createPopupWindow(message, closeDelay = 10000) {
     popupWindow.loadFile('popup.html');
     
     popupWindow.webContents.on('did-finish-load', () => {
-        popupWindow.webContents.send('display-message', { message, closeDelay });
+        popupWindow.webContents.send('display-message', {
+            message,
+            closeDelay: autoDismissMs,
+            healthType,
+            isBlocking
+        });
     });
 
     popupWindow.on('closed', () => {
@@ -119,6 +208,15 @@ function createPopupWindow(message, closeDelay = 10000) {
             } catch (e) {}
         }
     });
+    
+    // Auto-dismiss popup after specified duration
+    if (autoDismissMs > 0) {
+        setTimeout(() => {
+            if (popupWindow && !popupWindow.isDestroyed()) {
+                popupWindow.close();
+            }
+        }, autoDismissMs);
+    }
 }
 
 let currentThemeIsDark = false;
@@ -371,6 +469,7 @@ app.whenReady().then(() => {
   } catch(e) {
       console.log("Tray creation failed (likely missing icon.png)");
   }
+  createApplicationMenu();
 
   // Note: WebRequest API is deprecated in Electron 14+
   // Site blocking is now handled via hosts file modification in fokus-sb-helper.js
@@ -432,14 +531,52 @@ if (!util.isObject) {
     return val !== null && typeof val === 'object';
   };
 }
+if (!util.isFunction) {
+  util.isFunction = function(val) {
+    return typeof val === 'function';
+  };
+}
 const sudo = require('sudo-prompt');
 const helperPath = path.join(__dirname, 'fokus-sb-helper.js');
 let blocksApplied = false;
 
+function normalizeHost(value) {
+    if (!value || typeof value !== 'string') return null;
+    let input = value.trim();
+    if (!input) return null;
+
+    try {
+        if (!/^https?:\/\//i.test(input)) {
+            input = `http://${input}`;
+        }
+        return new URL(input).hostname.toLowerCase().split(':')[0];
+    } catch (e) {
+        const host = input.replace(/^https?:\/\//i, '').split(/[\/?#]/)[0].split(':')[0].toLowerCase();
+        return host || null;
+    }
+}
+
 ipcMain.on('update-blocker-rules', (event, rules) => {
     blockerRules = rules;
-    if (rules.active && rules.mode === 'block' && rules.domains.length > 0) {
-        const domainsList = rules.domains.join(',');
+    const allHosts = new Set();
+
+    if (Array.isArray(rules.domains)) {
+        rules.domains.forEach(domain => {
+            const host = normalizeHost(domain);
+            if (host) allHosts.add(host);
+        });
+    }
+
+    if (Array.isArray(rules.urls)) {
+        rules.urls.forEach(url => {
+            const host = normalizeHost(url);
+            if (host) allHosts.add(host);
+        });
+    }
+
+    const active = rules.active && rules.mode === 'block' && allHosts.size > 0;
+    if (active) {
+        const domainsList = Array.from(allHosts).join(',');
         sudo.exec(`node "${helperPath}" apply "${domainsList}"`, { name: 'SuperFokus' }, (error, stdout, stderr) => {
             if (error) {
                 console.error('Blocker elevation error:', error);
@@ -499,26 +636,51 @@ ipcMain.on('clear-all-blocks', () => {
 });
 
 let healthIntervals = { eye: null, posture: null };
+let healthConfig = {
+    eyeSaver: false,
+    postureCheck: false,
+    blockingMode: 'popup', // 'popup' or 'fullscreen'
+    eyeSaverInterval: 20 * 60 * 1000, // 20 mins between eye breaks
+    postureInterval: 45 * 60 * 1000, // 45 mins between posture breaks
+    eyeBreakDuration: 20 * 1000, // 20 seconds for eye break
+    postureBreakDuration: 50 * 1000 // 50 seconds for posture break
+};
 
 ipcMain.on('start-health-mode', (event, data) => {
     if (healthIntervals.eye) clearInterval(healthIntervals.eye);
     if (healthIntervals.posture) clearInterval(healthIntervals.posture);
     
-    if (data.eyeSaver) {
+    // Update config with user settings
+    healthConfig.eyeSaver = data.eyeSaver || false;
+    healthConfig.postureCheck = data.postureCheck || false;
+    healthConfig.blockingMode = data.blockingMode || 'popup'; // 'popup' or 'fullscreen'
+    if (data.eyeSaverInterval) healthConfig.eyeSaverInterval = data.eyeSaverInterval;
+    if (data.postureInterval) healthConfig.postureInterval = data.postureInterval;
+    if (data.eyeBreakDuration) healthConfig.eyeBreakDuration = data.eyeBreakDuration;
+    if (data.postureBreakDuration) healthConfig.postureBreakDuration = data.postureBreakDuration;
+    
+    if (healthConfig.eyeSaver) {
         healthIntervals.eye = setInterval(() => {
-            createPopupWindow("Eye Saver: Look at something 20 feet away for 20 seconds.");
-        }, 20 * 60 * 1000); // 20 mins
+            createPopupWindow("Eye Saver: Look at something 20 feet away for 20 seconds.", healthConfig.eyeBreakDuration, 'eye');
+        }, healthConfig.eyeSaverInterval);
     }
-    if (data.postureCheck) {
+    if (healthConfig.postureCheck) {
         healthIntervals.posture = setInterval(() => {
-            createPopupWindow("Posture Check: Time to sit up straight and stretch for a minute.");
-        }, 45 * 60 * 1000); // 45 mins
+            createPopupWindow("Posture Check: Time to sit up straight and stretch for a minute.", healthConfig.postureBreakDuration, 'posture');
+        }, healthConfig.postureInterval);
     }
 });
 
 ipcMain.on('stop-health-mode', () => {
     if (healthIntervals.eye) clearInterval(healthIntervals.eye);
     if (healthIntervals.posture) clearInterval(healthIntervals.posture);
+    if (popupWindow) popupWindow.close();
+});
+
+ipcMain.on('close-popup', () => {
+    if (popupWindow && !popupWindow.isDestroyed()) {
+        popupWindow.close();
+    }
 });
 
 let isClearingOnQuit = false;
