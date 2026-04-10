@@ -2,6 +2,7 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
 const os = require('os');
+const { exec } = require('child_process');
 
 // Determine hosts file path based on platform
 const HOSTS_FILE = process.platform === 'darwin'
@@ -53,6 +54,32 @@ function validateDomain(domain) {
     return DOMAIN_REGEX.test(d) || IP_REGEX.test(d);
 }
 
+function flushDnsCache() {
+    return new Promise((resolve) => {
+        const platform = process.platform;
+        let cmd;
+
+        if (platform === 'darwin') {
+            // macOS DNS cache refresh
+            cmd = 'dscacheutil -flushcache; killall -HUP mDNSResponder';
+        } else if (platform === 'win32') {
+            cmd = 'ipconfig /flushdns';
+        } else {
+            // Linux best-effort
+            cmd = 'systemd-resolve --flush-caches || resolvectl flush-caches || service nscd restart || true';
+        }
+
+        exec(cmd, (err) => {
+            if (err) {
+                console.warn('DNS flush failed:', err.message);
+            } else {
+                console.log('DNS cache flushed successfully:', cmd);
+            }
+            resolve();
+        });
+    });
+}
+
 async function clearBlocksAsync(retries = 3) {
     try {
         // Check if file exists
@@ -75,9 +102,11 @@ async function clearBlocksAsync(retries = 3) {
                     let newContent = before + after;
                     await fs.writeFile(HOSTS_FILE, newContent, 'utf-8');
                     console.log('Successfully cleared blocks.');
+                    await flushDnsCache();
                     return { success: true };
                 } else {
                     console.log('No SuperFokus blocks found.');
+                    await flushDnsCache();
                     return { success: true };
                 }
             } catch (e) {
@@ -135,13 +164,14 @@ async function applyBlocksAsync(domains, retries = 3) {
                 const lines = [
                     '',
                     START_MARKER,
-                    ...validatedDomains.map(d => `0.0.0.0 ${d}`),
+                    ...validatedDomains.flatMap(d => [`0.0.0.0 ${d}`, `::1 ${d}`]),
                     END_MARKER,
                     ''
                 ];
 
                 await fs.appendFile(HOSTS_FILE, lines.join('\n'), 'utf-8');
                 console.log(`Successfully applied blocks for ${validatedDomains.length} domain(s).`);
+                await flushDnsCache();
                 return { success: true, count: validatedDomains.length };
             } catch (e) {
                 attempts++;

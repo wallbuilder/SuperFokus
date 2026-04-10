@@ -525,6 +525,20 @@
               </select>
             </div>
 
+            <div id="proxy-message" style="display:none; margin-top:10px; padding:10px; background:#fff3cd; border:1px solid #ffeaa7; border-radius:4px; color: #856404;">
+              <strong>⚠️ Allow-only Mode Setup Required:</strong> <br/>
+              1. Set browser proxy to <code>localhost:8080</code> (System Settings → Network → Proxy)<br/>
+              2. Only listed domains will be accessible<br/>
+              3. All other sites will return "Site Blocked"
+            </div>
+
+            <div id="block-message" style="display:none; margin-top:10px; padding:10px; background:#d4edda; border:1px solid #c3e6cb; border-radius:4px; color: #155724;">
+              <strong>✓ Block Mode Info:</strong> <br/>
+              1. Listed sites are blocked via system hosts file<br/>
+              2. <strong>IMPORTANT:</strong> Disable "DNS over HTTPS" in browser settings (or blocking won't work)<br/>
+              3. Clear browser cache and fully restart the browser after enabling
+            </div>
+
             <div class="form-group">
               <label for="domain-list">Domain List (one per line):</label>
               <textarea id="domain-list" placeholder="e.g. youtube.com&#10;reddit.com"></textarea>
@@ -533,8 +547,8 @@
 
             <div class="form-group">
               <label for="url-list">Specific URLs List (one per line):</label>
-              <textarea id="url-list" placeholder="e.g. https://twitter.com/home"></textarea>
-              <small style="color: var(--timer-subtext);">Blocks only the specific URLs provided.</small>
+              <textarea id="url-list" placeholder="e.g. https://youtube.com/shorts&#10;https://twitter.com/home"></textarea>
+              <small style="color: var(--timer-subtext);">Blocks only the specific URLs provided. For example, block youtube.com/shorts but allow youtube.com/watch</small>
             </div>
             
             <button class="action-btn" id="save-blocker-btn" style="background: #3498db;">Save & Apply Blocker</button>
