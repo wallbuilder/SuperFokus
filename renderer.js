@@ -23,11 +23,15 @@ const store = {
 };
 
 // --- Custom Modal Alert Replacement ---
+const customAlertModal = document.getElementById('custom-alert-modal');
+const customAlertMsgEl = document.getElementById('custom-alert-message');
+const customAlertOkBtn = document.getElementById('custom-alert-ok');
+
 function customAlert(message, options = {}) {
     return new Promise((resolve) => {
-        const modal = document.getElementById('custom-alert-modal');
-        const msgEl = document.getElementById('custom-alert-message');
-        const okBtn = document.getElementById('custom-alert-ok');
+        const modal = customAlertModal || document.getElementById('custom-alert-modal');
+        const msgEl = customAlertMsgEl || document.getElementById('custom-alert-message');
+        const okBtn = customAlertOkBtn || document.getElementById('custom-alert-ok');
         let previousActive = document.activeElement;
         msgEl.textContent = message;
         modal.classList.add('active');
@@ -113,31 +117,24 @@ window.addEventListener('DOMContentLoaded', () => {
 function initializeButtonListeners() {
   // More robust pause button handling using event delegation for Repeating Reminders
   document.addEventListener('click', (e) => {
-    if (e.target.id === 'pause-repeating-btn') {
+    const btn = e.target.closest('#pause-repeating-btn');
+    if (btn) {
       // Allow pause/resume if timer has been started, regardless of current state
       if (!isRepeatingPaused) {
         ipcRenderer.send('pause-timer', 'repeating');
         isRepeatingPaused = true;
         const repeatingDisplay = document.getElementById('repeating-timer-display');
         if (repeatingDisplay) repeatingDisplay.classList.add('paused');
-        e.target.innerText = 'Resume ▶️';
+        btn.innerText = 'Resume ▶️';
       } else {
         ipcRenderer.send('resume-timer', 'repeating');
         isRepeatingPaused = false;
         const repeatingDisplay = document.getElementById('repeating-timer-display');
         if (repeatingDisplay) repeatingDisplay.classList.remove('paused');
-        e.target.innerText = 'Pause ⏸';
+        btn.innerText = 'Pause ⏸';
       }
     }
   });
-
-  // Stop button for Micro-Task Sprint Mode
-  const stopSprintBtn = document.getElementById('stop-sprint-btn');
-  if (stopSprintBtn) {
-    stopSprintBtn.addEventListener('click', () => {
-      stopSprintMode();
-    });
-  }
 }
 
 // --- Audio ---
@@ -242,6 +239,10 @@ const sideMenu = document.getElementById('side-menu');
 const menuIcon = menuToggleBtn.querySelector('.icon');
 
 function toggleSidebar() {
+    const extraModeModal = document.getElementById('choose-extra-mode');
+    if (extraModeModal && extraModeModal.classList.contains('active')) {
+        return; // Sidebar lockout
+    }
     const isOpen = sideMenu.classList.toggle('open');
     menuIcon.innerText = isOpen ? '✕' : '☰';
     menuIcon.style.transform = isOpen ? 'rotate(90deg)' : 'rotate(0deg)';
@@ -345,13 +346,15 @@ function recordFocusSession(minutes, mode = 'Focus Session') {
     
     if (sessionHistory.length > 50) sessionHistory.shift();
     
-    store.set('totalFocusTime', totalFocusTime);
-    store.set('completedRounds', completedRounds);
-    store.set('sessionHistory', sessionHistory);
-    
     const today = now.toISOString().split('T')[0];
     dailyStats[today] = (dailyStats[today] || 0) + minutes;
-    store.set('dailyStats', dailyStats);
+    
+    setTimeout(() => {
+        store.set('totalFocusTime', totalFocusTime);
+        store.set('completedRounds', completedRounds);
+        store.set('sessionHistory', sessionHistory);
+        store.set('dailyStats', dailyStats);
+    }, 0);
     
     updateStatsUI();
     renderChart();
@@ -375,7 +378,10 @@ function renderChart() {
     }
 
     if (statsChartInstance) {
-        statsChartInstance.destroy();
+        statsChartInstance.data.labels = labels;
+        statsChartInstance.data.datasets[0].data = data;
+        statsChartInstance.update();
+        return;
     }
 
     statsChartInstance = new Chart(ctx, {
@@ -402,22 +408,96 @@ function renderChart() {
 renderChart();
 
 // --- Mode Switching ---
-const fokusModeSelect = document.getElementById('fokus-mode');
+const homeMenu = document.getElementById('home-menu');
+const dashboardTitle = document.getElementById('dashboard-title');
+const headerTitle = document.getElementById('header-title');
+
 const configSections = {
   'repeating-reminders': document.getElementById('config-repeating-reminders'),
   'pomo-style': document.getElementById('config-pomo-style'),
   'site-blocker': document.getElementById('config-site-blocker'),
-  'micro-sprint': document.getElementById('config-micro-sprint')
+  'micro-sprint': document.getElementById('config-micro-sprint'),
+  'flow-state': document.getElementById('config-flow-state'),
+  'workflows': document.getElementById('config-workflows')
 };
 
-fokusModeSelect.addEventListener('change', (event) => {
-  Object.values(configSections).forEach(section => {
-    if (section) section.classList.remove('active');
+document.querySelectorAll('.home-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const mode = btn.getAttribute('data-mode');
+    
+    homeMenu.style.display = 'none';
+    Object.values(configSections).forEach(section => {
+      if (section) section.classList.remove('active');
+    });
+    if (configSections[mode]) {
+      configSections[mode].classList.add('active');
+      const titleText = btn.innerText.replace(/[\n\r]+|[\s]{2,}/g, ' ').trim();
+      // Remove any leading icon characters like ⟳ ✓ ☑ ⏱ ⚙
+      dashboardTitle.innerText = titleText.replace(/^[⟳✓☑⏱⚙]\s*/, '');
+    }
+
+    const dashboardSubtitle = document.getElementById('dashboard-subtitle');
+    if (dashboardSubtitle) {
+        dashboardSubtitle.innerHTML = '<span id="select-another-mode-btn" style="text-decoration: underline; cursor: pointer; color: var(--header-grad-1);">Select another Fokus Mode</span>';
+        const selectAnotherBtn = document.getElementById('select-another-mode-btn');
+        if (selectAnotherBtn) {
+            selectAnotherBtn.addEventListener('click', () => {
+                const modal = document.getElementById('choose-extra-mode');
+                if (modal) {
+                    if (typeof closeSidebar === 'function') closeSidebar();
+                    document.querySelectorAll('.extra-mode-btn').forEach(mBtn => {
+                        if (mBtn.getAttribute('data-switch-mode') === mode) {
+                            mBtn.style.display = 'none';
+                        } else {
+                            mBtn.style.display = 'block';
+                        }
+                    });
+                    modal.classList.add('active');
+                }
+            });
+        }
+    }
   });
-  if (configSections[event.target.value]) {
-    configSections[event.target.value].classList.add('active');
-  }
 });
+
+document.querySelectorAll('.extra-mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const mode = btn.getAttribute('data-switch-mode');
+        const modal = document.getElementById('choose-extra-mode');
+        if (modal) modal.classList.remove('active');
+        
+        if (mode === 'site-blocker') {
+            const siteBlockerModal = document.getElementById('modal-site-blocker');
+            if (siteBlockerModal) {
+                document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+                siteBlockerModal.classList.add('active');
+            }
+            return;
+        }
+
+        const targetHomeBtn = document.querySelector(`.home-btn[data-mode="${mode}"]`);
+        if (targetHomeBtn) {
+            targetHomeBtn.click();
+        }
+    });
+});
+
+headerTitle.addEventListener('click', () => {
+    returnToHome();
+});
+
+function returnToHome() {
+    if (typeof isPomoRunning !== 'undefined' && isPomoRunning) stopPomoStyle();
+    if (typeof isRepeatingRunning !== 'undefined' && isRepeatingRunning) stopRepeatingReminders();
+    if (typeof isSprintRunning !== 'undefined' && isSprintRunning) stopSprintMode();
+    if (typeof isFlowRunning !== 'undefined' && isFlowRunning) stopFlowState();
+    
+    Object.values(configSections).forEach(section => {
+      if (section) section.classList.remove('active');
+    });
+    homeMenu.style.display = 'grid';
+    dashboardTitle.innerText = 'Dashboard';
+}
 
 function setInputsLocked(sectionId, locked) {
     const section = document.getElementById(sectionId);
@@ -425,7 +505,6 @@ function setInputsLocked(sectionId, locked) {
     inputs.forEach(input => {
         input.disabled = locked;
     });
-    fokusModeSelect.disabled = locked;
 }
 
 function toggleStartStopButton(btnElement) {
@@ -570,10 +649,12 @@ function renderSequence() {
         `;
         sequenceListEl.appendChild(div);
     });
+}
 
-    sequenceListEl.querySelectorAll('input').forEach(input => {
-        input.addEventListener('change', (e) => {
-            const idx = e.target.getAttribute('data-index');
+sequenceListEl.addEventListener('change', (e) => {
+    if (e.target.tagName === 'INPUT' && e.target.type === 'number') {
+        const idx = e.target.getAttribute('data-index');
+        if (idx !== null) {
             let val = parseInt(e.target.value, 10) || 1;
             const unitSelect = sequenceListEl.querySelector(`select[data-index="${idx}"]`);
             if (unitSelect && unitSelect.value === 'secs' && val >= 60) {
@@ -581,34 +662,36 @@ function renderSequence() {
                 e.target.value = val;
             }
             pomoSequence[idx].duration = val;
-        });
-    });
-    
-    sequenceListEl.querySelectorAll('select').forEach(select => {
-        select.addEventListener('change', (e) => {
-            const idx = e.target.getAttribute('data-index');
+        }
+    } else if (e.target.tagName === 'SELECT') {
+        const idx = e.target.getAttribute('data-index');
+        if (idx !== null) {
             const newUnit = e.target.value;
             pomoSequence[idx].unit = newUnit;
             if (newUnit === 'secs') {
                 const input = sequenceListEl.querySelector(`input[data-index="${idx}"]`);
-                let val = parseInt(input.value, 10) || 1;
-                if (val >= 60) {
-                    val = 59;
-                    input.value = val;
-                    pomoSequence[idx].duration = val;
+                if (input) {
+                    let val = parseInt(input.value, 10) || 1;
+                    if (val >= 60) {
+                        val = 59;
+                        input.value = val;
+                        pomoSequence[idx].duration = val;
+                    }
                 }
             }
-        });
-    });
+        }
+    }
+});
 
-    sequenceListEl.querySelectorAll('.remove-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const idx = e.target.getAttribute('data-index');
+sequenceListEl.addEventListener('click', (e) => {
+    if (e.target.classList.contains('remove-btn')) {
+        const idx = e.target.getAttribute('data-index');
+        if (idx !== null) {
             pomoSequence.splice(idx, 1);
             renderSequence();
-        });
-    });
-}
+        }
+    }
+});
 renderSequence();
 
 addWorkBtn.addEventListener('click', () => { pomoSequence.push({ type: 'work', duration: 25 }); renderSequence(); });
@@ -880,14 +963,39 @@ function updateRepeatingDisplay() {
     }
 }
 
-ipcRenderer.on('timer-tick-repeating', (event, secondsLeft) => {
-    repeatingTimer = secondsLeft;
+let repeatingLocalInterval = null;
+function updateLocalRepeatingTimer(endTime) {
+    if (repeatingLocalInterval) clearInterval(repeatingLocalInterval);
+    const tick = () => {
+        const remaining = Math.max(0, Math.round((endTime - Date.now()) / 1000));
+        repeatingTimer = remaining;
+        updateRepeatingDisplay();
+        if (remaining <= 0) clearInterval(repeatingLocalInterval);
+    };
+    repeatingLocalInterval = setInterval(tick, 200);
+    tick();
+}
+
+ipcRenderer.on('timer-started-repeating', (event, endTime) => updateLocalRepeatingTimer(endTime));
+ipcRenderer.on('timer-resumed-repeating', (event, endTime) => updateLocalRepeatingTimer(endTime));
+ipcRenderer.on('timer-paused-repeating', () => {
+    if (repeatingLocalInterval) clearInterval(repeatingLocalInterval);
+});
+ipcRenderer.on('timer-stopped-repeating', () => {
+    if (repeatingLocalInterval) clearInterval(repeatingLocalInterval);
+    repeatingTimer = 0;
     updateRepeatingDisplay();
 });
 
 ipcRenderer.on('timer-complete-repeating', () => {
     playChime();
-    ipcRenderer.send('show-popup', reminderMessageInput.value);
+    const autocloseSecs = reminderAutocloseInput ? (parseInt(reminderAutocloseInput.value, 10) || 10) : 10;
+    ipcRenderer.send('show-popup', {
+        message: reminderMessageInput.value,
+        closeDelay: autocloseSecs * 1000,
+        type: 'Repeating Reminder',
+        isAutoclose: true
+    });
     recordFocusSession(Math.round(currentRepeatingTotalSeconds / 60), 'Repeating Reminder');
     
     if (!infiniteRoundsCheckbox.checked) {
@@ -955,6 +1063,105 @@ startRepeatingBtn.addEventListener('click', () => {
     if (!isRepeatingRunning) startRepeatingReminders();
     else stopRepeatingReminders();
 });
+
+// Repeating Reminders Presets
+const repeatingPresetsSelect = document.getElementById('repeating-presets');
+const deleteRepeatingPresetBtn = document.getElementById('delete-repeating-preset-btn');
+const saveRepeatingPresetBtn = document.getElementById('save-repeating-preset-btn');
+const saveRepeatingPresetContainer = document.getElementById('save-repeating-preset-container');
+const repeatingPresetNameInput = document.getElementById('repeating-preset-name-input');
+const confirmSaveRepeatingPresetBtn = document.getElementById('confirm-save-repeating-preset-btn');
+const cancelSaveRepeatingPresetBtn = document.getElementById('cancel-save-repeating-preset-btn');
+
+let repeatingPresets = store.get('repeatingPresets', {});
+
+function updateRepeatingPresetOptions() {
+    if (!repeatingPresetsSelect) return;
+    Array.from(repeatingPresetsSelect.options).forEach(opt => {
+        if (opt.value.startsWith('custom-preset-')) {
+            repeatingPresetsSelect.removeChild(opt);
+        }
+    });
+    Object.keys(repeatingPresets).forEach(key => {
+        const option = document.createElement('option');
+        option.value = `custom-preset-${key}`;
+        option.textContent = `Custom: ${key}`;
+        repeatingPresetsSelect.appendChild(option);
+    });
+}
+updateRepeatingPresetOptions();
+
+if (repeatingPresetsSelect) {
+    repeatingPresetsSelect.addEventListener('change', (e) => {
+        const val = e.target.value;
+        if (deleteRepeatingPresetBtn) {
+            deleteRepeatingPresetBtn.style.display = val.startsWith('custom-preset-') ? 'block' : 'none';
+        }
+        if (val.startsWith('custom-preset-')) {
+            const key = val.replace('custom-preset-', '');
+            if (repeatingPresets[key]) {
+                const data = repeatingPresets[key];
+                reminderIntervalInput.value = data.intervalMins || 0;
+                reminderIntervalSecondsInput.value = data.intervalSecs || 0;
+                reminderRoundsInput.value = data.rounds || 5;
+                reminderMessageInput.value = data.message || '';
+            }
+        }
+    });
+}
+
+if (deleteRepeatingPresetBtn) {
+    deleteRepeatingPresetBtn.addEventListener('click', () => {
+        const val = repeatingPresetsSelect.value;
+        if (val.startsWith('custom-preset-')) {
+            const key = val.replace('custom-preset-', '');
+            if (confirm(`Are you sure you want to delete preset "${key}"?`)) {
+                delete repeatingPresets[key];
+                store.set('repeatingPresets', repeatingPresets);
+                updateRepeatingPresetOptions();
+                repeatingPresetsSelect.value = 'custom';
+                repeatingPresetsSelect.dispatchEvent(new Event('change'));
+            }
+        }
+    });
+}
+
+if (saveRepeatingPresetBtn) {
+    saveRepeatingPresetBtn.addEventListener('click', () => {
+        if (infiniteRoundsCheckbox.checked) {
+            customAlert("Cannot save preset with 'Infinite Rounds' enabled.");
+            return;
+        }
+        saveRepeatingPresetContainer.style.display = 'flex';
+        repeatingPresetNameInput.focus();
+    });
+}
+
+if (confirmSaveRepeatingPresetBtn) {
+    confirmSaveRepeatingPresetBtn.addEventListener('click', () => {
+        const name = repeatingPresetNameInput.value;
+        if (name && name.trim()) {
+            repeatingPresets[name.trim()] = {
+                intervalMins: parseInt(reminderIntervalInput.value, 10) || 0,
+                intervalSecs: parseInt(reminderIntervalSecondsInput.value, 10) || 0,
+                rounds: parseInt(reminderRoundsInput.value, 10) || 5,
+                message: reminderMessageInput.value
+            };
+            store.set('repeatingPresets', repeatingPresets);
+            updateRepeatingPresetOptions();
+            repeatingPresetsSelect.value = `custom-preset-${name.trim()}`;
+            repeatingPresetNameInput.value = '';
+            saveRepeatingPresetContainer.style.display = 'none';
+        }
+    });
+}
+
+if (cancelSaveRepeatingPresetBtn) {
+    cancelSaveRepeatingPresetBtn.addEventListener('click', () => {
+        repeatingPresetNameInput.value = '';
+        saveRepeatingPresetContainer.style.display = 'none';
+    });
+}
 
 // --- Site Blocker ---
 const saveBlockerBtn = document.getElementById('save-blocker-btn');
@@ -1108,12 +1315,119 @@ const sprintCurrentTask = document.getElementById('sprint-current-task');
 const sprintTimeLeft = document.getElementById('sprint-time-left');
 const sprintTasksLeft = document.getElementById('sprint-tasks-left');
 const nextSprintBtn = document.getElementById('next-sprint-btn');
+const skipSprintBtn = document.getElementById('skip-sprint-btn');
 
 let isSprintRunning = false;
 let sprintTasks = [];
 let currentSprintTaskIndex = 0;
 let sprintTimerSeconds = 0;
 let sprintDurationSeconds = 0;
+
+// Presets and Custom Duration Logic
+const sprintPresetsSelect = document.getElementById('sprint-presets');
+const deleteSprintPresetBtn = document.getElementById('delete-sprint-preset-btn');
+const saveSprintPresetBtn = document.getElementById('save-sprint-preset-btn');
+const saveSprintPresetContainer = document.getElementById('save-sprint-preset-container');
+const sprintPresetNameInput = document.getElementById('sprint-preset-name-input');
+const confirmSaveSprintPresetBtn = document.getElementById('confirm-save-sprint-preset-btn');
+const cancelSaveSprintPresetBtn = document.getElementById('cancel-save-sprint-preset-btn');
+const customSprintDurationContainer = document.getElementById('custom-sprint-duration-container');
+const customSprintDurationInput = document.getElementById('custom-sprint-duration');
+
+let sprintPresets = store.get('sprintPresets', {});
+
+function updateSprintPresetOptions() {
+    if (!sprintPresetsSelect) return;
+    Array.from(sprintPresetsSelect.options).forEach(opt => {
+        if (opt.value.startsWith('custom-preset-')) {
+            sprintPresetsSelect.removeChild(opt);
+        }
+    });
+    Object.keys(sprintPresets).forEach(key => {
+        const option = document.createElement('option');
+        option.value = `custom-preset-${key}`;
+        option.textContent = `Custom: ${key}`;
+        sprintPresetsSelect.appendChild(option);
+    });
+}
+updateSprintPresetOptions();
+
+sprintDurationSelect.addEventListener('change', (e) => {
+    if (e.target.value === 'custom') {
+        customSprintDurationContainer.style.display = 'block';
+    } else {
+        customSprintDurationContainer.style.display = 'none';
+    }
+});
+
+if (sprintPresetsSelect) {
+    sprintPresetsSelect.addEventListener('change', (e) => {
+        const val = e.target.value;
+        if (deleteSprintPresetBtn) {
+            deleteSprintPresetBtn.style.display = val.startsWith('custom-preset-') ? 'block' : 'none';
+        }
+        if (val.startsWith('custom-preset-')) {
+            const key = val.replace('custom-preset-', '');
+            if (sprintPresets[key]) {
+                const data = sprintPresets[key];
+                sprintDurationSelect.value = data.durationVal || '5';
+                sprintDurationSelect.dispatchEvent(new Event('change'));
+                if (data.durationVal === 'custom') {
+                    customSprintDurationInput.value = data.customMins || 20;
+                }
+                sprintTasksInput.value = data.tasks || '';
+            }
+        }
+    });
+}
+
+if (deleteSprintPresetBtn) {
+    deleteSprintPresetBtn.addEventListener('click', () => {
+        const val = sprintPresetsSelect.value;
+        if (val.startsWith('custom-preset-')) {
+            const key = val.replace('custom-preset-', '');
+            if (confirm(`Are you sure you want to delete preset "${key}"?`)) {
+                delete sprintPresets[key];
+                store.set('sprintPresets', sprintPresets);
+                updateSprintPresetOptions();
+                sprintPresetsSelect.value = 'custom';
+                sprintPresetsSelect.dispatchEvent(new Event('change'));
+            }
+        }
+    });
+}
+
+if (saveSprintPresetBtn) {
+    saveSprintPresetBtn.addEventListener('click', () => {
+        saveSprintPresetContainer.style.display = 'flex';
+        sprintPresetNameInput.focus();
+    });
+}
+
+if (confirmSaveSprintPresetBtn) {
+    confirmSaveSprintPresetBtn.addEventListener('click', () => {
+        const name = sprintPresetNameInput.value;
+        if (name && name.trim()) {
+            sprintPresets[name.trim()] = {
+                durationVal: sprintDurationSelect.value,
+                customMins: sprintDurationSelect.value === 'custom' ? (parseInt(customSprintDurationInput.value, 10) || 20) : null,
+                tasks: sprintTasksInput.value
+            };
+            store.set('sprintPresets', sprintPresets);
+            updateSprintPresetOptions();
+            sprintPresetsSelect.value = `custom-preset-${name.trim()}`;
+            sprintPresetNameInput.value = '';
+            saveSprintPresetContainer.style.display = 'none';
+        }
+    });
+}
+
+if (cancelSaveSprintPresetBtn) {
+    cancelSaveSprintPresetBtn.addEventListener('click', () => {
+        sprintPresetNameInput.value = '';
+        saveSprintPresetContainer.style.display = 'none';
+    });
+}
 
 function updateSprintDisplay() {
     sprintTimeLeft.innerText = formatTime(sprintTimerSeconds);
@@ -1122,15 +1436,13 @@ function updateSprintDisplay() {
     sprintTasksLeft.innerText = `Remaining Tasks: ${Math.max(0, sprintTasks.length - currentSprintTaskIndex - 1)}`;
 }
 
-ipcRenderer.on('timer-tick-sprint', (event, secondsLeft) => {
-    sprintTimerSeconds = secondsLeft;
-    updateSprintDisplay();
-});
+
 
 ipcRenderer.on('timer-complete-sprint', () => {
     playChime();
     recordFocusSession(Math.round(sprintDurationSeconds / 60), 'Micro-Task Sprint');
     nextSprintBtn.style.display = 'block';
+    skipSprintBtn.style.display = 'block';
 });
 
 function startNextSprintTask() {
@@ -1139,6 +1451,7 @@ function startNextSprintTask() {
         return;
     }
     nextSprintBtn.style.display = 'none';
+    skipSprintBtn.style.display = 'block'; // Allow skipping during the sprint
     sprintTimerSeconds = sprintDurationSeconds;
     updateSprintDisplay();
     ipcRenderer.send('start-timer', { id: 'sprint', seconds: sprintTimerSeconds });
@@ -1152,14 +1465,23 @@ function stopSprintMode() {
     setInputsLocked('config-micro-sprint', false);
     sprintTimerDisplay.classList.add('hidden');
     nextSprintBtn.style.display = 'none';
+    skipSprintBtn.style.display = 'none';
 }
+
+stopSprintBtn.addEventListener('click', stopSprintMode);
 
 startSprintBtn.addEventListener('click', () => {
     const rawTasks = sprintTasksInput.value.split('\n').map(t => t.trim()).filter(Boolean);
     sprintTasks = rawTasks.length > 0 ? rawTasks : ['Unnamed Sprint'];
     currentSprintTaskIndex = 0;
     
-    sprintDurationSeconds = parseInt(sprintDurationSelect.value, 10) * 60;
+    let durationMins = 5;
+    if (sprintDurationSelect.value === 'custom') {
+        durationMins = parseInt(customSprintDurationInput.value, 10) || 5;
+    } else {
+        durationMins = parseInt(sprintDurationSelect.value, 10);
+    }
+    sprintDurationSeconds = durationMins * 60;
     
     isSprintRunning = true;
     startSprintBtn.style.display = 'none';
@@ -1178,3 +1500,302 @@ nextSprintBtn.addEventListener('click', () => {
         startNextSprintTask();
     }
 });
+
+skipSprintBtn.addEventListener('click', () => {
+    ipcRenderer.send('stop-timer', 'sprint'); // Stop current sprint without recording
+    currentSprintTaskIndex++;
+    if (currentSprintTaskIndex >= sprintTasks.length) {
+        stopSprintMode();
+    } else {
+        startNextSprintTask();
+    }
+});
+
+// --- Flow State Stopwatch Mode ---
+const flowChimeIntervalInput = document.getElementById('flow-chime-interval');
+const startFlowBtn = document.getElementById('start-flow-btn');
+const stopFlowBtn = document.getElementById('stop-flow-btn');
+const flowTimerDisplay = document.getElementById('flow-timer-display');
+const flowTimeElapsed = document.getElementById('flow-time-elapsed');
+
+let isFlowRunning = false;
+let flowStartTime = 0;
+let flowInterval = null;
+
+function updateFlowDisplay(elapsedSeconds) {
+    const h = Math.floor(elapsedSeconds / 3600);
+    const m = Math.floor((elapsedSeconds % 3600) / 60);
+    const s = elapsedSeconds % 60;
+    flowTimeElapsed.innerText = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+function startFlowState() {
+    isFlowRunning = true;
+    startFlowBtn.style.display = 'none';
+    stopFlowBtn.style.display = 'block';
+    setInputsLocked('config-flow-state', true);
+    flowTimerDisplay.classList.remove('hidden');
+    
+    flowStartTime = Date.now();
+    let chimeIntervalMinutes = parseInt(flowChimeIntervalInput.value, 10) || 0;
+    let nextChimeSeconds = chimeIntervalMinutes > 0 ? chimeIntervalMinutes * 60 : 0;
+    
+    updateFlowDisplay(0);
+    
+    flowInterval = setInterval(() => {
+        const elapsedSeconds = Math.floor((Date.now() - flowStartTime) / 1000);
+        updateFlowDisplay(elapsedSeconds);
+        
+        if (nextChimeSeconds > 0 && elapsedSeconds >= nextChimeSeconds) {
+            playChime();
+            nextChimeSeconds += chimeIntervalMinutes * 60;
+        }
+    }, 1000);
+}
+
+function stopFlowState() {
+    if (!isFlowRunning) return;
+    isFlowRunning = false;
+    startFlowBtn.style.display = 'block';
+    stopFlowBtn.style.display = 'none';
+    setInputsLocked('config-flow-state', false);
+    flowTimerDisplay.classList.add('hidden');
+    
+    if (flowInterval) {
+        clearInterval(flowInterval);
+        flowInterval = null;
+    }
+    
+    const elapsedSeconds = Math.floor((Date.now() - flowStartTime) / 1000);
+    const elapsedMinutes = Math.round(elapsedSeconds / 60);
+    if (elapsedMinutes > 0) {
+        recordFocusSession(elapsedMinutes, 'Flow State');
+    }
+}
+
+startFlowBtn.addEventListener('click', startFlowState);
+stopFlowBtn.addEventListener('click', stopFlowState);
+
+// --- Workflows (Drag and Drop Builder) ---
+const workflowPresetsSelect = document.getElementById('workflow-presets');
+const deleteWorkflowPresetBtn = document.getElementById('delete-workflow-preset-btn');
+const saveWorkflowPresetBtn = document.getElementById('save-workflow-preset-btn');
+const saveWorkflowPresetContainer = document.getElementById('save-workflow-preset-container');
+const workflowPresetNameInput = document.getElementById('workflow-preset-name-input');
+const confirmSaveWorkflowPresetBtn = document.getElementById('confirm-save-workflow-preset-btn');
+const cancelSaveWorkflowPresetBtn = document.getElementById('cancel-save-workflow-preset-btn');
+
+const workflowPaletteItems = document.querySelectorAll('.workflow-palette-item');
+const workflowStack = document.getElementById('workflow-stack');
+const workflowStackPlaceholder = document.getElementById('workflow-stack-placeholder');
+const workflowTotalDurationEl = document.getElementById('workflow-total-duration');
+
+let workflowBlocks = [];
+let workflowPresets = store.get('workflowPresets', {});
+
+function updateWorkflowPresetOptions() {
+    if (!workflowPresetsSelect) return;
+    Array.from(workflowPresetsSelect.options).forEach(opt => {
+        if (opt.value.startsWith('custom-preset-')) {
+            workflowPresetsSelect.removeChild(opt);
+        }
+    });
+    Object.keys(workflowPresets).forEach(key => {
+        const option = document.createElement('option');
+        option.value = `custom-preset-${key}`;
+        option.textContent = `Custom: ${key}`;
+        workflowPresetsSelect.appendChild(option);
+    });
+}
+updateWorkflowPresetOptions();
+
+if (workflowPresetsSelect) {
+    workflowPresetsSelect.addEventListener('change', (e) => {
+        const val = e.target.value;
+        if (deleteWorkflowPresetBtn) {
+            deleteWorkflowPresetBtn.style.display = val.startsWith('custom-preset-') ? 'block' : 'none';
+        }
+        if (val.startsWith('custom-preset-')) {
+            const key = val.replace('custom-preset-', '');
+            if (workflowPresets[key]) {
+                workflowBlocks = JSON.parse(JSON.stringify(workflowPresets[key]));
+                renderWorkflowStack();
+            }
+        }
+    });
+}
+
+if (deleteWorkflowPresetBtn) {
+    deleteWorkflowPresetBtn.addEventListener('click', () => {
+        const val = workflowPresetsSelect.value;
+        if (val.startsWith('custom-preset-')) {
+            const key = val.replace('custom-preset-', '');
+            if (confirm(`Are you sure you want to delete preset "${key}"?`)) {
+                delete workflowPresets[key];
+                store.set('workflowPresets', workflowPresets);
+                updateWorkflowPresetOptions();
+                workflowPresetsSelect.value = 'custom';
+                workflowPresetsSelect.dispatchEvent(new Event('change'));
+            }
+        }
+    });
+}
+
+if (saveWorkflowPresetBtn) {
+    saveWorkflowPresetBtn.addEventListener('click', () => {
+        if (workflowBlocks.length === 0) {
+            customAlert('Add blocks to the stack before saving as preset.');
+            return;
+        }
+        saveWorkflowPresetContainer.style.display = 'flex';
+        workflowPresetNameInput.focus();
+    });
+}
+
+if (confirmSaveWorkflowPresetBtn) {
+    confirmSaveWorkflowPresetBtn.addEventListener('click', () => {
+        const name = workflowPresetNameInput.value;
+        if (name && name.trim()) {
+            workflowPresets[name.trim()] = JSON.parse(JSON.stringify(workflowBlocks));
+            store.set('workflowPresets', workflowPresets);
+            updateWorkflowPresetOptions();
+            workflowPresetsSelect.value = `custom-preset-${name.trim()}`;
+            workflowPresetNameInput.value = '';
+            saveWorkflowPresetContainer.style.display = 'none';
+        }
+    });
+}
+
+if (cancelSaveWorkflowPresetBtn) {
+    cancelSaveWorkflowPresetBtn.addEventListener('click', () => {
+        workflowPresetNameInput.value = '';
+        saveWorkflowPresetContainer.style.display = 'none';
+    });
+}
+
+// Drag and Drop Logic
+workflowPaletteItems.forEach(item => {
+    item.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', e.target.getAttribute('data-type'));
+        e.dataTransfer.effectAllowed = 'copy';
+    });
+});
+
+workflowStack.addEventListener('dragover', (e) => {
+    e.preventDefault(); // Necessary to allow dropping
+    e.dataTransfer.dropEffect = 'copy';
+    workflowStack.style.backgroundColor = 'rgba(106, 17, 203, 0.05)';
+});
+
+workflowStack.addEventListener('dragleave', () => {
+    workflowStack.style.backgroundColor = 'var(--input-bg)';
+});
+
+workflowStack.addEventListener('drop', (e) => {
+    e.preventDefault();
+    workflowStack.style.backgroundColor = 'var(--input-bg)';
+    const type = e.dataTransfer.getData('text/plain');
+    if (['pomo', 'sprint', 'repeating'].includes(type)) {
+        addWorkflowBlock(type);
+    }
+});
+
+function calculateBlockDuration(block) {
+    let baseMins = 0;
+    if (block.type === 'pomo') {
+        baseMins = pomoSequence.reduce((acc, p) => acc + (p.unit === 'secs' ? p.duration/60 : p.duration), 0);
+    } else if (block.type === 'sprint') {
+        let dur = sprintDurationSelect.value;
+        baseMins = dur === 'custom' ? (parseInt(customSprintDurationInput.value, 10) || 20) : parseInt(dur, 10);
+    } else if (block.type === 'repeating') {
+        const intervalMins = parseInt(reminderIntervalInput.value, 10) || 0;
+        const intervalSecs = parseInt(reminderIntervalSecondsInput.value, 10) || 0;
+        const rounds = parseInt(reminderRoundsInput.value, 10) || 1;
+        baseMins = ((intervalMins * 60 + intervalSecs) * rounds) / 60;
+    }
+    return Math.max(1, Math.round(baseMins * block.cycles));
+}
+
+function addWorkflowBlock(type) {
+    const block = {
+        id: 'block-' + Date.now(),
+        type: type,
+        name: type === 'pomo' ? 'Pomo Session' : (type === 'sprint' ? 'Micro-Sprint' : 'Repeating Reminder'),
+        cycles: 1
+    };
+    workflowBlocks.push(block);
+    renderWorkflowStack();
+}
+
+function renderWorkflowStack() {
+    const existingBlocks = workflowStack.querySelectorAll('.workflow-block');
+    existingBlocks.forEach(b => b.remove());
+
+    if (workflowBlocks.length === 0) {
+        if (workflowStackPlaceholder) workflowStackPlaceholder.style.display = 'block';
+        if (workflowTotalDurationEl) workflowTotalDurationEl.innerText = '0m';
+        return;
+    }
+
+    if (workflowStackPlaceholder) workflowStackPlaceholder.style.display = 'none';
+
+    let totalDuration = 0;
+
+    workflowBlocks.forEach((block, index) => {
+        const dur = calculateBlockDuration(block);
+        totalDuration += dur;
+
+        const blockEl = document.createElement('div');
+        blockEl.className = 'workflow-block';
+        blockEl.style.cssText = 'background: var(--container-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; gap: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);';
+        
+        let typeInfo = '';
+        if (block.type === 'pomo') typeInfo = 'Pomo Style';
+        else if (block.type === 'sprint') typeInfo = 'Micro-Task Sprint';
+        else if (block.type === 'repeating') typeInfo = 'Repeating Reminders';
+
+        const cyclesDisabled = block.type === 'repeating' ? 'disabled title="Cannot cycle repeating reminders"' : '';
+
+        blockEl.innerHTML = `
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
+                <input type="text" class="block-name-input" value="${block.name}" data-index="${index}" style="font-weight: bold; border: 1px dashed var(--input-border); padding: 5px; background: transparent; width: 100%;">
+                <small style="color: var(--timer-subtext);">${typeInfo} • Duration: ${dur}m</small>
+            </div>
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <label style="margin: 0; font-size: 0.9rem;">Cycles:</label>
+                <input type="number" class="block-cycles-input" value="${block.cycles}" min="1" data-index="${index}" ${cyclesDisabled} style="width: 60px; padding: 5px;">
+            </div>
+            <button class="remove-block-btn action-btn" data-index="${index}" style="margin: 0; width: auto; padding: 5px 10px; background: #e74c3c;">X</button>
+        `;
+
+        workflowStack.appendChild(blockEl);
+    });
+
+    if (workflowTotalDurationEl) workflowTotalDurationEl.innerText = `${totalDuration}m`;
+}
+
+workflowStack.addEventListener('change', (e) => {
+    if (e.target.classList.contains('block-name-input')) {
+        const idx = e.target.getAttribute('data-index');
+        if (idx !== null) {
+            workflowBlocks[idx].name = e.target.value;
+        }
+    } else if (e.target.classList.contains('block-cycles-input')) {
+        const idx = e.target.getAttribute('data-index');
+        if (idx !== null) {
+            workflowBlocks[idx].cycles = parseInt(e.target.value, 10) || 1;
+            renderWorkflowStack(); 
+        }
+    }
+});
+
+workflowStack.addEventListener('click', (e) => {
+    if (e.target.classList.contains('remove-block-btn')) {
+        const idx = e.target.getAttribute('data-index');
+        if (idx !== null) {
+            workflowBlocks.splice(idx, 1);
+            renderWorkflowStack();
+        }
+    }
+});
+

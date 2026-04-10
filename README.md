@@ -56,7 +56,7 @@ The SuperFokus sidebar provides quick access to powerful tools and analytics wit
 1. Open the sidebar (☰) and select **Site Blocker**.
 2. Toggle the Site Blocker switch to **Active** (granting administrator permissions when prompted).
 3. Set Blocker Mode to **Block only entered websites**.
-4. In the **Domain List**, enter `youtube.com`, `reddit.com`, and `twitter.com`.
+4. In the **Domain List**, enter `youtube.com`, `reddit.com`, and `x.com`.
 5. Click **Save & Apply Blocker**. You can now study distraction-free, optionally running a **Repeating Reminder** timer in the background.
 
 ### Example 3: Health-Conscious Coding

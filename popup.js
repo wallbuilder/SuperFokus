@@ -104,6 +104,7 @@ ipcRenderer.on('display-message', (event, payload) => {
     let healthType = null;
     let isBlocking = false;
     let closeDelay = 10000; // default 10s
+    let isAutoclose = false;
 
     if (typeof payload === 'string') {
         message = payload;
@@ -114,6 +115,7 @@ ipcRenderer.on('display-message', (event, payload) => {
         healthType = payload.healthType || null;
         isBlocking = payload.isBlocking || false;
         closeDelay = payload.closeDelay || 10000;
+        isAutoclose = payload.isAutoclose || false;
         
         if (!fullscreenData) {
             fullscreenData = {
@@ -152,8 +154,8 @@ ipcRenderer.on('display-message', (event, payload) => {
         startCountdown(Number(delay), fullscreenData);
     }
     
-    // Start auto-close countdown for health breaks
-    if (healthType) {
+    // Start auto-close countdown for health breaks and repeating reminders
+    if (healthType || isAutoclose) {
         // Convert ms to seconds for display
         const closeDelaySeconds = Math.ceil(closeDelay / 1000);
         startAutoCloseCountdown(closeDelaySeconds);

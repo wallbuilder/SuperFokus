@@ -23,7 +23,6 @@ let blockerRules = {
 
 // Mac-specific blocker active flag
 let macBlockActive = false;
-let macFocusEnforcer = null;
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 900,
@@ -133,81 +132,87 @@ function createApplicationMenu() {
 }
 
 function createPopupWindow(message, autoDismissMs = 10000, healthType = null) {
-    if (popupWindow) {
-        popupWindow.close();
-    }
-
-    // Use blocking mode for health features if configured
     const isBlocking = healthType && healthConfig.blockingMode === 'fullscreen';
-    
-    if (isBlocking) {
-        // Fullscreen blocking mode for mandatory health breaks
-        popupWindow = new BrowserWindow({
-            width: app.getPrimaryDisplay().workAreaSize.width,
-            height: app.getPrimaryDisplay().workAreaSize.height,
-            x: 0,
-            y: 0,
-            alwaysOnTop: true,
-            frame: false,
-            fullscreen: false,
-            resizable: false,
-            webPreferences: {
-                nodeIntegration: true,
-                contextIsolation: false,
-            },
-        });
-    } else {
-        // Non-blocking popup mode (floats on top, doesn't prevent interaction)
-        popupWindow = new BrowserWindow({
-            width: 500,
-            height: 350,
-            alwaysOnTop: true,
-            frame: true,
-            resizable: false,
-            webPreferences: {
-                nodeIntegration: true,
-                contextIsolation: false,
-            },
-        });
-    }
 
-    // Mac-specific visibility and level to keep popup on top of other apps/workspaces
-    if (process.platform === 'darwin') {
-        try {
-            popupWindow.setAlwaysOnTop(true, 'screen-saver');
-            popupWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-            popupWindow.setFullScreenable(false);
-        } catch (e) {
-            console.warn('Mac popup window tuning failed', e);
-        }
-    }
-
-    popupWindow.loadFile('popup.html');
-    
-    popupWindow.webContents.on('did-finish-load', () => {
+    if (popupWindow) {
+        popupWindow.show();
         popupWindow.webContents.send('display-message', {
             message,
             closeDelay: autoDismissMs,
             healthType,
             isBlocking
         });
-    });
-
-    popupWindow.on('closed', () => {
-        popupWindow = null;
-    });
-
-    // Focus-lock while blocker is active
-    popupWindow.on('blur', () => {
-        if (macBlockActive) {
-            try {
-                popupWindow.focus();
-                // small toggle to try to keep it above other apps
-                popupWindow.setAlwaysOnTop(true);
-                popupWindow.setAlwaysOnTop(false);
-            } catch (e) {}
+    } else {
+        if (isBlocking) {
+            // Fullscreen blocking mode for mandatory health breaks
+            popupWindow = new BrowserWindow({
+                width: app.getPrimaryDisplay().workAreaSize.width,
+                height: app.getPrimaryDisplay().workAreaSize.height,
+                x: 0,
+                y: 0,
+                alwaysOnTop: true,
+                frame: false,
+                fullscreen: false,
+                resizable: false,
+                webPreferences: {
+                    nodeIntegration: true,
+                    contextIsolation: false,
+                },
+            });
+        } else {
+            // Non-blocking popup mode (floats on top, doesn't prevent interaction)
+            popupWindow = new BrowserWindow({
+                width: 500,
+                height: 350,
+                alwaysOnTop: true,
+                frame: true,
+                resizable: false,
+                webPreferences: {
+                    nodeIntegration: true,
+                    contextIsolation: false,
+                },
+            });
         }
-    });
+
+        // Mac-specific visibility and level to keep popup on top of other apps/workspaces
+        if (process.platform === 'darwin') {
+            try {
+                popupWindow.setAlwaysOnTop(true, 'screen-saver');
+                popupWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+                popupWindow.setFullScreenable(false);
+            } catch (e) {
+                console.warn('Mac popup window tuning failed', e);
+            }
+        }
+
+        popupWindow.loadFile('popup.html');
+        
+        popupWindow.webContents.on('did-finish-load', () => {
+            popupWindow.webContents.send('display-message', {
+                message,
+                closeDelay: autoDismissMs,
+                healthType,
+                isBlocking
+            });
+        });
+
+        popupWindow.on('close', (e) => {
+            e.preventDefault();
+            popupWindow.hide();
+        });
+
+        // Focus-lock while blocker is active
+        popupWindow.on('blur', () => {
+            if (macBlockActive) {
+                try {
+                    popupWindow.focus();
+                    // small toggle to try to keep it above other apps
+                    popupWindow.setAlwaysOnTop(true);
+                    popupWindow.setAlwaysOnTop(false);
+                } catch (e) {}
+            }
+        });
+    }
     
     // Auto-dismiss popup after specified duration
     if (autoDismissMs > 0) {
@@ -229,7 +234,11 @@ ipcMain.on('theme-changed', (event, isDark) => {
 });
 
 function createPomoTimerWindow() {
-    if (pomoTimerWindow) return;
+    if (pomoTimerWindow) {
+        pomoTimerWindow.show();
+        pomoTimerWindow.webContents.send('set-theme', currentThemeIsDark);
+        return;
+    }
 
     pomoTimerWindow = new BrowserWindow({
         width: 350,
@@ -244,14 +253,22 @@ function createPomoTimerWindow() {
         },
     });
 
+    try {
+        pomoTimerWindow.setAlwaysOnTop(true, 'screen-saver');
+        pomoTimerWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    } catch (e) {
+        console.warn('Pomo timer window tuning failed', e);
+    }
+
     pomoTimerWindow.loadFile('pomo-timer.html');
 
     pomoTimerWindow.webContents.on('did-finish-load', () => {
         pomoTimerWindow.webContents.send('set-theme', currentThemeIsDark);
     });
 
-    pomoTimerWindow.on('closed', () => {
-        pomoTimerWindow = null;
+    pomoTimerWindow.on('close', (e) => {
+        e.preventDefault();
+        pomoTimerWindow.hide();
         if (mainWindow) {
             mainWindow.webContents.send('pomo-popup-closed');
         }
@@ -260,7 +277,9 @@ function createPomoTimerWindow() {
 
 function createFullscreenWindow(data) {
     if (fullscreenWindow) {
-        fullscreenWindow.close();
+        fullscreenWindow.show();
+        fullscreenWindow.webContents.send('set-fullscreen-data', data);
+        return;
     }
 
     fullscreenWindow = new BrowserWindow({
@@ -293,8 +312,9 @@ function createFullscreenWindow(data) {
         fullscreenWindow.webContents.send('set-fullscreen-data', data);
     });
 
-    fullscreenWindow.on('closed', () => {
-        fullscreenWindow = null;
+    fullscreenWindow.on('close', (e) => {
+        e.preventDefault();
+        fullscreenWindow.hide();
     });
 
     // Focus-lock while blocker is active
@@ -319,24 +339,6 @@ function createFullscreenWindow(data) {
             try { fullscreenWindow.show(); fullscreenWindow.focus(); } catch (e) {}
         }
     });
-
-    // Start a periodic enforcer to keep focus on mac while blocker active
-    if (process.platform === 'darwin') {
-        try {
-            if (macFocusEnforcer) clearInterval(macFocusEnforcer);
-            macFocusEnforcer = setInterval(() => {
-                if (macBlockActive && fullscreenWindow) {
-                    try {
-                        if (!fullscreenWindow.isDestroyed()) {
-                            fullscreenWindow.focus();
-                            fullscreenWindow.setAlwaysOnTop(true);
-                            fullscreenWindow.setAlwaysOnTop(false);
-                        }
-                    } catch (e) {}
-                }
-            }, 1000);
-        } catch (e) {}
-    }
 }
 
 // --- Timer State (Main Process) ---
@@ -346,72 +348,77 @@ let timers = {};
 
 ipcMain.on('start-timer', (event, data) => {
     const { id, seconds } = data;
-    if (timers[id] && timers[id].interval) clearInterval(timers[id].interval);
+    if (timers[id] && timers[id].timeout) clearTimeout(timers[id].timeout);
     
+    const durationMs = seconds * 1000;
+    const endTime = Date.now() + durationMs;
+
     timers[id] = {
         seconds: seconds,
-        endTime: Date.now() + (seconds * 1000),
-        interval: setInterval(() => {
-            const remaining = Math.round((timers[id].endTime - Date.now()) / 1000);
-            timers[id].seconds = Math.max(0, remaining);
+        endTime: endTime,
+        timeout: setTimeout(() => {
+            timers[id].seconds = 0;
+            timers[id].timeout = null;
             if (mainWindow) {
-                mainWindow.webContents.send(`timer-tick-${id}`, timers[id].seconds);
+                mainWindow.webContents.send(`timer-complete-${id}`);
             }
-            if (id === 'pomo' && pomoTimerWindow) {
-                pomoTimerWindow.webContents.send('timer-tick', timers[id].seconds);
-            }
-
-            if (timers[id].seconds <= 0) {
-                clearInterval(timers[id].interval);
-                timers[id].interval = null;
-                if (mainWindow) {
-                    mainWindow.webContents.send(`timer-complete-${id}`);
-                }
-            }
-        }, 1000)
+        }, durationMs)
     };
+
+    if (mainWindow) {
+        mainWindow.webContents.send(`timer-started-${id}`, endTime);
+    }
 });
 
 ipcMain.on('stop-timer', (event, id) => {
-    if (timers[id] && timers[id].interval) {
-        clearInterval(timers[id].interval);
-        timers[id].interval = null;
+    if (timers[id] && timers[id].timeout) {
+        clearTimeout(timers[id].timeout);
+        timers[id].timeout = null;
+        timers[id].seconds = 0;
+    }
+    if (mainWindow) {
+        mainWindow.webContents.send(`timer-stopped-${id}`);
     }
 });
 
 ipcMain.on('pause-timer', (event, id) => {
-    if (timers[id] && timers[id].interval) {
-        clearInterval(timers[id].interval);
-        timers[id].interval = null;
+    if (timers[id] && timers[id].timeout) {
+        clearTimeout(timers[id].timeout);
+        timers[id].timeout = null;
+        const remaining = Math.round((timers[id].endTime - Date.now()) / 1000);
+        timers[id].seconds = Math.max(0, remaining);
+    }
+    if (mainWindow) {
+        mainWindow.webContents.send(`timer-paused-${id}`);
     }
 });
 
 ipcMain.on('resume-timer', (event, id) => {
-    if (timers[id] && !timers[id].interval && timers[id].seconds > 0) {
-        timers[id].endTime = Date.now() + (timers[id].seconds * 1000);
-        timers[id].interval = setInterval(() => {
-            const remaining = Math.round((timers[id].endTime - Date.now()) / 1000);
-            timers[id].seconds = Math.max(0, remaining);
+    if (timers[id] && !timers[id].timeout && timers[id].seconds > 0) {
+        const durationMs = timers[id].seconds * 1000;
+        const endTime = Date.now() + durationMs;
+        timers[id].endTime = endTime;
+        
+        timers[id].timeout = setTimeout(() => {
+            timers[id].seconds = 0;
+            timers[id].timeout = null;
             if (mainWindow) {
-                mainWindow.webContents.send(`timer-tick-${id}`, timers[id].seconds);
+                mainWindow.webContents.send(`timer-complete-${id}`);
             }
-            if (id === 'pomo' && pomoTimerWindow) {
-                pomoTimerWindow.webContents.send('timer-tick', timers[id].seconds);
-            }
+        }, durationMs);
 
-            if (timers[id].seconds <= 0) {
-                clearInterval(timers[id].interval);
-                timers[id].interval = null;
-                if (mainWindow) {
-                    mainWindow.webContents.send(`timer-complete-${id}`);
-                }
-            }
-        }, 1000);
+        if (mainWindow) {
+            mainWindow.webContents.send(`timer-resumed-${id}`, endTime);
+        }
     }
 });
 
-ipcMain.on('show-popup', (event, message) => {
-    createPopupWindow(message);
+ipcMain.on('show-popup', (event, payload) => {
+    if (typeof payload === 'object' && payload !== null) {
+        createPopupWindow(payload.message, payload.closeDelay, payload.healthType || null);
+    } else {
+        createPopupWindow(payload);
+    }
 });
 
 ipcMain.on('close-popup', () => {
@@ -519,24 +526,8 @@ ipcMain.on('blocker-stop', () => {
         }
     } catch (e) {}
     if (popupWindow) popupWindow.close();
-    // Clear enforcer interval
-    if (macFocusEnforcer) {
-        clearInterval(macFocusEnforcer);
-        macFocusEnforcer = null;
-    }
 });
-const util = require('util');
-if (!util.isObject) {
-  util.isObject = function(val) {
-    return val !== null && typeof val === 'object';
-  };
-}
-if (!util.isFunction) {
-  util.isFunction = function(val) {
-    return typeof val === 'function';
-  };
-}
-const sudo = require('sudo-prompt');
+const { exec } = require('child_process');
 const helperPath = path.join(__dirname, 'fokus-sb-helper.js');
 let blocksApplied = false;
 
@@ -577,7 +568,13 @@ ipcMain.on('update-blocker-rules', (event, rules) => {
     const active = rules.active && rules.mode === 'block' && allHosts.size > 0;
     if (active) {
         const domainsList = Array.from(allHosts).join(',');
-        sudo.exec(`node "${helperPath}" apply "${domainsList}"`, { name: 'SuperFokus' }, (error, stdout, stderr) => {
+        let cmd = `pkexec node "${helperPath}" apply "${domainsList}"`;
+        if (process.platform === 'win32') {
+            cmd = `powershell.exe -Command "Start-Process node -ArgumentList '\\"${helperPath}\\" apply \\"${domainsList}\\"' -Verb RunAs"`;
+        } else if (process.platform === 'darwin') {
+            cmd = `osascript -e 'do shell script "node \\"${helperPath}\\" apply \\"${domainsList}\\"" with administrator privileges'`;
+        }
+        exec(cmd, (error, stdout, stderr) => {
             if (error) {
                 console.error('Blocker elevation error:', error);
                 const errorMsg = error.message || 'Failed to apply Site Blocker. Admin privileges may be required or hosts file is inaccessible.';
@@ -601,7 +598,13 @@ ipcMain.on('update-blocker-rules', (event, rules) => {
             }
         });
     } else if (blocksApplied) {
-        sudo.exec(`node "${helperPath}" clear`, { name: 'SuperFokus' }, (error, stdout, stderr) => {
+        let cmd = `pkexec node "${helperPath}" clear`;
+        if (process.platform === 'win32') {
+            cmd = `powershell.exe -Command "Start-Process node -ArgumentList '\\"${helperPath}\\" clear' -Verb RunAs"`;
+        } else if (process.platform === 'darwin') {
+            cmd = `osascript -e 'do shell script "node \\"${helperPath}\\" clear" with administrator privileges'`;
+        }
+        exec(cmd, (error, stdout, stderr) => {
             if (error) {
                 console.error('Blocker elevation error:', error);
                 if (mainWindow) {
@@ -688,7 +691,13 @@ app.on('will-quit', (e) => {
     if (blocksApplied && !isClearingOnQuit) {
         e.preventDefault();
         isClearingOnQuit = true;
-        sudo.exec(`node "${helperPath}" clear`, { name: 'SuperFokus' }, () => {
+        let cmd = `pkexec node "${helperPath}" clear`;
+        if (process.platform === 'win32') {
+            cmd = `powershell.exe -Command "Start-Process node -ArgumentList '\\"${helperPath}\\" clear' -Verb RunAs"`;
+        } else if (process.platform === 'darwin') {
+            cmd = `osascript -e 'do shell script "node \\"${helperPath}\\" clear" with administrator privileges'`;
+        }
+        exec(cmd, () => {
             blocksApplied = false;
             app.quit();
         });
@@ -700,5 +709,6 @@ app.on('window-all-closed', () => {
     // app.quit(); // Handled by tray/isQuitting
   }
 });
+
 
 

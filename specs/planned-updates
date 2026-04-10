@@ -1,0 +1,8 @@
+Planned Updates
+
+# Features
+
+     ## Deep Work Flow
+   - A mode designed for absolute, uninterrupted concentration for long periods of time (e.g., 90-120 minutes).
+   - It combines the timer with the existing "Site Blocker" functionality. When activated, it       automatically blocks all distracting sites (or only allows a whitelist), silences non-essential notifications (if possible via OS integration), and simply counts up or counts down a long session without any break reminders until the very end. (This can be adjusted in the config options.)
+   - Icon Idea: A lotus flower or a brain icon.
