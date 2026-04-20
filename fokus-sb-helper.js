@@ -170,7 +170,7 @@ async function applyBlocksAsync(domains, retries = 3) {
                 ];
 
                 await fs.appendFile(HOSTS_FILE, lines.join('\n'), 'utf-8');
-                console.log(`Successfully applied blocks for ${validatedDomains.length} domain(s).`);
+                console.log(`Successfully applied block(s) for ${validatedDomains.length} domain(s).`);
                 await flushDnsCache();
                 return { success: true, count: validatedDomains.length };
             } catch (e) {

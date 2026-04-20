@@ -93,4 +93,4 @@ This update fixes many of the problems had with v0.9.
 - A JavaScript error happens when trying to activate Site Blocker on Windows. Analyze the code to see if it is outdated and (replace it with code that works if it's ACTUALLY outdated). There is a picture of the JavaScript error at the file 'fokus-SB-Error.png'.
 
 # Technical & Other Requirements
-- **Version Bump:** MUST change all instances of the old version number ('v0.9') to "v0.9.1" across all files (e.g., UI headers, package.json, etc.).
+- **Version Bump:** MUST change all instances of the old version number ('v0.9.1') to "v0.9.2" across all files (e.g., UI headers, package.json, etc.).

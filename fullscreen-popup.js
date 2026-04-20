@@ -1,4 +1,4 @@
-const { ipcRenderer } = require('electron');
+const ipcRenderer = window.electronAPI;
 
 let timerSeconds = 0;
 let timerInterval = null;

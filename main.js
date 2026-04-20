@@ -95,6 +95,10 @@ function startProxy(allowedHosts, allowedUrls) {
 
     proxyServer.listen(8080, '127.0.0.1', () => {
         console.log('✓ SuperFokus proxy server listening on localhost:8080 (Allow-only mode)');
+        if (process.platform === 'win32') {
+            const { exec } = require('child_process');
+            exec('reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /t REG_DWORD /d 1 /f && reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyServer /t REG_SZ /d 127.0.0.1:8080 /f');
+        }
     });
 
     proxyServer.on('error', (err) => {
@@ -121,6 +125,10 @@ function stopProxy() {
         proxyServer.close();
         proxyServer = null;
         console.log('Proxy server stopped');
+        if (process.platform === 'win32') {
+            const { exec } = require('child_process');
+            exec('reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /t REG_DWORD /d 0 /f');
+        }
     }
 }
 function createWindow() {
@@ -128,8 +136,9 @@ function createWindow() {
     width: 900,
     height: 700,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js'),
     },
   });
 
@@ -347,8 +356,9 @@ function createPomoTimerWindow() {
         frame: true,
         resizable: true,
         webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false,
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload: path.join(__dirname, 'preload.js'),
             backgroundThrottling: false // Important for background reliability
         },
     });
@@ -387,8 +397,9 @@ function createFullscreenWindow(data) {
         alwaysOnTop: true,
         frame: false,
         webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false,
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload: path.join(__dirname, 'preload.js'),
             backgroundThrottling: false
         },
     });
@@ -443,6 +454,24 @@ function createFullscreenWindow(data) {
 
 // --- Timer State (Main Process) ---
 let timers = {};
+
+setInterval(() => {
+    const now = Date.now();
+    for (const [id, timer] of Object.entries(timers)) {
+        if (timer.timeout) {
+            timer.seconds = Math.max(0, Math.round((timer.endTime - now) / 1000));
+        }
+        const state = {
+            id,
+            running: !!timer.timeout,
+            seconds: timer.seconds || 0,
+            phase: timer.phase || '',
+            percent: timer.percent || 0
+        };
+        if (mainWindow) mainWindow.webContents.send('timer-tick', state);
+        if (pomoTimerWindow && !pomoTimerWindow.isDestroyed()) pomoTimerWindow.webContents.send('timer-tick', state);
+    }
+}, 1000);
 
 // --- IPC Listeners ---
 
@@ -578,8 +607,23 @@ app.whenReady().then(() => {
   }
   createApplicationMenu();
 
-  // Note: WebRequest API is deprecated in Electron 14+
-  // Site blocking is now handled via hosts file modification in fokus-sb-helper.js
+  // Startup Cleanup: Clear any zombie blocks from previous ungraceful exits
+  const { exec } = require('child_process');
+  const hp = path.join(__dirname, 'fokus-sb-helper.js');
+  let cmd = `pkexec node "${hp}" clear`;
+  if (process.platform === 'win32') {
+      cmd = `powershell.exe -Command "Start-Process node -ArgumentList '\\"${hp}\\" clear' -Verb RunAs"`;
+  } else if (process.platform === 'darwin') {
+      cmd = `osascript -e 'do shell script "node \\"${hp}\\" clear" with administrator privileges'`;
+  }
+  exec(cmd, () => { console.log('[Startup] Checked and cleared zombie blocks.'); });
+
+  process.on('uncaughtException', (err) => {
+      console.error('CRITICAL UNCAUGHT EXCEPTION:', err);
+      exec(cmd, () => {
+          process.exit(1);
+      });
+  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

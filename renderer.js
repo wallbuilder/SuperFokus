@@ -1,5 +1,5 @@
-const { ipcRenderer } = require('electron');
-const Chart = require('chart.js/auto');
+const ipcRenderer = window.electronAPI;
+// Chart loaded from window
 
 // Listen for blocker errors (Site Blocker Phase)
 ipcRenderer.on('blocker-error', (event, errorMsg) => {
@@ -781,9 +781,17 @@ function updatePomoDisplay() {
     });
 }
 
-ipcRenderer.on('timer-tick-pomo', (event, secondsLeft) => {
-    pomoTimer = secondsLeft;
-    updatePomoDisplay();
+ipcRenderer.on('timer-tick', (event, data) => {
+    if (data.id === 'pomo') {
+        pomoTimer = data.seconds;
+        updatePomoDisplay();
+    } else if (data.id === 'repeating') {
+        repeatingTimer = data.seconds;
+        updateRepeatingDisplay();
+    } else if (data.id === 'sprint') {
+        sprintTimerSeconds = data.seconds;
+        updateSprintDisplay();
+    }
 });
 
 ipcRenderer.on('timer-complete-pomo', () => {
@@ -965,15 +973,7 @@ function updateRepeatingDisplay() {
 
 let repeatingLocalInterval = null;
 function updateLocalRepeatingTimer(endTime) {
-    if (repeatingLocalInterval) clearInterval(repeatingLocalInterval);
-    const tick = () => {
-        const remaining = Math.max(0, Math.round((endTime - Date.now()) / 1000));
-        repeatingTimer = remaining;
-        updateRepeatingDisplay();
-        if (remaining <= 0) clearInterval(repeatingLocalInterval);
-    };
-    repeatingLocalInterval = setInterval(tick, 200);
-    tick();
+    // Local timer removed in v0.9.2 - now synced via timer-tick IPC from main.js
 }
 
 ipcRenderer.on('timer-started-repeating', (event, endTime) => updateLocalRepeatingTimer(endTime));
