@@ -297,12 +297,7 @@ function createPopupWindow(message, autoDismissMs = 10000, healthType = null) {
         popupWindow.loadFile('popup.html');
         
         popupWindow.webContents.on('did-finish-load', () => {
-            popupWindow.webContents.send('display-message', {
-                message,
-                closeDelay: autoDismissMs,
-                healthType,
-                isBlocking
-            });
+            popupWindow.webContents.send('display-message', payload);
         });
 
         popupWindow.on('close', (e) => {
@@ -855,6 +850,15 @@ app.on('will-quit', (e) => {
         });
     }
 });
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    // app.quit(); // Handled by tray/isQuitting
+  }
+});
+
+
+
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

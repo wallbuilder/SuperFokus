@@ -497,6 +497,10 @@ function returnToHome() {
     });
     homeMenu.style.display = 'grid';
     dashboardTitle.innerText = 'Dashboard';
+    const dashboardSubtitle = document.getElementById('dashboard-subtitle');
+    if (dashboardSubtitle) {
+        dashboardSubtitle.innerHTML = '<span style="color: var(--timer-subtext);">Select a Fokus Mode to get started</span>';
+    }
 }
 
 function setInputsLocked(sectionId, locked) {

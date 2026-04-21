@@ -86,6 +86,7 @@ function startAutoCloseCountdown(totalSeconds) {
         if (remaining <= 0) {
             clearInterval(countdownInterval);
             countdownInterval = null;
+            ipcRenderer.send('close-popup');
         }
     }, 1000);
 }
