@@ -11,4 +11,4 @@ This objective is simple. Turn the startup screen for SuperFokus into a "loading
 
 # Technical & Other Requirements
 - **Version Bump:** MUST change all instances of the old version number to "v0.9.5" across all files (e.g., UI headers, package.json, etc.).
-- T1est every part of the application to ensure that it's working as intended.
+- Test every part of the application to ensure that it's working as intended.

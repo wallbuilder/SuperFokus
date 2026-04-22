@@ -110,14 +110,9 @@ window.addEventListener('load', async () => {
   const startupScreen = document.getElementById('startup-screen');
   
   if (startupScreen) {
-      const content = startupScreen.querySelector('.startup-content');
-      if (content) {
-          const loadingText = document.createElement('div');
-          loadingText.style.marginTop = '20px';
-          loadingText.style.fontSize = '1.1rem';
-          loadingText.style.opacity = '0.8';
+      const loadingText = document.getElementById('startup-loading');
+      if (loadingText) {
           loadingText.innerText = 'Loading modules...';
-          content.appendChild(loadingText);
 
           await new Promise(resolve => setTimeout(resolve, 1500));
           loadingText.innerText = 'Initializing interface...';

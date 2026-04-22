@@ -119,6 +119,14 @@
         margin-left: 10px;
         opacity: 0.8;
       }
+      #startup-loading {
+        position: absolute;
+        bottom: 30px;
+        font-size: 0.9rem;
+        opacity: 0;
+        animation: slideUpFade 1.2s ease-out forwards 0.3s;
+        letter-spacing: 0.5px;
+      }
       @keyframes slideUpFade {
         0% { transform: translateY(30px); opacity: 0; }
         100% { transform: translateY(0); opacity: 1; }
