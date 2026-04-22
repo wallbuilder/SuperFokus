@@ -40,8 +40,19 @@ function startProxy(allowedHosts, allowedUrls) {
         const port = req.url.split(':')[1] || 443;
 
         // Check if hostname is allowed
-        const hostAllowed = allowedHosts.has(host) || allowedHosts.has('www.' + host) ||
+        let hostAllowed = allowedHosts.has(host) || allowedHosts.has('www.' + host) ||
                           host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
+
+        if (!hostAllowed && allowedUrls) {
+            hostAllowed = allowedUrls.some(allowedUrl => {
+                try {
+                    const allowed = new URL(allowedUrl);
+                    return allowed.hostname === host || allowed.hostname === 'www.' + host || 'www.' + allowed.hostname === host;
+                } catch (e) {
+                    return false;
+                }
+            });
+        }
 
         if (hostAllowed) {
             // For allowed HTTPS sites, establish tunnel

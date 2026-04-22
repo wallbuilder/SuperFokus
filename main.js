@@ -68,8 +68,19 @@ function startProxy(allowedHosts, allowedUrls) {
         const port = req.url.split(':')[1] || 443;
 
         // Check if hostname is allowed
-        const hostAllowed = allowedHosts.has(host) || allowedHosts.has('www.' + host) ||
+        let hostAllowed = allowedHosts.has(host) || allowedHosts.has('www.' + host) ||
                           host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
+
+        if (!hostAllowed && urlsArray) {
+            hostAllowed = urlsArray.some(allowedUrl => {
+                try {
+                    const allowed = new URL(allowedUrl);
+                    return allowed.hostname === host || allowed.hostname === 'www.' + host || 'www.' + allowed.hostname === host;
+                } catch (e) {
+                    return false;
+                }
+            });
+        }
 
         if (hostAllowed) {
             // For allowed HTTPS sites, establish tunnel
@@ -283,21 +294,26 @@ function createPopupWindow(message, autoDismissMs = 10000, healthType = null) {
             });
         }
 
-        // Mac-specific visibility and level to keep popup on top of other apps/workspaces
-        if (process.platform === 'darwin') {
-            try {
-                popupWindow.setAlwaysOnTop(true, 'screen-saver');
-                popupWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-                popupWindow.setFullScreenable(false);
-            } catch (e) {
-                console.warn('Mac popup window tuning failed', e);
-            }
-        }
-
         popupWindow.loadFile('popup.html');
         
         popupWindow.webContents.on('did-finish-load', () => {
-            popupWindow.webContents.send('display-message', payload);
+            // Mac-specific visibility and level to keep popup on top of other apps/workspaces
+            if (process.platform === 'darwin') {
+                try {
+                    popupWindow.setAlwaysOnTop(true, 'screen-saver');
+                    popupWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+                    popupWindow.setFullScreenable(false);
+                } catch (e) {
+                    console.warn('Mac popup window tuning failed', e);
+                }
+            }
+
+            popupWindow.webContents.send('display-message', {
+                message,
+                closeDelay: autoDismissMs,
+                healthType,
+                isBlocking
+            });
         });
 
         popupWindow.on('close', (e) => {
