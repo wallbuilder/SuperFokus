@@ -102,16 +102,43 @@ if (headerDarkModeToggleCheckbox) {
 
 // Startup Animation Logic
 window.addEventListener('DOMContentLoaded', () => {
-  const startupScreen = document.getElementById('startup-screen');
-  setTimeout(() => {
-    startupScreen.style.opacity = '0';
-    setTimeout(() => {
-      startupScreen.style.display = 'none';
-    }, 1000); 
-  }, 2000); // v0.3.5: slightly longer to appreciate the animation
-
   // Initialize button event listeners after DOM is fully loaded
   initializeButtonListeners();
+});
+
+window.addEventListener('load', async () => {
+  const startupScreen = document.getElementById('startup-screen');
+  
+  if (startupScreen) {
+      const content = startupScreen.querySelector('.startup-content');
+      if (content) {
+          const loadingText = document.createElement('div');
+          loadingText.style.marginTop = '20px';
+          loadingText.style.fontSize = '1.1rem';
+          loadingText.style.opacity = '0.8';
+          loadingText.innerText = 'Loading modules...';
+          content.appendChild(loadingText);
+
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          loadingText.innerText = 'Initializing interface...';
+          
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          loadingText.innerText = 'Starting services...';
+          
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          loadingText.innerText = 'SuperFokus has finished loading!';
+          
+          await new Promise(resolve => setTimeout(resolve, 500));
+      } else {
+          // Fallback if structure is missing
+          await new Promise(resolve => setTimeout(resolve, 5000));
+      }
+      
+      startupScreen.style.opacity = '0';
+      setTimeout(() => {
+          startupScreen.style.display = 'none';
+      }, 1000); 
+  }
 });
 
 function initializeButtonListeners() {
@@ -1007,7 +1034,7 @@ ipcRenderer.on('timer-complete-repeating', () => {
     }
 
     if (currentRounds <= 0 && !infiniteRoundsCheckbox.checked) {
-        stopRepeatingReminders();
+        stopRepeatingReminders(false);
     } else {
         repeatingTimer = currentRepeatingTotalSeconds;
         updateRepeatingDisplay();

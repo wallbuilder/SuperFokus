@@ -312,7 +312,8 @@ function createPopupWindow(message, autoDismissMs = 10000, healthType = null) {
                 message,
                 closeDelay: autoDismissMs,
                 healthType,
-                isBlocking
+                isBlocking,
+                isAutoclose
             });
         });
 
