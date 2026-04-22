@@ -12,12 +12,12 @@
 - {Detailed description of the feature.}
 - {Any dependencies on other features or specific technical instructions.}
 
-# QOL
+#QOL
 - {Minor improvement or tweak to existing behavior 1}
 - {UI polish, animation adjustments, or text changes}
 - {Additional configurable presets or toggles}
 
-# Bugs (& Fixes if possible)
+# Bugs (& Fixes if possible) 
 - {Describe bug 1, what currently happens, and the expected behavior.}
 - {Describe bug 2, including any specific errors or conditions that trigger it.}
 
