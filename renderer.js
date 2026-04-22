@@ -1120,7 +1120,7 @@ ipcRenderer.on('timer-complete-repeating', () => {
     }
 
     if (currentRounds <= 0 && !infiniteRoundsCheckbox.checked) {
-        stopRepeatingReminders();
+        stopRepeatingReminders(false);
     } else {
         repeatingTimer = currentRepeatingTotalSeconds;
         updateRepeatingDisplay();

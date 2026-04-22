@@ -312,7 +312,8 @@ function createPopupWindow(message, autoDismissMs = 10000, healthType = null) {
                 message,
                 closeDelay: autoDismissMs,
                 healthType,
-                isBlocking
+                isBlocking,
+                isAutoclose
             });
         });
 
@@ -477,7 +478,7 @@ setInterval(() => {
             running: !!timer.timeout,
             seconds: timer.seconds || 0,
             phase: timer.phase || '',
-            percent: timer.percent || 0
+            percent: timer.percent
         };
         if (mainWindow) mainWindow.webContents.send('timer-tick', state);
         if (pomoTimerWindow && !pomoTimerWindow.isDestroyed()) pomoTimerWindow.webContents.send('timer-tick', state);
