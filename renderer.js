@@ -109,9 +109,14 @@ window.addEventListener('DOMContentLoaded', () => {
       return;
     }
     
-    // For testing - hide immediately
-    startupScreen.style.display = 'none';
-    console.log('Startup screen hidden immediately for testing');
+    // Wait 1.5 seconds, then fade out
+    setTimeout(() => {
+      startupScreen.style.opacity = '0';
+      // Remove from DOM flow after fade transition completes
+      setTimeout(() => {
+        startupScreen.style.display = 'none';
+      }, 1000); // matches the 1s CSS transition
+    }, 1500);
     
     // Initialize DOM elements after DOM is loaded
     initializeDomElements();
@@ -134,7 +139,7 @@ function initializeDomElements() {
     window.workflowPaletteItems = document.querySelectorAll('.workflow-palette-item');
     
     // Set up workflow event listeners
-    setupWorkflowEventListeners();
+    // setupWorkflowEventListeners();
     
     // Set up workflow presets event listeners
     setupWorkflowPresetsEventListeners();
@@ -2015,7 +2020,6 @@ function renderWorkflowStack() {
         `;
 
         window.workflowStack.appendChild(blockEl);
-    });
     });
 
     if (window.workflowTotalDurationEl) window.workflowTotalDurationEl.innerText = `${totalDuration}m`;

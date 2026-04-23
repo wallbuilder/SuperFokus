@@ -1,4 +1,4 @@
-# SUPERFOKUS v0.9.5 UPDATE - {4/21/2026}
+# SUPERFOKUS v0.9.6 UPDATE - {4/21/2026}
 Workflows Reimagined
 ## Features
 - Completely remaking workflows
