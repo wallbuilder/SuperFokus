@@ -327,6 +327,8 @@
       #version { position: fixed; bottom: 15px; right: 20px; font-size: 0.85rem; color: #95a5a6; font-weight: 500; }
       .hidden { display: none !important; }
       .error-msg { color: #e74c3c; font-size: 0.9rem; margin-top: 0.5rem; display: none; font-weight: 500; }
+      .warning-text { color: #e74c3c; }
+      body.dark-mode .warning-text, body.dark-mode .error-msg { color: #ff7675; }
 
       /* Home Menu Styles */
       .home-menu {
@@ -567,7 +569,7 @@
                 </label> Show Dark Mode Toggle in Header
             </div>
             <div class="form-group">
-                <label>Chime Sound:</label>
+                <label for="chime-selector">Chime Sound:</label>
                 <div style="display: flex; gap: 10px;">
                     <select id="chime-selector" style="flex: 1;">
                         <option value="chime.mp3">Classic Chime</option>
@@ -622,14 +624,14 @@
             <h2>Site Blocker</h2>
             
             <div class="form-group">
-                <label>Site Blocker Switch:</label>
+                <label for="site-blocker-enabled">Site Blocker Switch:</label>
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <label class="toggle-switch">
                       <input type="checkbox" id="site-blocker-enabled">
                       <span class="slider"></span>
                     </label> <span>Active</span>
                 </div>
-                <small style="color: #e74c3c; display: block; margin-top: 5px;">System-wide blocking requires Administrator privileges. You will be prompted to grant permissions when activating this feature.</small>
+                <small class="warning-text" style="display: block; margin-top: 5px;">System-wide blocking requires Administrator privileges. You will be prompted to grant permissions when activating this feature.</small>
             </div>
 
             <div class="form-group">
@@ -640,7 +642,7 @@
             </div>
 
             <div class="form-group">
-              <label>Blocker Mode:</label>
+              <label for="site-blocker-mode">Blocker Mode:</label>
               <select id="site-blocker-mode">
                 <option value="block">Block only entered websites</option>
                 <option value="allow">Allow only entered websites</option>
@@ -768,7 +770,7 @@
       <div id="config-repeating-reminders" class="config-section">
         <h3>Repeating Reminders Config</h3>
         <div class="form-group">
-          <label>Repeating Presets:</label>
+          <label for="repeating-presets">Repeating Presets:</label>
           <div style="display: flex; gap: 10px;">
             <select id="repeating-presets" style="flex: 1;">
               <option value="custom">Custom</option>
@@ -830,7 +832,7 @@
         <h3>Dynamic Pomo Config</h3>
         
         <div class="form-group">
-          <label>Pomo Presets:</label>
+          <label for="pomo-presets">Pomo Presets:</label>
           <div style="display: flex; gap: 10px;">
             <select id="pomo-presets" style="flex: 1;">
               <option value="custom">Custom</option>
@@ -905,7 +907,7 @@
       <div id="config-micro-sprint" class="config-section">
         <h3>Micro-Task Sprint Mode</h3>
         <div class="form-group">
-          <label>Sprint Presets:</label>
+          <label for="sprint-presets">Sprint Presets:</label>
           <div style="display: flex; gap: 10px;">
             <select id="sprint-presets" style="flex: 1;">
               <option value="custom">Custom</option>
@@ -980,7 +982,7 @@
 
         <!-- Saved Presets Selector -->
         <div class="form-group" style="margin-top: 15px;">
-          <label>Saved Presets:</label>
+          <label for="workflow-presets">Saved Presets:</label>
           <div style="display: flex; gap: 10px;">
             <select id="workflow-presets" style="flex: 1;">
               <option value="custom">Custom</option>
@@ -1033,7 +1035,7 @@
     <div style="position: fixed; bottom: 15px; left: 20px; font-size: 0.85rem; color: #95a5a6; font-weight: 500; z-index: 1000;">
       <a href="https://github.com/wallbuilder/SuperFokus" target="_blank" style="color: inherit; text-decoration: none;">GitHub Page</a>
     </div>
-    <div id="version">SuperFokus Beta v0.9.4</div>
+    <div id="version">SuperFokus Beta v0.9.5</div>
     
     <!-- Audio for chimes -->
     <audio id="chime-audio" src="chime.mp3" preload="auto"></audio>

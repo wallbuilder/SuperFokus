@@ -146,6 +146,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 900,
     height: 700,
+    icon: path.join(__dirname, 'fokusicon.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -164,7 +165,7 @@ function createWindow() {
 }
 
 function createTray() {
-    const iconPath = path.join(__dirname, 'icon.png');
+    const iconPath = path.join(__dirname, 'fokusicon.png');
     let trayIcon;
     
     if (fs.existsSync(iconPath)) {
