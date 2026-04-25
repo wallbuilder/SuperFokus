@@ -5,12 +5,21 @@ const http = require('http');
 const net = require('net');
 const util = require('util');
 
+<<<<<<< HEAD
 // Polyfill deprecated util functions required by sudo-prompt
 if (typeof util.isObject !== 'function') {
     util.isObject = function(arg) { return typeof arg === 'object' && arg !== null; };
 }
 if (typeof util.isFunction !== 'function') {
     util.isFunction = function(arg) { return typeof arg === 'function'; };
+=======
+// Polyfill for deprecated util functions used by older dependencies like sudo-prompt
+if (typeof util.isObject !== 'function') {
+    util.isObject = (value) => value !== null && typeof value === 'object';
+}
+if (typeof util.isFunction !== 'function') {
+    util.isFunction = (value) => typeof value === 'function';
+>>>>>>> 569951d0bb8d15fc4a310f4cf30a42d86b594ac3
 }
 
 const sudo = require('sudo-prompt');
@@ -701,6 +710,8 @@ app.whenReady().then(() => {
         mainWindow.show();
     }
   });
+}).catch(err => {
+    console.error('CRITICAL STARTUP ERROR:', err);
 });
 
 // IPC for Blocker
