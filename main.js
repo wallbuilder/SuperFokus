@@ -629,7 +629,13 @@ app.whenReady().then(() => {
   } else if (process.platform === 'darwin') {
       cmd = `osascript -e 'do shell script "node \\"${hp}\\" clear" with administrator privileges'`;
   }
-  exec(cmd, () => { console.log('[Startup] Checked and cleared zombie blocks.'); });
+  exec(cmd, (error) => {
+      if (error) {
+          console.log('[Startup] Failsafe check cancelled or failed.');
+      } else {
+          console.log('[Startup] Checked and cleared zombie blocks.');
+      }
+  });
 
   process.on('uncaughtException', (err) => {
       console.error('CRITICAL UNCAUGHT EXCEPTION:', err);

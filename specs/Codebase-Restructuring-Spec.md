@@ -22,8 +22,8 @@ D:\coding\fokus\
 │   │   │   ├── site-blocker.js  # Site blocker UI and IPC triggers
 │   │   │   ├── flow-state.js    # Flow state stopwatch mode
 │   │   │   ├── repeating.js     # Repeating reminders logic
-│   │   │   ├── health.js        # Health and posture mode
-│   │   │   └── workflows.js     # Workflow builder, drag-and-drop, and execution logic
+│   │   │   ├── health-mode.js        # Health and posture mode
+│   │   │   └── workflows.js     # Workflows builder, drag-and-drop, and execution logic
 │   │   ├── ui/                # FOLDER: Reusable UI components and DOM manipulation
 │   │   │   ├── theme.js        # Dark/Light mode toggling
 │   │   │   ├── modals.js       # Custom alert and modal handling

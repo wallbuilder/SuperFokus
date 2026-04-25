@@ -104,25 +104,52 @@ if (headerDarkModeToggleCheckbox) {
 window.addEventListener('DOMContentLoaded', () => {
   try {
     const startupScreen = document.getElementById('startup-screen');
+    const loadingBar = document.getElementById('startup-loading-bar');
+    const loadingText = document.getElementById('startup-loading-text');
     if (!startupScreen) {
       console.error('Startup screen element not found!');
       return;
     }
     
-    // Wait 1.5 seconds, then fade out
-    setTimeout(() => {
-      startupScreen.style.opacity = '0';
-      // Remove from DOM flow after fade transition completes
-      setTimeout(() => {
-        startupScreen.style.display = 'none';
-      }, 1000); // matches the 1s CSS transition
-    }, 1500);
-    
-    // Initialize DOM elements after DOM is loaded
-    initializeDomElements();
-    
-    // Initialize button event listeners after DOM is fully loaded
-    initializeButtonListeners();
+    const steps = [
+      { progress: 15, text: 'Loading core modules...' },
+      { progress: 35, text: 'Initializing UI components...' },
+      { progress: 65, text: 'Loading user presets...' },
+      { progress: 85, text: 'Binding event listeners...' },
+      { progress: 100, text: 'Starting SuperFokus...' }
+    ];
+
+    let currentStep = 0;
+
+    function executeNextStep() {
+      if (currentStep < steps.length) {
+        const step = steps[currentStep];
+        if (loadingBar) loadingBar.style.width = step.progress + '%';
+        if (loadingText) loadingText.innerText = step.text;
+        
+        // Execute actual initialization at specific steps to synchronize progress
+        if (currentStep === 1) {
+            initializeDomElements();
+        } else if (currentStep === 3) {
+            initializeButtonListeners();
+        }
+
+        currentStep++;
+        setTimeout(executeNextStep, 300); // 300ms per step
+      } else {
+        // Wait briefly at 100% then fade out
+        setTimeout(() => {
+          startupScreen.style.opacity = '0';
+          setTimeout(() => {
+            startupScreen.style.display = 'none';
+          }, 1000); // matches the 1s CSS transition
+        }, 300);
+      }
+    }
+
+    // Start loading sequence
+    setTimeout(executeNextStep, 200);
+
   } catch (error) {
     console.error('[Startup] Error during initialization:', error);
   }
@@ -139,17 +166,183 @@ function initializeDomElements() {
     window.workflowPaletteItems = document.querySelectorAll('.workflow-palette-item');
     
     // Set up workflow event listeners
-    // setupWorkflowEventListeners();
-    
+    setupWorkflowEventListeners();
+
     // Set up workflow presets event listeners
     setupWorkflowPresetsEventListeners();
-  } catch (error) {
+    } catch (error) {
     console.error('[Startup] Error initializing DOM elements:', error);
-  }
-}
+    }
+    }
 
-function setupWorkflowPresetsEventListeners() {
+    function setupWorkflowEventListeners() {
     try {
+        if (!window.workflowPaletteItems || !window.workflowStack) return;
+
+        window._draggedWorkflowItem = { type: null, index: null };
+
+        function getPlaceholder() {
+            let ph = document.getElementById('workflow-drop-placeholder');
+            if (!ph) {
+                ph = document.createElement('div');
+                ph.id = 'workflow-drop-placeholder';
+                ph.style.border = '2px dashed var(--header-grad-1)';
+                ph.style.borderRadius = '12px';
+                ph.style.margin = '5px 0';
+                ph.style.background = 'var(--timer-bg)';
+                ph.style.pointerEvents = 'none';
+                ph.style.opacity = '0.5';
+                ph.style.minHeight = '60px';
+                ph.style.padding = '12px';
+            }
+            return ph;
+        }
+
+        window.workflowPaletteItems.forEach(item => {
+            item.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', item.dataset.type);
+                item.style.opacity = '0.5';
+                window._draggedWorkflowItem = { type: item.dataset.type, index: null };
+            });
+            item.addEventListener('dragend', (e) => {
+                item.style.opacity = '1';
+                window._draggedWorkflowItem = { type: null, index: null };
+                const ph = document.getElementById('workflow-drop-placeholder');
+                if (ph) ph.remove();
+            });
+        });
+
+        window.workflowStack.addEventListener('dragover', (e) => {
+            e.preventDefault(); // allow drop
+            window.workflowStack.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+
+            const ph = getPlaceholder();
+            if (window._draggedWorkflowItem.type) {
+                const labels = {
+                    'pomo': 'Pomo Style',
+                    'sprint': 'Micro-Task Sprint',
+                    'repeating': 'Repeating Reminders'
+                };
+                ph.innerHTML = `<div style="font-weight: 600; color: var(--heading-color);">${labels[window._draggedWorkflowItem.type] || 'Block'}</div><small style="color: var(--timer-subtext);">Drop to add</small>`;
+            } else if (window._draggedWorkflowItem.index !== null) {
+                ph.innerHTML = `<div style="font-weight: 600; color: var(--heading-color);">Move Block</div>`;
+            }
+
+            const children = Array.from(window.workflowStack.children).filter(c => c !== ph && c.classList.contains('workflow-block') && c.style.display !== 'none');
+            let inserted = false;
+            for (let i = 0; i < children.length; i++) {
+                const child = children[i];
+                const rect = child.getBoundingClientRect();
+                const childMidY = rect.top + rect.height / 2;
+                if (e.clientY < childMidY) {
+                    window.workflowStack.insertBefore(ph, child);
+                    inserted = true;
+                    break;
+                }
+            }
+            if (!inserted && children.length > 0) {
+                window.workflowStack.appendChild(ph);
+            } else if (children.length === 0) {
+                window.workflowStack.appendChild(ph);
+            }
+        });
+
+        window.workflowStack.addEventListener('dragleave', (e) => {
+            if (e.target === window.workflowStack) {
+                window.workflowStack.style.backgroundColor = '';
+            }
+        });
+
+        window.workflowStack.addEventListener('drop', (e) => {
+            e.preventDefault();
+            window.workflowStack.style.backgroundColor = '';
+            const ph = document.getElementById('workflow-drop-placeholder');
+            
+            // Calculate index where the placeholder is
+            let targetIndex = workflowBlocks.length;
+            if (ph && ph.parentNode === window.workflowStack) {
+                const children = Array.from(window.workflowStack.children).filter(c => c.classList.contains('workflow-block') || c.id === 'workflow-drop-placeholder');
+                targetIndex = children.indexOf(ph);
+                if (targetIndex < 0) targetIndex = workflowBlocks.length;
+                ph.remove();
+            }
+
+            const data = e.dataTransfer.getData('text/plain');
+            
+            if (data.startsWith('reorder:')) {
+                const fromIndex = parseInt(data.split(':')[1], 10);
+                if (!isNaN(fromIndex)) {
+                    const [movedBlock] = workflowBlocks.splice(fromIndex, 1);
+                    // Adjust targetIndex if fromIndex was before targetIndex, because splice shifted everything left
+                    if (fromIndex < targetIndex) {
+                        targetIndex--;
+                    }
+                    workflowBlocks.splice(targetIndex, 0, movedBlock);
+                    renderWorkflowStack();
+                }
+                window._draggedWorkflowItem = { type: null, index: null };
+                return;
+            }
+
+            const type = data;
+            if (type && ['pomo', 'sprint', 'repeating'].includes(type)) {
+                // Insert at target index
+                const availablePresets = getAvailablePresetsForType(type);
+                const defaultPresetKey = availablePresets.length > 0 ? availablePresets[0].key : 'custom';
+            
+                const block = {
+                    id: 'block-' + Date.now(),
+                    type: type,
+                    name: type === 'pomo' ? 'Pomo Session' : (type === 'sprint' ? 'Micro-Sprint' : 'Repeating Reminder'),
+                    cycles: 1,
+                    presetKey: defaultPresetKey
+                };
+                workflowBlocks.splice(targetIndex, 0, block);
+                renderWorkflowStack();
+
+                // If modifying a preset, switch back to custom
+                const workflowPresetsSelect = document.getElementById('workflow-presets');
+                if (workflowPresetsSelect && workflowPresetsSelect.value !== 'custom') {
+                    workflowPresetsSelect.value = 'custom';
+                    updateWorkflowCurrentPresetDisplay();
+                }
+            }
+            window._draggedWorkflowItem = { type: null, index: null };
+        });
+
+        // Event delegation for workflow stack interactions
+        window.workflowStack.addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-block-btn')) {
+                const index = parseInt(e.target.dataset.index, 10);
+                if (!isNaN(index)) {
+                    workflowBlocks.splice(index, 1);
+                    renderWorkflowStack();
+                }
+            }
+        });
+
+        window.workflowStack.addEventListener('change', (e) => {
+            if (e.target.classList.contains('block-preset-input')) {
+                const index = parseInt(e.target.dataset.index, 10);
+                if (!isNaN(index)) {
+                    workflowBlocks[index].presetKey = e.target.value;
+                    renderWorkflowStack();
+                }
+            } else if (e.target.classList.contains('block-cycles-input')) {
+                const index = parseInt(e.target.dataset.index, 10);
+                if (!isNaN(index)) {
+                    workflowBlocks[index].cycles = Math.max(1, parseInt(e.target.value, 10) || 1);
+                    renderWorkflowStack();
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('[Startup] Error setting up workflow event listeners:', error);
+    }
+    }
+
+    function setupWorkflowPresetsEventListeners() {    try {
         const workflowPresetsSelect = document.getElementById('workflow-presets');
         const deleteWorkflowPresetBtn = document.getElementById('delete-workflow-preset-btn');
         const saveWorkflowPresetBtn = document.getElementById('save-workflow-preset-btn');
@@ -963,6 +1156,9 @@ function handlePhaseEnd() {
     
     if (currentPhaseIndex >= activePomoSequence.length && !pomoInfiniteCheckbox.checked && currentRepeatCount + 1 >= totalRepeatsPlanned) {
         stopPomoStyle();
+        if (typeof isWorkflowRunning !== 'undefined' && isWorkflowRunning) {
+            setTimeout(() => { if (typeof startNextWorkflowBlock === 'function') startNextWorkflowBlock(); }, 500);
+        }
         return;
     }
 
@@ -1126,6 +1322,9 @@ ipcRenderer.on('timer-complete-repeating', () => {
 
     if (currentRounds <= 0 && !infiniteRoundsCheckbox.checked) {
         stopRepeatingReminders(false);
+        if (typeof isWorkflowRunning !== 'undefined' && isWorkflowRunning) {
+            setTimeout(() => { if (typeof startNextWorkflowBlock === 'function') startNextWorkflowBlock(); }, 500);
+        }
     } else {
         repeatingTimer = currentRepeatingTotalSeconds;
         updateRepeatingDisplay();
@@ -1601,6 +1800,9 @@ ipcRenderer.on('timer-complete-sprint', () => {
 function startNextSprintTask() {
     if (currentSprintTaskIndex >= sprintTasks.length && sprintTasks.length > 0) {
         stopSprintMode();
+        if (typeof isWorkflowRunning !== 'undefined' && isWorkflowRunning) {
+            setTimeout(() => { if (typeof startNextWorkflowBlock === 'function') startNextWorkflowBlock(); }, 500);
+        }
         return;
     }
     nextSprintBtn.style.display = 'none';
@@ -1831,7 +2033,8 @@ function getPresetDetails(type, presetKey) {
             const key = presetKey.replace('custom-preset-', '');
             if (sprintPresets[key]) {
                 details.displayName = `Custom: ${key}`;
-                details.duration = sprintPresets[key].duration || 15;
+                const val = sprintPresets[key].durationVal;
+                details.duration = val === 'custom' ? (sprintPresets[key].customMins || 20) : (parseInt(val, 10) || 15);
             }
         }
     } else if (type === 'repeating') {
@@ -1847,11 +2050,14 @@ function getPresetDetails(type, presetKey) {
             const key = presetKey.replace('custom-preset-', '');
             if (repeatingPresets[key]) {
                 details.displayName = `Custom: ${key}`;
-                details.interval = repeatingPresets[key].interval;
-                details.rounds = repeatingPresets[key].rounds;
-                const minsTotal = repeatingPresets[key].interval.mins;
-                const secsTotal = repeatingPresets[key].interval.secs;
-                details.duration = Math.round(((minsTotal * 60 + secsTotal) * repeatingPresets[key].rounds) / 60);
+                details.interval = { 
+                    mins: repeatingPresets[key].intervalMins || 0, 
+                    secs: repeatingPresets[key].intervalSecs || 0 
+                };
+                details.rounds = repeatingPresets[key].rounds || 1;
+                const minsTotal = details.interval.mins;
+                const secsTotal = details.interval.secs;
+                details.duration = Math.round(((minsTotal * 60 + secsTotal) * details.rounds) / 60);
             }
         }
     }
@@ -1911,121 +2117,243 @@ function renderWorkflowStack() {
         existingBlocks.forEach(b => b.remove());
 
         if (workflowBlocks.length === 0) {
-        if (window.workflowStackPlaceholder) window.workflowStackPlaceholder.style.display = 'block';
-        if (window.workflowTotalDurationEl) window.workflowTotalDurationEl.innerText = '0m';
-        return;
-    }
+            if (window.workflowStackPlaceholder) window.workflowStackPlaceholder.style.display = 'block';
+            if (window.workflowTotalDurationEl) window.workflowTotalDurationEl.innerText = '0m';
+            return;
+        }
 
-    if (window.workflowStackPlaceholder) window.workflowStackPlaceholder.style.display = 'none';
+        if (window.workflowStackPlaceholder) window.workflowStackPlaceholder.style.display = 'none';
         let totalDuration = 0;
 
         workflowBlocks.forEach((block, index) => {
             const dur = calculateBlockDuration(block);
             totalDuration += dur;
 
-        const blockEl = document.createElement('div');
-        blockEl.className = 'workflow-block';
-        
-        let typeIcon = '';
-        let typeColor = 'var(--header-grad-1)';
-        if (block.type === 'pomo') {
-            typeIcon = '✓';
-        } else if (block.type === 'sprint') {
-            typeIcon = '☑';
-            typeColor = '#3498db';
-        } else if (block.type === 'repeating') {
-            typeIcon = '⟳';
-            typeColor = '#27ae60';
-        }
-
-        const availablePresets = getAvailablePresetsForType(block.type);
-        const presetDetails = getPresetDetails(block.type, block.presetKey);
-
-        let presetSelectHtml = '<select class="block-preset-input" data-index="' + index + '" style="flex: 1; padding: 6px; border: 1px solid var(--input-border); border-radius: 4px; background: var(--input-bg); color: var(--text-color); font-size: 0.9rem;">';
-        availablePresets.forEach(preset => {
-            const selected = preset.key === block.presetKey ? 'selected' : '';
-            presetSelectHtml += '<option value="' + preset.key + '" ' + selected + '>' + preset.label + '</option>';
-        });
-        presetSelectHtml += '</select>';
-
-        // Create preset details modal content
-        let presetDetailsHtml = '';
-        if (block.type === 'pomo' && presetDetails.sequence) {
-            presetDetailsHtml = '<div style="font-size: 0.85rem; color: var(--text-color);">';
-            presetDetails.sequence.forEach(phase => {
-                const phaseType = phase.type === 'work' ? 'Work' : 'Break';
-                const phaseColor = phase.type === 'work' ? '#27ae60' : '#f39c12';
-                const phaseDuration = phase.unit === 'secs' ? `${phase.duration}s` : `${phase.duration}m`;
-                presetDetailsHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span style="color: ${phaseColor};">${phaseType}:</span><span>${phaseDuration}</span></div>`;
+            const blockEl = document.createElement('div');
+            blockEl.className = 'workflow-block';
+            blockEl.draggable = true;
+            blockEl.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', `reorder:${index}`);
+                e.dataTransfer.effectAllowed = 'move';
+                window._draggedWorkflowItem = { type: null, index: index };
+                setTimeout(() => blockEl.style.opacity = '0.5', 0);
             });
-            presetDetailsHtml += '</div>';
-        } else if (block.type === 'sprint') {
-            presetDetailsHtml = `<div style="font-size: 0.85rem; color: var(--text-color);"><div style="display: flex; justify-content: space-between;"><span>Duration:</span><span>${presetDetails.duration}m</span></div></div>`;
-        } else if (block.type === 'repeating') {
-            const interval = presetDetails.interval;
-            presetDetailsHtml = `<div style="font-size: 0.85rem; color: var(--text-color);"><div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>Interval:</span><span>${interval.mins}m ${interval.secs}s</span></div><div style="display: flex; justify-content: space-between;"><span>Rounds:</span><span>${presetDetails.rounds}</span></div></div>`;
-        }
+            blockEl.addEventListener('dragend', (e) => {
+                blockEl.style.opacity = '1';
+                window._draggedWorkflowItem = { type: null, index: null };
+                const ph = document.getElementById('workflow-drop-placeholder');
+                if (ph) ph.remove();
+            });
+            
+            let typeIcon = '';
+            let typeColor = '#6a11cb'; // Default to valid hex for pomo
+            if (block.type === 'pomo') {
+                typeIcon = '✓';
+            } else if (block.type === 'sprint') {
+                typeIcon = '☑';
+                typeColor = '#3498db';
+            } else if (block.type === 'repeating') {
+                typeIcon = '⟳';
+                typeColor = '#27ae60';
+            }
 
-        blockEl.style.cssText = `
-            background: var(--container-bg);
-            border-radius: 12px;
-            border: 2px solid ${typeColor}40;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            transition: all 0.2s ease;
-            overflow: hidden;
-        `;
+            const availablePresets = getAvailablePresetsForType(block.type);
+            const presetDetails = getPresetDetails(block.type, block.presetKey);
 
-        blockEl.innerHTML = `
-            <!-- Colored Header -->
-            <div style="background: linear-gradient(135deg, ${typeColor} 0%, ${typeColor}dd 100%); padding: 12px 15px; color: white; display: flex; align-items: center; gap: 10px;">
-                <div style="font-size: 1.2rem; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: rgba(255,255,255,0.2); border-radius: 6px;">${typeIcon}</div>
-                <div style="flex: 1; font-weight: 600; font-size: 0.95rem;">${block.type === 'pomo' ? 'Pomo Style' : block.type === 'sprint' ? 'Micro-Task Sprint' : 'Repeating Reminders'}</div>
-                <button class="remove-block-btn" data-index="${index}" style="margin: 0; width: auto; padding: 4px 8px; background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.8rem; transition: all 0.2s;">×</button>
-            </div>
+            let presetSelectHtml = '<select class="block-preset-input" data-index="' + index + '" style="flex: 1; padding: 6px; border: 1px solid var(--input-border); border-radius: 4px; background: var(--input-bg); color: var(--text-color); font-size: 0.9rem;">';
+            availablePresets.forEach(preset => {
+                const selected = preset.key === block.presetKey ? 'selected' : '';
+                presetSelectHtml += '<option value="' + preset.key + '" ' + selected + '>' + preset.label + '</option>';
+            });
+            presetSelectHtml += '</select>';
 
-            <!-- Block Content -->
-            <div style="padding: 15px;">
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <!-- Name and Preset Selector -->
-                    <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <input type="text" class="block-name-input" value="${block.name}" data-index="${index}" style="font-weight: 600; border: 1px solid var(--input-border); padding: 8px; background: var(--input-bg); border-radius: 6px; font-size: 0.95rem; color: var(--heading-color);" placeholder="Block name">
-                        ${presetSelectHtml}
-                    </div>
+            // Create preset details static content
+            let presetDetailsHtml = '';
+            if (block.type === 'pomo' && presetDetails.sequence) {
+                presetDetailsHtml = '<div style="font-size: 0.85rem; color: var(--text-color); margin-top: 8px; padding: 8px; background: var(--timer-bg); border-radius: 6px; border: 1px solid var(--border-color);">';
+                presetDetails.sequence.forEach(phase => {
+                    const phaseType = phase.type === 'work' ? 'Work' : 'Break';
+                    const phaseColor = phase.type === 'work' ? '#27ae60' : '#f39c12';
+                    const phaseDuration = phase.unit === 'secs' ? `${phase.duration}s` : `${phase.duration}m`;
+                    presetDetailsHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span style="color: ${phaseColor};">${phaseType}:</span><span>${phaseDuration}</span></div>`;
+                });
+                presetDetailsHtml += '</div>';
+            } else if (block.type === 'sprint') {
+                presetDetailsHtml = `<div style="font-size: 0.85rem; color: var(--text-color); margin-top: 8px; padding: 8px; background: var(--timer-bg); border-radius: 6px; border: 1px solid var(--border-color);"><div style="display: flex; justify-content: space-between;"><span>Duration:</span><span>${presetDetails.duration}m</span></div></div>`;
+            } else if (block.type === 'repeating') {
+                const interval = presetDetails.interval;
+                presetDetailsHtml = `<div style="font-size: 0.85rem; color: var(--text-color); margin-top: 8px; padding: 8px; background: var(--timer-bg); border-radius: 6px; border: 1px solid var(--border-color);"><div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>Interval:</span><span>${interval.mins}m ${interval.secs}s</span></div><div style="display: flex; justify-content: space-between;"><span>Rounds:</span><span>${presetDetails.rounds}</span></div></div>`;
+            }
 
-                    <!-- Preset Info (Clickable) -->
-                    <div class="preset-info-btn" data-index="${index}" style="background: var(--timer-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: space-between;">
-                        <span style="font-size: 0.85rem; color: var(--timer-subtext);">${presetDetails.displayName || 'Custom'}</span>
-                        <span style="font-size: 0.7rem; color: var(--timer-subtext); transform: rotate(90deg);">▶</span>
-                    </div>
+            blockEl.style.cssText = `
+                background: var(--container-bg);
+                border-radius: 12px;
+                border: 2px solid ${typeColor}40;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                transition: all 0.2s ease;
+                overflow: hidden;
+            `;
 
-                    <!-- Cycles and Duration Grid -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                        <div style="display: flex; flex-direction: column; gap: 6px;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); text-transform: uppercase; font-weight: 500;">Cycles</label>
-                            <input type="number" class="block-cycles-input" value="${block.cycles}" min="1" data-index="${index}" style="padding: 8px; text-align: center; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); font-weight: 600; color: var(--heading-color);">
+            blockEl.innerHTML = `
+                <!-- Colored Header -->
+                <div style="background: linear-gradient(135deg, ${typeColor} 0%, ${typeColor}dd 100%); padding: 12px 15px; color: white; display: flex; align-items: center; gap: 10px;">
+                    <div style="font-size: 1.2rem; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: rgba(255,255,255,0.2); border-radius: 6px;">${typeIcon}</div>
+                    <div style="flex: 1; font-weight: 600; font-size: 0.95rem;">${block.type === 'pomo' ? 'Pomo Style' : block.type === 'sprint' ? 'Micro-Task Sprint' : 'Repeating Reminders'}</div>
+                    <button class="remove-block-btn" data-index="${index}" style="margin: 0; width: auto; padding: 4px 8px; background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.8rem; transition: all 0.2s;">×</button>
+                </div>
+
+                <!-- Block Content -->
+                <div style="padding: 15px;">
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <!-- Preset Selector -->
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.75rem; color: var(--timer-subtext); text-transform: uppercase; font-weight: 500;">Preset</label>
+                            ${presetSelectHtml}
                         </div>
-                        <div style="display: flex; flex-direction: column; gap: 6px;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); text-transform: uppercase; font-weight: 500;">Total Duration</label>
-                            <div style="padding: 8px; text-align: center; font-weight: 600; color: var(--header-grad-1); background: var(--timer-bg); border-radius: 6px; border: 1px solid var(--border-color);">${dur}m</div>
+
+                        <!-- Static Preset Details -->
+                        ${presetDetailsHtml}
+
+                        <!-- Cycles and Duration Grid -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px;">
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                <label style="font-size: 0.75rem; color: var(--timer-subtext); text-transform: uppercase; font-weight: 500;">Cycles</label>
+                                <input type="number" class="block-cycles-input" value="${block.cycles}" min="1" data-index="${index}" style="padding: 8px; text-align: center; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); font-weight: 600; color: var(--heading-color);">
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                <label style="font-size: 0.75rem; color: var(--timer-subtext); text-transform: uppercase; font-weight: 500;">Total Duration</label>
+                                <div style="padding: 8px; text-align: center; font-weight: 600; color: var(--header-grad-1); background: var(--timer-bg); border-radius: 6px; border: 1px solid var(--border-color);">${dur}m</div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            `;
 
-            <!-- Hidden Preset Details Modal -->
-            <div class="preset-details-modal" data-index="${index}" style="display: none; background: var(--container-bg); border-top: 1px solid var(--border-color); padding: 15px;">
-                <div style="font-weight: 600; color: var(--heading-color); margin-bottom: 8px; font-size: 0.9rem;">Preset Details</div>
-                ${presetDetailsHtml}
-            </div>
-        `;
+            window.workflowStack.appendChild(blockEl);
+        });
 
-        window.workflowStack.appendChild(blockEl);
+        let durationText = `${totalDuration}m`;
+        if (totalDuration >= 60) {
+            const hours = Math.floor(totalDuration / 60);
+            const mins = totalDuration % 60;
+            durationText = mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+        }
+        if (window.workflowTotalDurationEl) window.workflowTotalDurationEl.innerText = durationText;
+    } catch (error) {
+        console.error('[Startup] Error rendering workflow stack:', error);
+    }
+}
+
+// --- Workflow Execution Logic ---
+let isWorkflowRunning = false;
+let currentWorkflowBlockIndex = 0;
+let currentWorkflowCycle = 0;
+
+const startWorkflowBtn = document.getElementById('start-workflow-btn');
+const stopWorkflowBtn = document.getElementById('stop-workflow-btn');
+
+function resetWorkflowState() {
+    isWorkflowRunning = false;
+    currentWorkflowBlockIndex = 0;
+    currentWorkflowCycle = 0;
+    if (startWorkflowBtn) startWorkflowBtn.style.display = 'block';
+    if (stopWorkflowBtn) stopWorkflowBtn.style.display = 'none';
+}
+
+function startNextWorkflowBlock() {
+    if (!isWorkflowRunning) return;
+
+    if (currentWorkflowBlockIndex >= workflowBlocks.length) {
+        customAlert('Workflow Complete!');
+        resetWorkflowState();
+        const workflowsHomeBtn = document.querySelector('.home-btn[data-mode="workflows"]');
+        if (workflowsHomeBtn) workflowsHomeBtn.click();
+        return;
+    }
+
+    const currentBlock = workflowBlocks[currentWorkflowBlockIndex];
+    
+    if (currentWorkflowCycle >= currentBlock.cycles) {
+        currentWorkflowBlockIndex++;
+        currentWorkflowCycle = 0;
+        startNextWorkflowBlock();
+        return;
+    }
+
+    currentWorkflowCycle++;
+    
+    const modeMap = {
+        'pomo': 'pomo-style',
+        'sprint': 'micro-sprint',
+        'repeating': 'repeating-reminders'
+    };
+    
+    const targetHomeBtn = document.querySelector(`.home-btn[data-mode="${modeMap[currentBlock.type]}"]`);
+    if (targetHomeBtn) {
+        targetHomeBtn.click();
+    }
+
+    setTimeout(() => {
+        if (currentBlock.type === 'pomo') {
+            const pomoPresetsSelect = document.getElementById('pomo-presets');
+            if (pomoPresetsSelect) {
+                pomoPresetsSelect.value = currentBlock.presetKey;
+                pomoPresetsSelect.dispatchEvent(new Event('change'));
+                const startPomoBtn = document.getElementById('start-pomo-btn');
+                if (startPomoBtn) startPomoBtn.click();
+            }
+        } else if (currentBlock.type === 'sprint') {
+            const sprintPresetsSelect = document.getElementById('sprint-presets');
+            if (sprintPresetsSelect) {
+                sprintPresetsSelect.value = currentBlock.presetKey;
+                sprintPresetsSelect.dispatchEvent(new Event('change'));
+                const startSprintBtn = document.getElementById('start-sprint-btn');
+                if (startSprintBtn) startSprintBtn.click();
+            }
+        } else if (currentBlock.type === 'repeating') {
+            const repeatingPresetsSelect = document.getElementById('repeating-presets');
+            if (repeatingPresetsSelect) {
+                repeatingPresetsSelect.value = currentBlock.presetKey;
+                repeatingPresetsSelect.dispatchEvent(new Event('change'));
+                
+                const reminderRoundsInput = document.getElementById('reminder-rounds');
+                if (reminderRoundsInput) reminderRoundsInput.value = 1; // 1 round per cycle
+                
+                const startRepeatingBtn = document.getElementById('start-repeating-btn');
+                if (startRepeatingBtn) startRepeatingBtn.click();
+            }
+        }
+    }, 100); // slight delay to ensure UI updates after switching modes
+}
+
+if (startWorkflowBtn) {
+    startWorkflowBtn.addEventListener('click', () => {
+        if (workflowBlocks.length === 0) {
+            customAlert('Please add blocks to your Building Stack first.');
+            return;
+        }
+        isWorkflowRunning = true;
+        currentWorkflowBlockIndex = 0;
+        currentWorkflowCycle = 0;
+        startWorkflowBtn.style.display = 'none';
+        if (stopWorkflowBtn) stopWorkflowBtn.style.display = 'block';
+        startNextWorkflowBlock();
     });
+}
 
-    if (window.workflowTotalDurationEl) window.workflowTotalDurationEl.innerText = `${totalDuration}m`;
-  } catch (error) {
-    console.error('[Startup] Error rendering workflow stack:', error);
-  }
+if (stopWorkflowBtn) {
+    stopWorkflowBtn.addEventListener('click', () => {
+        isWorkflowRunning = false;
+        
+        if (typeof isPomoRunning !== 'undefined' && isPomoRunning) stopPomoStyle();
+        if (typeof isRepeatingRunning !== 'undefined' && isRepeatingRunning) stopRepeatingReminders();
+        if (typeof isSprintRunning !== 'undefined' && isSprintRunning) stopSprintMode();
+        
+        resetWorkflowState();
+        
+        const workflowsHomeBtn = document.querySelector('.home-btn[data-mode="workflows"]');
+        if (workflowsHomeBtn) workflowsHomeBtn.click();
+    });
 }
 
 
