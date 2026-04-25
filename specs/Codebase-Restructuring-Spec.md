@@ -6,7 +6,7 @@ The current codebase relies heavily on a single, monolithic `renderer.js` file (
 
 ### 2. Proposed Directory Structure
 
-The application will be restructured into the following directory layout:
+The application may be restructured into the following directory layout (Please note that this is an example and that new features/functions added can also be implemented into this layout as wished by the user):
 
 ```text
 D:\coding\fokus\
