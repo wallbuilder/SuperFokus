@@ -22,7 +22,8 @@ const ALLOWED_SEND_CHANNELS = [
     'update-blocker-rules',
     'clear-all-blocks',
     'start-health-mode',
-    'stop-health-mode'
+    'stop-health-mode',
+    'store-set'
 ];
 
 // Whitelist of channels the renderer can LISTEN to from the main process
@@ -58,11 +59,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
     on: (channel, func) => {
         const isTimerChannel = TIMER_PREFIXES.some(prefix => channel.startsWith(prefix));
         if (ALLOWED_ON_CHANNELS.includes(channel) || isTimerChannel) {
-            // Remove event from args for security - renderer shouldn't need it
             ipcRenderer.on(channel, (event, ...args) => func(...args));
         } else {
             console.warn(`Blocked unauthorized IPC listener registration on channel: ${channel}`);
         }
+    },
+    invoke: (channel, ...args) => {
+        if (['store-get'].includes(channel)) {
+            return ipcRenderer.invoke(channel, ...args);
+        }
+    },
+    store: {
+        get: (key, defaultValue) => ipcRenderer.sendSync('store-get-sync', key, defaultValue),
+        set: (key, value) => ipcRenderer.send('store-set', key, value)
+    },
+    normalizeHost: (val) => {
+        // Simple bridge for host normalization
+        const { normalizeHost } = require('./utils');
+        return normalizeHost(val);
     },
     platform: process.platform
 });

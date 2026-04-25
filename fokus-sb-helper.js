@@ -3,6 +3,7 @@ const fsSync = require('fs');
 const path = require('path');
 const os = require('os');
 const { exec } = require('child_process');
+const { normalizeHost, DOMAIN_REGEX, IP_REGEX } = require('./utils');
 
 // Determine hosts file path based on platform
 const HOSTS_FILE = process.platform === 'darwin'
@@ -13,39 +14,6 @@ const HOSTS_FILE = process.platform === 'darwin'
 
 const START_MARKER = '# --- SuperFokus Block Start ---';
 const END_MARKER = '# --- SuperFokus Block End ---';
-
-// Domain validation regex: basic domain and IP validation
-const DOMAIN_REGEX = /^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
-const IP_REGEX = /^(\d{1,3}\.){3}\d{1,3}$/;
-
-function normalizeHost(value) {
-    if (!value || typeof value !== 'string') return null;
-    const cleaned = value.trim();
-    if (!cleaned) return null;
-
-    let hostname = null;
-    try {
-        let url = cleaned;
-        if (!/^https?:\/\//i.test(url)) {
-            url = `http://${url}`;
-        }
-        hostname = new URL(url).hostname.toLowerCase();
-    } catch (e) {
-        hostname = cleaned.replace(/^https?:\/\//i, '').split(/[\/?#]/)[0].toLowerCase();
-    }
-
-    if (!hostname) return null;
-    hostname = hostname.split(':')[0];
-
-    if (hostname === 'localhost') return null;
-    if (hostname.endsWith('.')) hostname = hostname.slice(0, -1);
-
-    if (!DOMAIN_REGEX.test(hostname) && !IP_REGEX.test(hostname)) {
-        return null;
-    }
-
-    return hostname;
-}
 
 function validateDomain(domain) {
     if (!domain || typeof domain !== 'string') return false;
@@ -60,12 +28,10 @@ function flushDnsCache() {
         let cmd;
 
         if (platform === 'darwin') {
-            // macOS DNS cache refresh
             cmd = 'dscacheutil -flushcache; killall -HUP mDNSResponder';
         } else if (platform === 'win32') {
             cmd = 'ipconfig /flushdns';
         } else {
-            // Linux best-effort
             cmd = 'systemd-resolve --flush-caches || resolvectl flush-caches || service nscd restart || true';
         }
 
@@ -82,7 +48,6 @@ function flushDnsCache() {
 
 async function clearBlocksAsync(retries = 3) {
     try {
-        // Check if file exists
         if (!fsSync.existsSync(HOSTS_FILE)) {
             throw new Error('Hosts file not found at ' + HOSTS_FILE);
         }
@@ -97,8 +62,6 @@ async function clearBlocksAsync(retries = 3) {
                 if (startIndex !== -1 && endIndex !== -1) {
                     const before = content.substring(0, startIndex);
                     const after = content.substring(endIndex + END_MARKER.length);
-
-                    // Clean up leftover empty lines if necessary
                     let newContent = before + after;
                     await fs.writeFile(HOSTS_FILE, newContent, 'utf-8');
                     console.log('Successfully cleared blocks.');
@@ -112,7 +75,6 @@ async function clearBlocksAsync(retries = 3) {
             } catch (e) {
                 attempts++;
                 if (attempts >= retries) throw e;
-                // Wait before retry (exponential backoff)
                 await new Promise(r => setTimeout(r, 100 * attempts));
             }
         }
@@ -124,7 +86,6 @@ async function clearBlocksAsync(retries = 3) {
 
 async function applyBlocksAsync(domains, retries = 3) {
     try {
-        // Normalize and validate domains first
         const domainSet = new Set();
 
         function addHost(host) {
@@ -143,14 +104,12 @@ async function applyBlocksAsync(domains, retries = 3) {
             if (!raw || typeof raw !== 'string') continue;
             const host = normalizeHost(raw);
             if (!host) {
-                throw new Error(`Invalid domain format: "${raw}". Domains must be valid hostnames or URLs.`);
+                throw new Error(`Invalid domain format: "${raw}".`);
             }
             addHost(host);
         }
 
         const validatedDomains = Array.from(domainSet).filter(host => validateDomain(host));
-
-        // Clear existing blocks first to avoid duplicates
         await clearBlocksAsync(retries);
 
         if (validatedDomains.length === 0) {
@@ -176,7 +135,6 @@ async function applyBlocksAsync(domains, retries = 3) {
             } catch (e) {
                 attempts++;
                 if (attempts >= retries) throw e;
-                // Wait before retry (exponential backoff)
                 await new Promise(r => setTimeout(r, 100 * attempts));
             }
         }
@@ -186,17 +144,23 @@ async function applyBlocksAsync(domains, retries = 3) {
     }
 }
 
-// Main async execution
 (async () => {
     const action = process.argv[2];
-    const domainsArg = process.argv[3]; // comma separated
+    const dataArg = process.argv[3];
 
     try {
         if (action === 'clear') {
             await clearBlocksAsync();
             process.exit(0);
         } else if (action === 'apply') {
-            const domains = domainsArg ? domainsArg.split(',').filter(Boolean) : [];
+            const domains = dataArg ? dataArg.split(',').filter(Boolean) : [];
+            await applyBlocksAsync(domains);
+            process.exit(0);
+        } else if (action === 'apply-file') {
+            if (!dataArg || !fsSync.existsSync(dataArg)) {
+                throw new Error('Data file not found: ' + dataArg);
+            }
+            const domains = JSON.parse(fsSync.readFileSync(dataArg, 'utf-8'));
             await applyBlocksAsync(domains);
             process.exit(0);
         } else {
@@ -204,7 +168,6 @@ async function applyBlocksAsync(domains, retries = 3) {
         }
     } catch (e) {
         console.error(e.message);
-        console.error(JSON.stringify({ error: e.message }));
         process.exit(1);
     }
 })();

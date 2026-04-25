@@ -4,15 +4,35 @@ const fs = require('fs');
 const http = require('http');
 const net = require('net');
 const util = require('util');
+const sudo = require('sudo-prompt');
+const { normalizeHost } = require('./utils');
 
+// Polyfills for sudo-prompt which expects these to exist on the util module
 if (typeof util.isObject !== 'function') {
-    util.isObject = (value) => value !== null && typeof value === 'object';
+    util.isObject = (obj) => obj !== null && typeof obj === 'object';
 }
 if (typeof util.isFunction !== 'function') {
-    util.isFunction = (value) => typeof value === 'function';
+    util.isFunction = (fn) => typeof fn === 'function';
 }
 
-const sudo = require('sudo-prompt');
+let store;
+(async () => {
+    const { default: Store } = await import('electron-store');
+    store = new Store();
+})();
+
+// IPC Handlers for settings (electron-store)
+ipcMain.on('store-set', (event, key, value) => {
+    if (store) store.set(key, value);
+});
+
+ipcMain.on('store-get-sync', (event, key, defaultValue) => {
+    event.returnValue = store ? store.get(key, defaultValue) : defaultValue;
+});
+
+ipcMain.handle('store-get', async (event, key, defaultValue) => {
+    return store ? store.get(key, defaultValue) : defaultValue;
+});
 
 
 app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
@@ -794,26 +814,26 @@ ipcMain.on('blocker-stop', () => {
     if (popupWindow && !popupWindow.isDestroyed()) popupWindow.close();
 });
 
-function normalizeHost(value) {
-    if (!value || typeof value !== 'string') return null;
-    let input = value.trim();
-    if (!input) return null;
-
-    try {
-        if (!/^https?:\/\//i.test(input)) {
-            input = `http://${input}`;
-        }
-        return new URL(input).hostname.toLowerCase().split(':')[0];
-    } catch (e) {
-        const host = input.replace(/^https?:\/\//i, '').split(/[\/?#]/)[0].split(':')[0].toLowerCase();
-        return host || null;
-    }
-}
-
 function runElevated(args, callback) {
     const command = `node "${helperPath}" ${args}`;
     sudo.exec(command, { name: 'SuperFokus' }, (error, stdout, stderr) => {
         if (callback) callback(error, stdout, stderr);
+    });
+}
+
+function setMacProxy(enable) {
+    if (process.platform !== 'darwin') return;
+    const { exec } = require('child_process');
+    // Attempt to set proxy for common interface names. Robustness could be improved by listing all services.
+    const services = ['Wi-Fi', 'Ethernet', 'Thunderbolt Bridge'];
+    services.forEach(service => {
+        if (enable) {
+            exec(`networksetup -setwebproxy "${service}" 127.0.0.1 8080 && networksetup -setwebproxystate "${service}" on`);
+            exec(`networksetup -setsecurewebproxy "${service}" 127.0.0.1 8080 && networksetup -setsecurewebproxystate "${service}" on`);
+        } else {
+            exec(`networksetup -setwebproxystate "${service}" off`);
+            exec(`networksetup -setsecurewebproxystate "${service}" off`);
+        }
     });
 }
 
@@ -831,62 +851,47 @@ ipcMain.on('update-blocker-rules', (event, rules) => {
 
     if (Array.isArray(rules.urls)) {
         rules.urls.forEach(url => {
-            // Store full URLs for path-specific blocking
             allUrls.add(url.trim());
         });
     }
 
-    console.log('[Main] update-blocker-rules:', {mode: rules.mode, active: rules.active, hostCount: allHosts.size, urlCount: allUrls.size});
+    console.log('[Main] update-blocker-rules:', {mode: rules.mode, active: rules.active, hostCount: allHosts.size});
 
     if (rules.mode === 'allow' && rules.active && allHosts.size > 0) {
         console.log('[Block] Starting proxy server for allow-only mode');
         startProxy(allHosts, allUrls);
+        if (process.platform === 'darwin') setMacProxy(true);
         if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('blocker-status', '✓ Allow-only mode ACTIVE. Browser proxy MUST be set to localhost:8080. Only listed sites will be accessible.');
+            mainWindow.webContents.send('blocker-status', '✓ Allow-only mode ACTIVE.');
         }
     } else if (rules.mode === 'block' && rules.active && allHosts.size > 0) {
         console.log('[Block] Applying hosts blocks for', allHosts.size, 'domains');
-        const domainsList = Array.from(allHosts).join(',');
+        const domains = Array.from(allHosts);
+        const tempPath = path.join(app.getPath('userData'), 'fokus_domains.json');
         
-        runElevated(`apply "${domainsList}"`, (error, stdout, stderr) => {
-            if (error) {
-                console.error('[Block] Blocker elevation error:', error);
-                const errorMsg = error.message || 'Failed to apply Site Blocker.';
-                if (mainWindow && !mainWindow.isDestroyed()) {
-                    mainWindow.webContents.send('blocker-error', errorMsg);
-                }
-            } else {
-                if (stderr && stderr.includes('error')) {
-                    console.error('[Block] Blocker helper error:', stderr);
-                    if (mainWindow && !mainWindow.isDestroyed()) {
-                        mainWindow.webContents.send('blocker-error', `Domain format error: ${stderr}`);
-                    }
+        try {
+            fs.writeFileSync(tempPath, JSON.stringify(domains));
+            runElevated(`apply-file "${tempPath}"`, (error, stdout, stderr) => {
+                if (error) {
+                    console.error('[Block] Blocker elevation error:', error);
+                    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('blocker-error', error.message);
                 } else {
-                    console.log('[Block] Blocker applied successfully:', stdout);
                     blocksApplied = true;
-                    if (mainWindow && !mainWindow.isDestroyed()) {
-                        mainWindow.webContents.send('blocker-status', 'Domains blocked successfully');
-                    }
+                    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('blocker-status', 'Domains blocked successfully');
                 }
-            }
-        });
+            });
+        } catch (e) {
+            console.error('[Block] File write error:', e);
+            if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('blocker-error', 'Failed to prepare domain list.');
+        }
     } else {
         console.log('[Block] Clearing blocks and stopping proxy');
         stopProxy();
+        if (process.platform === 'darwin') setMacProxy(false);
         if (blocksApplied) {
-            runElevated('clear', (error, stdout, stderr) => {
-                if (error) {
-                    console.error('[Block] Blocker elevation error:', error);
-                    if (mainWindow && !mainWindow.isDestroyed()) {
-                        mainWindow.webContents.send('blocker-error', 'Failed to clear Site Blocker blocks.');
-                    }
-                } else {
-                    console.log('[Block] Blocker cleared:', stdout);
-                    blocksApplied = false;
-                    if (mainWindow && !mainWindow.isDestroyed()) {
-                        mainWindow.webContents.send('blocker-status', 'Blocks cleared successfully');
-                    }
-                }
+            runElevated('clear', (error) => {
+                if (!error) blocksApplied = false;
+                if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('blocker-status', 'Blocks cleared');
             });
         }
     }

@@ -1,26 +1,39 @@
 const ipcRenderer = window.electronAPI;
-// Chart loaded from window
 
-// Listen for blocker errors (Site Blocker Phase)
-ipcRenderer.on('blocker-error', (errorMsg) => {
-    console.error('Site Blocker error:', errorMsg);
-    customAlert(`Site Blocker Error: ${errorMsg}`);
-});
-
-// Listen for blocker status updates
-ipcRenderer.on('blocker-status', (statusMsg) => {
-    console.log('Site Blocker status:', statusMsg);
-});
-
+// --- Migration & Store Setup ---
 const store = {
     get: (key, defaultValue) => {
-        const val = localStorage.getItem(key);
-        return val !== null ? JSON.parse(val) : defaultValue;
+        return ipcRenderer.store.get(key, defaultValue);
     },
     set: (key, value) => {
-        localStorage.setItem(key, JSON.stringify(value));
+        ipcRenderer.store.set(key, value);
     }
 };
+
+// One-time migration from localStorage to electron-store
+if (!store.get('migratedToElectronStore', false)) {
+    const keysToMigrate = [
+        'darkMode', 'showHeaderDarkModeToggle', 'totalFocusTime', 'completedRounds', 
+        'dailyStats', 'sessionHistory', 'customChimeData', 'customPomoPresets', 
+        'repeatingPresets', 'sprintPresets', 'workflowPresets'
+    ];
+    keysToMigrate.forEach(key => {
+        const val = localStorage.getItem(key);
+        if (val !== null) {
+            try {
+                store.set(key, JSON.parse(val));
+            } catch (e) {
+                console.error(`Migration failed for key: ${key}`, e);
+            }
+        }
+    });
+    store.set('migratedToElectronStore', true);
+    console.log('[Migration] Settings moved to electron-store.');
+}
+
+function normalizeHost(val) {
+    return ipcRenderer.normalizeHost(val);
+}
 
 // --- Custom Modal Alert Replacement ---
 const customAlertModal = document.getElementById('custom-alert-modal');
@@ -1594,34 +1607,6 @@ siteBlockerMode.addEventListener('change', () => {
         }
     });
 });
-
-function normalizeHost(value) {
-    const input = value.trim();
-    if (!input) return null;
-
-    let host = null;
-    try {
-        let url = input;
-        if (!/^https?:\/\//i.test(url)) {
-            url = `http://${url}`;
-        }
-        host = new URL(url).hostname.toLowerCase();
-    } catch (err) {
-        // fallback: remove protocol, path, query and fragment
-        host = input.replace(/^https?:\/\//i, '')
-            .split(/[\/?#]/)[0]
-            .toLowerCase();
-    }
-
-    // Strip any port numbers
-    host = host.split(':')[0];
-
-    // Reject localhost as a blocker target
-    if (host === 'localhost') return null;
-    if (!host) return null;
-
-    return host;
-}
 
 function updateBlocker() {
     const mode = siteBlockerMode.value;
