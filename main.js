@@ -3,6 +3,16 @@ const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const net = require('net');
+const util = require('util');
+
+// Polyfill for deprecated util functions used by older dependencies like sudo-prompt
+if (typeof util.isObject !== 'function') {
+    util.isObject = (value) => value !== null && typeof value === 'object';
+}
+if (typeof util.isFunction !== 'function') {
+    util.isFunction = (value) => typeof value === 'function';
+}
+
 const sudo = require('sudo-prompt');
 
 app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
@@ -651,6 +661,8 @@ app.whenReady().then(() => {
         mainWindow.show();
     }
   });
+}).catch(err => {
+    console.error('CRITICAL STARTUP ERROR:', err);
 });
 
 // IPC for Blocker
