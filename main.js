@@ -1,9 +1,20 @@
-const { app, BrowserWindow, ipcMain, session, Tray, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, session, Tray, Menu, nativeImage, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const net = require('net');
+const util = require('util');
+
+// Polyfill deprecated util functions required by sudo-prompt
+if (typeof util.isObject !== 'function') {
+    util.isObject = function(arg) { return typeof arg === 'object' && arg !== null; };
+}
+if (typeof util.isFunction !== 'function') {
+    util.isFunction = function(arg) { return typeof arg === 'function'; };
+}
+
 const sudo = require('sudo-prompt');
+
 
 app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
 app.commandLine.appendSwitch('disable-http-cache');
@@ -12,7 +23,6 @@ let mainWindow = null;
 let popupWindow = null;
 let pomoTimerWindow = null;
 let fullscreenWindow = null;
-let tray = null;
 let isQuitting = false;
 
 // Blocker state
@@ -169,32 +179,6 @@ function createWindow() {
   });
 }
 
-function createTray() {
-    const iconPath = path.join(__dirname, 'fokusicon.png');
-    let trayIcon;
-    
-    if (fs.existsSync(iconPath)) {
-        trayIcon = nativeImage.createFromPath(iconPath);
-    } else {
-        // Fallback robust icon (a simple 16x16 red square)
-        const fallbackBase64 = 'iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAcSURBVDhPY3D///9/MAwwYIAmHwwYNRBAwMAwAAD+aAYg0HpxHgAAAABJRU5ErkJggg==';
-        trayIcon = nativeImage.createFromDataURL(`data:image/png;base64,${fallbackBase64}`);
-    }
-
-    tray = new Tray(trayIcon);
-    const contextMenu = Menu.buildFromTemplate([
-        { label: 'Show SuperFokus', click: () => mainWindow.show() },
-        { type: 'separator' },
-        { label: 'Quit', click: () => {
-            isQuitting = true;
-            app.quit();
-        }}
-    ]);
-    tray.setToolTip('SuperFokus');
-    tray.setContextMenu(contextMenu);
-    tray.on('click', () => mainWindow.show());
-}
-
 function createApplicationMenu() {
     const template = [
         {
@@ -273,8 +257,8 @@ function createPopupWindow(message, autoDismissMs = 10000, healthType = null, is
         if (isBlocking) {
             // Fullscreen blocking mode for mandatory health breaks
             popupWindow = new BrowserWindow({
-                width: app.getPrimaryDisplay().workAreaSize.width,
-                height: app.getPrimaryDisplay().workAreaSize.height,
+                width: screen.getPrimaryDisplay().workAreaSize.width,
+                height: screen.getPrimaryDisplay().workAreaSize.height,
                 x: 0,
                 y: 0,
                 alwaysOnTop: true,
@@ -309,8 +293,8 @@ function createPopupWindow(message, autoDismissMs = 10000, healthType = null, is
             // Mac-specific visibility and level to keep popup on top of other apps/workspaces
             if (process.platform === 'darwin') {
                 try {
-                    popupWindow.setAlwaysOnTop(true, 'screen-saver');
-                    popupWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+                    popupWindow.setAlwaysOnTop(true, 'floating');
+                    popupWindow.setVisibleOnAllWorkspaces(true);
                     popupWindow.setFullScreenable(false);
                 } catch (e) {
                     console.warn('Mac popup window tuning failed', e);
@@ -327,8 +311,13 @@ function createPopupWindow(message, autoDismissMs = 10000, healthType = null, is
         });
 
         popupWindow.on('close', (e) => {
-            e.preventDefault();
-            popupWindow.hide();
+            if (!isQuitting) {
+                e.preventDefault();
+                popupWindow.hide();
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('popup-closed');
+            }
+            }
         });
 
         // Focus-lock while blocker is active
@@ -347,9 +336,11 @@ function createPopupWindow(message, autoDismissMs = 10000, healthType = null, is
     // Auto-dismiss popup after specified duration
     if (autoDismissMs > 0) {
         setTimeout(() => {
-            if (popupWindow && !popupWindow.isDestroyed()) {
-                popupWindow.close();
-            }
+            try {
+                if (popupWindow && !popupWindow.isDestroyed()) {
+                    popupWindow.close();
+                }
+            } catch (err) {}
         }, autoDismissMs);
     }
 }
@@ -385,8 +376,9 @@ function createPomoTimerWindow() {
     });
 
     try {
-        pomoTimerWindow.setAlwaysOnTop(true, 'screen-saver');
-        pomoTimerWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+        pomoTimerWindow.setAlwaysOnTop(true, 'floating');
+        pomoTimerWindow.setVisibleOnAllWorkspaces(true);
+        pomoTimerWindow.setFullScreenable(false);
     } catch (e) {
         console.warn('Pomo timer window tuning failed', e);
     }
@@ -398,25 +390,44 @@ function createPomoTimerWindow() {
     });
 
     pomoTimerWindow.on('close', (e) => {
-        e.preventDefault();
-        pomoTimerWindow.hide();
-        if (mainWindow) {
-            mainWindow.webContents.send('pomo-popup-closed');
+        if (!isQuitting) {
+            e.preventDefault();
+            pomoTimerWindow.hide();
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('pomo-popup-closed');
+            }
         }
     });
 }
 
 function createFullscreenWindow(data) {
     if (fullscreenWindow) {
+        // Re-apply Mac tuning in case it was stripped during a previous hide
+        if (process.platform === 'darwin') {
+            try {
+                try { fullscreenWindow.setKiosk(true); } catch (e) {}
+                fullscreenWindow.setAlwaysOnTop(true, 'screen-saver');
+                fullscreenWindow.setFullScreen(true);
+            } catch (e) {}
+        }
+        
+        fullscreenWindow.openedAt = Date.now();
         fullscreenWindow.show();
+        try { fullscreenWindow.focus(); } catch (e) {}
         fullscreenWindow.webContents.send('set-fullscreen-data', data);
         return;
+    }
+    // Completely destroy the old window so we can generate a fresh, native kiosk window
+    if (fullscreenWindow && !fullscreenWindow.isDestroyed()) {
+        fullscreenWindow.close(); 
     }
 
     fullscreenWindow = new BrowserWindow({
         fullscreen: true,
+        kiosk: true, // Native Kiosk mode built into Electron
         alwaysOnTop: true,
         frame: false,
+        show: false, // Don't show until ready to prevent macOS rendering glitches
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -425,18 +436,24 @@ function createFullscreenWindow(data) {
         },
     });
 
-    // Mac-specific tuning to try and keep the fullscreen blocker above other apps
-    if (process.platform === 'darwin') {
-        try {
-            // Try to enable kiosk/fullscreen immediately to reduce race where user can switch away
-            try { fullscreenWindow.setKiosk(true); } catch (e) {}
-            fullscreenWindow.setAlwaysOnTop(true, 'screen-saver');
-            fullscreenWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-            fullscreenWindow.setFullScreen(true);
-        } catch (e) {
-            console.warn('Mac fullscreen window tuning failed', e);
+    fullscreenWindow.openedAt = Date.now();
+
+    // Wait until the window is fully ready before forcing it fullscreen to prevent invisible window bugs
+    fullscreenWindow.once('ready-to-show', () => {
+        fullscreenWindow.show();
+        try { fullscreenWindow.focus(); } catch (e) {}
+        
+        if (process.platform === 'darwin') {
+            try {
+                try { fullscreenWindow.setKiosk(true); } catch (e) {}
+                fullscreenWindow.setAlwaysOnTop(true, 'screen-saver');
+                fullscreenWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+                fullscreenWindow.setFullScreen(true);
+            } catch (e) {
+                console.warn('Mac fullscreen window tuning failed', e);
+            }
         }
-    }
+    });
 
     fullscreenWindow.loadFile('fullscreen-popup.html');
 
@@ -445,8 +462,33 @@ function createFullscreenWindow(data) {
     });
 
     fullscreenWindow.on('close', (e) => {
-        e.preventDefault();
-        fullscreenWindow.hide();
+        if (!isQuitting) {
+            // WORKAROUND: Prevent premature window.close() calls from the broken internal timeout.
+            // Only allow closing/hiding if no break timers are actively running.
+            const breakOrPomoRunning = Object.entries(timers).some(([id, t]) => 
+                t.timeout && (id.includes('break') || id.includes('pomo'))
+            );
+            
+            if (breakOrPomoRunning) {
+                e.preventDefault();
+                return;
+            }
+
+            // Strip Mac locks before letting the window close naturally
+            if (process.platform === 'darwin') {
+                try { fullscreenWindow.setKiosk(false); } catch (e) {}
+                try { fullscreenWindow.setAlwaysOnTop(false); } catch (e) {}
+            }
+
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('popup-closed');
+                mainWindow.webContents.send('fullscreen-closed');
+                mainWindow.show(); // Ensure Dashboard comes back into view
+            }
+            
+            // Let the window naturally close and destroy itself, freeing OS resources
+            fullscreenWindow = null;
+        }
     });
 
     // Focus-lock while blocker is active
@@ -565,9 +607,9 @@ ipcMain.on('resume-timer', (event, id) => {
 
 ipcMain.on('show-popup', (event, payload) => {
     if (typeof payload === 'object' && payload !== null) {
-        createPopupWindow(payload.message, payload.closeDelay, payload.healthType || null, payload.isAutoclose || false);
+        createPopupWindow(payload.message, payload.closeDelay || 10000, payload.healthType || null, true);
     } else {
-        createPopupWindow(payload);
+        createPopupWindow(payload, 10000, null, true);
     }
 });
 
@@ -597,19 +639,29 @@ ipcMain.on('show-break-popup', (event, data) => {
     if (data.fullScreen) {
         createFullscreenWindow(data);
     } else {
-        createPopupWindow(`Time for a ${data.type}!`);
+        createPopupWindow(data.message || `Time for a ${data.type}!`, 10000, null, true);
     }
 });
 
 ipcMain.on('close-fullscreen', () => {
+    // WORKAROUND: Prevent the fullscreen-popup's broken internal timeout from closing the window early.
+    // Only allow closing if no break timers are actively running.
+    const breakOrPomoRunning = Object.entries(timers).some(([id, t]) => 
+        t.timeout && (id.includes('break') || id.includes('pomo'))
+    );
+    
+    if (breakOrPomoRunning) {
+        return;
+    }
+
     if (fullscreenWindow) {
         fullscreenWindow.close();
     }
-    if (pomoTimerWindow) {
+    // Only restore the Pomo Timer if it wasn't just explicitly hidden
+    if (pomoTimerWindow && !pomoTimerWindow.isDestroyed() && pomoTimerWindow.isVisible()) {
         pomoTimerWindow.show();
         pomoTimerWindow.focus();
         pomoTimerWindow.setAlwaysOnTop(true);
-        pomoTimerWindow.setAlwaysOnTop(false);
     }
 });
 
@@ -621,10 +673,8 @@ ipcMain.on('next-phase-triggered', () => {
 
 app.whenReady().then(() => {
   createWindow();
-  try {
-      createTray();
-  } catch(e) {
-      console.log("Tray creation failed (likely missing icon.png)");
+  if (process.platform === 'darwin') {
+      try { app.dock.setIcon(path.join(__dirname, 'fokusicon.png')); } catch (e) {}
   }
   createApplicationMenu();
 
@@ -656,26 +706,19 @@ app.whenReady().then(() => {
 // IPC for Blocker
 // macOS-focused IPC controls for popup -> fullscreen blocker flow
 ipcMain.on('blocker-show-popup', (event, message) => {
-    createPopupWindow(message);
+    createPopupWindow(message, 10000, null, true);
 });
 
 ipcMain.on('blocker-expand-fullscreen', (event, data) => {
-    macBlockActive = true;
-    createFullscreenWindow(data);
-    // try to enable kiosk for stricter lock on mac
-    if (process.platform === 'darwin' && fullscreenWindow) {
-        try {
-            fullscreenWindow.setKiosk(true);
-        } catch (e) {}
-    }
+    // Expansion disabled per user request: "it shouldnt have the expanding in 5 secs thing"
 });
 
 ipcMain.on('blocker-start', (event, data) => {
-    // Only enable the mac-specific focus-lock flag on macOS
-    macBlockActive = (process.platform === 'darwin');
-    // Pass the whole data object to the popup so renderer can show countdown and expand
-    if (data) createPopupWindow(data);
-    else createPopupWindow('');
+    macBlockActive = false; // Disabled focus lock as we aren't expanding
+    let msg = '';
+    if (typeof data === 'string') msg = data;
+    else if (data && data.message) msg = data.message;
+    createPopupWindow(msg, 10000, null, true);
 });
 
 ipcMain.on('blocker-stop', () => {
@@ -685,6 +728,8 @@ ipcMain.on('blocker-stop', () => {
             if (process.platform === 'darwin') {
                 try { fullscreenWindow.setKiosk(false); } catch (e) {}
             }
+        }
+        if (fullscreenWindow && !fullscreenWindow.isDestroyed()) {
             fullscreenWindow.close();
         }
     } catch (e) {}
@@ -873,15 +918,3 @@ app.on('window-all-closed', () => {
     // app.quit(); // Handled by tray/isQuitting
   }
 });
-
-
-
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    // app.quit(); // Handled by tray/isQuitting
-  }
-});
-
-
-

@@ -1,12 +1,12 @@
 const ipcRenderer = window.electronAPI;
 
-let countdownInterval = null;
-let autoCloseTimer = null;
+let expandInterval = null;
+let autoCloseInterval = null;
 
 function clearCountdown() {
-    if (countdownInterval) {
-        clearInterval(countdownInterval);
-        countdownInterval = null;
+    if (expandInterval) {
+        clearInterval(expandInterval);
+        expandInterval = null;
     }
     const el = document.getElementById('popup-countdown');
     if (el) el.remove();
@@ -35,7 +35,7 @@ function startCountdown(delaySeconds, fullscreenData) {
     clearCountdown();
     let remaining = Math.max(0, Math.floor(delaySeconds));
     createOrUpdateCountdown(remaining);
-    countdownInterval = setInterval(() => {
+    expandInterval = setInterval(() => {
         remaining -= 1;
         if (remaining <= 0) {
             clearCountdown();
@@ -49,23 +49,28 @@ function startCountdown(delaySeconds, fullscreenData) {
 function setCloseButtonState(closeBtn, remaining) {
     if (!closeBtn) return;
 
+    const isHovered = closeBtn.matches(':hover');
+
     if (remaining > 1) {
         closeBtn.disabled = false;
         closeBtn.style.backgroundColor = '#2c3e50';
         closeBtn.style.color = 'white';
         closeBtn.style.boxShadow = '0 0 10px rgba(0,0,0,0.25)';
         closeBtn.title = 'Click to close now';
+        closeBtn.innerText = isHovered ? 'Close now' : `Closes in (${remaining})`;
     } else if (remaining === 1) {
         closeBtn.disabled = true; // final lock at 1s
         closeBtn.style.backgroundColor = '#b0bec5';
         closeBtn.style.color = '#495057';
         closeBtn.style.boxShadow = 'none';
         closeBtn.title = 'Auto-closing momentarily';
+        closeBtn.innerText = `Closes in (1)`;
     } else {
         closeBtn.disabled = true;
         closeBtn.style.backgroundColor = '#9e9e9e';
         closeBtn.style.color = '#ffffff';
         closeBtn.title = '';
+        closeBtn.innerText = `Closing...`;
     }
 }
 
@@ -77,15 +82,16 @@ function startAutoCloseCountdown(totalSeconds) {
     if (timerEl) timerEl.innerText = remaining;
     setCloseButtonState(closeBtn, remaining);
 
-    countdownInterval = setInterval(() => {
+    if (autoCloseInterval) clearInterval(autoCloseInterval);
+    autoCloseInterval = setInterval(() => {
         remaining -= 1;
         if (timerEl) timerEl.innerText = Math.max(0, remaining);
 
         setCloseButtonState(closeBtn, Math.max(0, remaining));
 
         if (remaining <= 0) {
-            clearInterval(countdownInterval);
-            countdownInterval = null;
+            clearInterval(autoCloseInterval);
+            autoCloseInterval = null;
             ipcRenderer.send('close-popup');
         }
     }, 1000);
@@ -94,9 +100,9 @@ function startAutoCloseCountdown(totalSeconds) {
 ipcRenderer.on('display-message', (payload) => {
     clearCountdown();
     
-    if (autoCloseTimer) {
-        clearTimeout(autoCloseTimer);
-        autoCloseTimer = null;
+    if (autoCloseInterval) {
+        clearInterval(autoCloseInterval);
+        autoCloseInterval = null;
     }
 
     let message = '';
@@ -151,7 +157,7 @@ ipcRenderer.on('display-message', (payload) => {
     }
 
     // Only auto-start countdown on macOS; on other platforms show message only
-    if (window.electronAPI.platform === 'darwin' && delay && Number(delay) > 0) {
+    if (window.electronAPI.platform === 'darwin' && delay && Number(delay) > 0 && isBlocking) {
         startCountdown(Number(delay), fullscreenData);
     }
     
@@ -170,6 +176,11 @@ document.addEventListener('DOMContentLoaded', () => {
         closeBtn.addEventListener('click', () => {
             if (!closeBtn.disabled) {
                 ipcRenderer.send('close-popup');
+            }
+        });
+        closeBtn.addEventListener('mouseenter', () => {
+            if (!closeBtn.disabled) {
+                closeBtn.innerText = 'Close now';
             }
         });
     }
