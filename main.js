@@ -154,6 +154,8 @@ function createWindow() {
     },
   });
 
+  mainWindow.maximize();
+
   mainWindow.loadFile('index.html');
 
   mainWindow.on('close', (event) => {
@@ -252,7 +254,7 @@ function createApplicationMenu() {
     Menu.setApplicationMenu(menu);
 }
 
-function createPopupWindow(message, autoDismissMs = 10000, healthType = null) {
+function createPopupWindow(message, autoDismissMs = 10000, healthType = null, isAutoclose = false) {
     const isBlocking = healthType && healthConfig.blockingMode === 'fullscreen';
 
     if (popupWindow) {
@@ -261,7 +263,8 @@ function createPopupWindow(message, autoDismissMs = 10000, healthType = null) {
             message,
             closeDelay: autoDismissMs,
             healthType,
-            isBlocking
+            isBlocking,
+            isAutoclose
         });
     } else {
         if (isBlocking) {
@@ -557,7 +560,7 @@ ipcMain.on('resume-timer', (event, id) => {
 
 ipcMain.on('show-popup', (event, payload) => {
     if (typeof payload === 'object' && payload !== null) {
-        createPopupWindow(payload.message, payload.closeDelay, payload.healthType || null);
+        createPopupWindow(payload.message, payload.closeDelay, payload.healthType || null, payload.isAutoclose || false);
     } else {
         createPopupWindow(payload);
     }

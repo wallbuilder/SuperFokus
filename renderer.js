@@ -301,7 +301,6 @@ function initializeDomElements() {
                 renderWorkflowStack();
 
                 // If modifying a preset, switch back to custom
-                const workflowPresetsSelect = document.getElementById('workflow-presets');
                 if (workflowPresetsSelect && workflowPresetsSelect.value !== 'custom') {
                     workflowPresetsSelect.value = 'custom';
                     updateWorkflowCurrentPresetDisplay();
@@ -343,7 +342,6 @@ function initializeDomElements() {
     }
 
     function setupWorkflowPresetsEventListeners() {    try {
-        const workflowPresetsSelect = document.getElementById('workflow-presets');
         const deleteWorkflowPresetBtn = document.getElementById('delete-workflow-preset-btn');
         const saveWorkflowPresetBtn = document.getElementById('save-workflow-preset-btn');
         const confirmSaveWorkflowPresetBtn = document.getElementById('confirm-save-workflow-preset-btn');
@@ -1260,6 +1258,7 @@ const reminderIntervalInput = document.getElementById('reminder-interval');
 const reminderIntervalSecondsInput = document.getElementById('reminder-interval-seconds');
 const reminderRoundsInput = document.getElementById('reminder-rounds');
 const reminderMessageInput = document.getElementById('reminder-message');
+const reminderAutocloseInput = document.getElementById('reminder-autoclose');
 const repeatingTimerDisplay = document.getElementById('repeating-timer-display');
 const repeatingTimeLeft = document.getElementById('repeating-time-left');
 const repeatingRoundsLeft = document.getElementById('repeating-rounds-left');
@@ -1934,6 +1933,7 @@ stopFlowBtn.addEventListener('click', stopFlowState);
 // Workflow elements will be initialized in initializeDomElements()
 let workflowBlocks = [];
 let workflowPresets = store.get('workflowPresets', {});
+const workflowPresetsSelect = document.getElementById('workflow-presets');
 
 function updateWorkflowPresetOptions() {
     if (!workflowPresetsSelect) return;
