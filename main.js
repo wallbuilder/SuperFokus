@@ -5,21 +5,11 @@ const http = require('http');
 const net = require('net');
 const util = require('util');
 
-<<<<<<< HEAD
-// Polyfill deprecated util functions required by sudo-prompt
-if (typeof util.isObject !== 'function') {
-    util.isObject = function(arg) { return typeof arg === 'object' && arg !== null; };
-}
-if (typeof util.isFunction !== 'function') {
-    util.isFunction = function(arg) { return typeof arg === 'function'; };
-=======
-// Polyfill for deprecated util functions used by older dependencies like sudo-prompt
 if (typeof util.isObject !== 'function') {
     util.isObject = (value) => value !== null && typeof value === 'object';
 }
 if (typeof util.isFunction !== 'function') {
     util.isFunction = (value) => typeof value === 'function';
->>>>>>> 569951d0bb8d15fc4a310f4cf30a42d86b594ac3
 }
 
 const sudo = require('sudo-prompt');
@@ -49,6 +39,9 @@ let macFocusEnforcer = null;
 let proxyServer = null;
 const helperPath = path.join(__dirname, 'fokus-sb-helper.js');
 let blocksApplied = false;
+
+let timers = {};
+let currentPopupIsBlocking = false;
 
 function startProxy(allowedHosts, allowedUrls) {
     if (proxyServer) proxyServer.close();
@@ -253,6 +246,13 @@ function createApplicationMenu() {
 function createPopupWindow(message, autoDismissMs = 10000, healthType = null, isAutoclose = false) {
     const isBlocking = healthType && healthConfig.blockingMode === 'fullscreen';
 
+    // If the window exists but the structural type (blocking vs non-blocking) 
+    // needs to change, completely destroy the old instance so we can recreate it.
+    if (popupWindow && currentPopupIsBlocking !== isBlocking) {
+        popupWindow.destroy();
+        popupWindow = null;
+    }
+
     if (popupWindow) {
         popupWindow.show();
         popupWindow.webContents.send('display-message', {
@@ -280,6 +280,7 @@ function createPopupWindow(message, autoDismissMs = 10000, healthType = null, is
                     preload: path.join(__dirname, 'preload.js'),
                 },
             });
+            currentPopupIsBlocking = true;
         } else {
             // Non-blocking popup mode (floats on top, doesn't prevent interaction)
             popupWindow = new BrowserWindow({
@@ -294,6 +295,7 @@ function createPopupWindow(message, autoDismissMs = 10000, healthType = null, is
                     preload: path.join(__dirname, 'preload.js'),
                 },
             });
+            currentPopupIsBlocking = false;
         }
 
         popupWindow.loadFile('popup.html');
@@ -379,8 +381,7 @@ function createPomoTimerWindow() {
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
-            preload: path.join(__dirname, 'preload.js'),
-            backgroundThrottling: false // Important for background reliability
+            preload: path.join(__dirname, 'preload.js')
         },
     });
 
@@ -414,9 +415,8 @@ function createFullscreenWindow(data) {
         // Re-apply Mac tuning in case it was stripped during a previous hide
         if (process.platform === 'darwin') {
             try {
-                try { fullscreenWindow.setKiosk(true); } catch (e) {}
                 fullscreenWindow.setAlwaysOnTop(true, 'screen-saver');
-                fullscreenWindow.setFullScreen(true);
+                fullscreenWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
             } catch (e) {}
         }
         
@@ -431,19 +431,30 @@ function createFullscreenWindow(data) {
         fullscreenWindow.close(); 
     }
 
-    fullscreenWindow = new BrowserWindow({
-        fullscreen: true,
-        kiosk: true, // Native Kiosk mode built into Electron
+    const windowConfig = {
         alwaysOnTop: true,
         frame: false,
         show: false, // Don't show until ready to prevent macOS rendering glitches
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
-            preload: path.join(__dirname, 'preload.js'),
-            backgroundThrottling: false
+            preload: path.join(__dirname, 'preload.js')
         },
-    });
+    };
+
+    // Prevent macOS space transition glitches (dock disappearing, window closing)
+    // by using "simpleFullscreen" (pre-Lion fullscreen). This perfectly covers the 
+    // menu bar and dock without creating a new Space that fights with setVisibleOnAllWorkspaces.
+    if (process.platform === 'darwin') {
+        windowConfig.simpleFullscreen = true;
+        windowConfig.fullscreen = true;
+        windowConfig.kiosk = false;
+    } else {
+        windowConfig.fullscreen = true;
+        windowConfig.kiosk = true;
+    }
+
+    fullscreenWindow = new BrowserWindow(windowConfig);
 
     fullscreenWindow.openedAt = Date.now();
 
@@ -454,10 +465,8 @@ function createFullscreenWindow(data) {
         
         if (process.platform === 'darwin') {
             try {
-                try { fullscreenWindow.setKiosk(true); } catch (e) {}
                 fullscreenWindow.setAlwaysOnTop(true, 'screen-saver');
                 fullscreenWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-                fullscreenWindow.setFullScreen(true);
             } catch (e) {
                 console.warn('Mac fullscreen window tuning failed', e);
             }
@@ -472,21 +481,29 @@ function createFullscreenWindow(data) {
 
     fullscreenWindow.on('close', (e) => {
         if (!isQuitting) {
-            // WORKAROUND: Prevent premature window.close() calls from the broken internal timeout.
-            // Only allow closing/hiding if no break timers are actively running.
-            const breakOrPomoRunning = Object.entries(timers).some(([id, t]) => 
-                t.timeout && (id.includes('break') || id.includes('pomo'))
-            );
-            
-            if (breakOrPomoRunning) {
-                e.preventDefault();
-                return;
+            if (!fullscreenWindow.forceClose) {
+                // WORKAROUND: Prevent premature window.close() calls from the broken internal timeout.
+                // Check exact remaining time. If it's less than 1 second, allow closing to prevent getting stuck due to tick desyncs.
+                const breakOrPomoRunning = Object.entries(timers).some(([id, t]) => {
+                    if (!t.timeout || (!id.includes('break') && !id.includes('pomo'))) return false;
+                    return (t.endTime - Date.now()) > 1000;
+                });
+                
+                // Prevent race conditions where the window closes before the timer is registered
+                // Reduced to 1000ms to prevent trapping users testing with very short (1-2s) timers.
+                const justOpened = fullscreenWindow.openedAt && (Date.now() - fullscreenWindow.openedAt < 1000);
+
+                if (breakOrPomoRunning || justOpened) {
+                    e.preventDefault();
+                    return;
+                }
             }
 
             // Strip Mac locks before letting the window close naturally
             if (process.platform === 'darwin') {
                 try { fullscreenWindow.setKiosk(false); } catch (e) {}
                 try { fullscreenWindow.setAlwaysOnTop(false); } catch (e) {}
+                try { fullscreenWindow.setSimpleFullScreen(false); } catch (e) {}
             }
 
             if (mainWindow && !mainWindow.isDestroyed()) {
@@ -502,32 +519,56 @@ function createFullscreenWindow(data) {
 
     // Focus-lock while blocker is active
     fullscreenWindow.on('blur', () => {
-        if (macBlockActive) {
+        if (!isQuitting && fullscreenWindow && !fullscreenWindow.forceClose) {
             try {
                 fullscreenWindow.focus();
-                fullscreenWindow.setAlwaysOnTop(true);
-                fullscreenWindow.setAlwaysOnTop(false);
+                if (process.platform === 'darwin') {
+                    fullscreenWindow.setAlwaysOnTop(true, 'screen-saver');
+                } else {
+                    fullscreenWindow.setAlwaysOnTop(true);
+                }
             } catch (e) {}
         }
     });
 
     // If user minimizes or hides the window, immediately restore it while blocking
     fullscreenWindow.on('minimize', () => {
-        if (macBlockActive) {
+        if (!isQuitting && fullscreenWindow && !fullscreenWindow.forceClose) {
             try { fullscreenWindow.restore(); fullscreenWindow.focus(); } catch (e) {}
         }
     });
     fullscreenWindow.on('hide', () => {
-        if (macBlockActive) {
+        if (!isQuitting && fullscreenWindow && !fullscreenWindow.forceClose) {
             try { fullscreenWindow.show(); fullscreenWindow.focus(); } catch (e) {}
         }
     });
 }
 
-// --- Timer State (Main Process) ---
-let timers = {};
+function forceKillFullscreen() {
+    if (fullscreenWindow && !fullscreenWindow.isDestroyed()) {
+        fullscreenWindow.forceClose = true;
+        
+        // Strip Mac locks before letting the window close naturally
+        if (process.platform === 'darwin') {
+            try { fullscreenWindow.setKiosk(false); } catch (e) {}
+            try { fullscreenWindow.setAlwaysOnTop(false); } catch (e) {}
+            try { fullscreenWindow.setSimpleFullScreen(false); } catch (e) {}
+        }
 
-setInterval(() => {
+        // destroy() is Electron's "ultimate nuke". It bypasses all preventDefault 
+        // and gracefully but instantly kills the native OS window process.
+        fullscreenWindow.destroy(); 
+        fullscreenWindow = null;
+        
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('popup-closed');
+            mainWindow.webContents.send('fullscreen-closed');
+            mainWindow.show(); // Ensure Dashboard comes back into view
+        }
+    }
+}
+
+let tickInterval = setInterval(() => {
     const now = Date.now();
     for (const [id, timer] of Object.entries(timers)) {
         if (timer.timeout) {
@@ -540,8 +581,9 @@ setInterval(() => {
             phase: timer.phase || '',
             percent: timer.percent
         };
-        if (mainWindow) mainWindow.webContents.send('timer-tick', state);
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('timer-tick', state);
         if (pomoTimerWindow && !pomoTimerWindow.isDestroyed()) pomoTimerWindow.webContents.send('timer-tick', state);
+        if (fullscreenWindow && !fullscreenWindow.isDestroyed()) fullscreenWindow.webContents.send('timer-tick', state);
     }
 }, 1000);
 
@@ -560,13 +602,17 @@ ipcMain.on('start-timer', (event, data) => {
         timeout: setTimeout(() => {
             timers[id].seconds = 0;
             timers[id].timeout = null;
-            if (mainWindow) {
+            if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.webContents.send(`timer-complete-${id}`);
+            }
+            // Forcefully close the blocker from the backend when the timer genuinely completes
+                if (id.includes('break') || id.includes('pomo')) {
+                    forceKillFullscreen();
             }
         }, durationMs)
     };
 
-    if (mainWindow) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send(`timer-started-${id}`, endTime);
     }
 });
@@ -577,8 +623,11 @@ ipcMain.on('stop-timer', (event, id) => {
         timers[id].timeout = null;
         timers[id].seconds = 0;
     }
-    if (mainWindow) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send(`timer-stopped-${id}`);
+    }
+    if (id.includes('break') || id.includes('pomo')) {
+        forceKillFullscreen();
     }
 });
 
@@ -589,7 +638,7 @@ ipcMain.on('pause-timer', (event, id) => {
         const remaining = Math.round((timers[id].endTime - Date.now()) / 1000);
         timers[id].seconds = Math.max(0, remaining);
     }
-    if (mainWindow) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send(`timer-paused-${id}`);
     }
 });
@@ -603,12 +652,16 @@ ipcMain.on('resume-timer', (event, id) => {
         timers[id].timeout = setTimeout(() => {
             timers[id].seconds = 0;
             timers[id].timeout = null;
-            if (mainWindow) {
+            if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.webContents.send(`timer-complete-${id}`);
+            }
+            // Forcefully close the blocker from the backend when the timer genuinely completes
+                if (id.includes('break') || id.includes('pomo')) {
+                    forceKillFullscreen();
             }
         }, durationMs);
 
-        if (mainWindow) {
+        if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send(`timer-resumed-${id}`, endTime);
         }
     }
@@ -623,7 +676,7 @@ ipcMain.on('show-popup', (event, payload) => {
 });
 
 ipcMain.on('close-popup', () => {
-    if (popupWindow) {
+    if (popupWindow && !popupWindow.isDestroyed()) {
         popupWindow.close();
     }
 });
@@ -654,18 +707,21 @@ ipcMain.on('show-break-popup', (event, data) => {
 
 ipcMain.on('close-fullscreen', () => {
     // WORKAROUND: Prevent the fullscreen-popup's broken internal timeout from closing the window early.
-    // Only allow closing if no break timers are actively running.
-    const breakOrPomoRunning = Object.entries(timers).some(([id, t]) => 
-        t.timeout && (id.includes('break') || id.includes('pomo'))
-    );
+    // Check exact remaining time. If it's less than 1 second, allow closing to prevent getting stuck due to tick desyncs.
+    const breakOrPomoRunning = Object.entries(timers).some(([id, t]) => {
+        if (!t.timeout || (!id.includes('break') && !id.includes('pomo'))) return false;
+        return (t.endTime - Date.now()) > 1000;
+    });
     
-    if (breakOrPomoRunning) {
+    // Prevent race conditions where the window closes before the timer is registered
+    // Reduced to 1000ms to prevent trapping users testing with very short (1-2s) timers.
+    const justOpened = fullscreenWindow && fullscreenWindow.openedAt && (Date.now() - fullscreenWindow.openedAt < 1000);
+
+    if (breakOrPomoRunning || justOpened) {
         return;
     }
 
-    if (fullscreenWindow) {
-        fullscreenWindow.close();
-    }
+    forceKillFullscreen();
     // Only restore the Pomo Timer if it wasn't just explicitly hidden
     if (pomoTimerWindow && !pomoTimerWindow.isDestroyed() && pomoTimerWindow.isVisible()) {
         pomoTimerWindow.show();
@@ -675,7 +731,7 @@ ipcMain.on('close-fullscreen', () => {
 });
 
 ipcMain.on('next-phase-triggered', () => {
-    if (mainWindow) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('start-next-phase');
     }
 });
@@ -734,17 +790,8 @@ ipcMain.on('blocker-start', (event, data) => {
 
 ipcMain.on('blocker-stop', () => {
     macBlockActive = false;
-    try {
-        if (fullscreenWindow) {
-            if (process.platform === 'darwin') {
-                try { fullscreenWindow.setKiosk(false); } catch (e) {}
-            }
-        }
-        if (fullscreenWindow && !fullscreenWindow.isDestroyed()) {
-            fullscreenWindow.close();
-        }
-    } catch (e) {}
-    if (popupWindow) popupWindow.close();
+    forceKillFullscreen();
+    if (popupWindow && !popupWindow.isDestroyed()) popupWindow.close();
 });
 
 function normalizeHost(value) {
@@ -794,7 +841,7 @@ ipcMain.on('update-blocker-rules', (event, rules) => {
     if (rules.mode === 'allow' && rules.active && allHosts.size > 0) {
         console.log('[Block] Starting proxy server for allow-only mode');
         startProxy(allHosts, allUrls);
-        if (mainWindow) {
+        if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('blocker-status', '✓ Allow-only mode ACTIVE. Browser proxy MUST be set to localhost:8080. Only listed sites will be accessible.');
         }
     } else if (rules.mode === 'block' && rules.active && allHosts.size > 0) {
@@ -805,19 +852,19 @@ ipcMain.on('update-blocker-rules', (event, rules) => {
             if (error) {
                 console.error('[Block] Blocker elevation error:', error);
                 const errorMsg = error.message || 'Failed to apply Site Blocker.';
-                if (mainWindow) {
+                if (mainWindow && !mainWindow.isDestroyed()) {
                     mainWindow.webContents.send('blocker-error', errorMsg);
                 }
             } else {
                 if (stderr && stderr.includes('error')) {
                     console.error('[Block] Blocker helper error:', stderr);
-                    if (mainWindow) {
+                    if (mainWindow && !mainWindow.isDestroyed()) {
                         mainWindow.webContents.send('blocker-error', `Domain format error: ${stderr}`);
                     }
                 } else {
                     console.log('[Block] Blocker applied successfully:', stdout);
                     blocksApplied = true;
-                    if (mainWindow) {
+                    if (mainWindow && !mainWindow.isDestroyed()) {
                         mainWindow.webContents.send('blocker-status', 'Domains blocked successfully');
                     }
                 }
@@ -830,13 +877,13 @@ ipcMain.on('update-blocker-rules', (event, rules) => {
             runElevated('clear', (error, stdout, stderr) => {
                 if (error) {
                     console.error('[Block] Blocker elevation error:', error);
-                    if (mainWindow) {
+                    if (mainWindow && !mainWindow.isDestroyed()) {
                         mainWindow.webContents.send('blocker-error', 'Failed to clear Site Blocker blocks.');
                     }
                 } else {
                     console.log('[Block] Blocker cleared:', stdout);
                     blocksApplied = false;
-                    if (mainWindow) {
+                    if (mainWindow && !mainWindow.isDestroyed()) {
                         mainWindow.webContents.send('blocker-status', 'Blocks cleared successfully');
                     }
                 }
@@ -850,13 +897,13 @@ ipcMain.on('clear-all-blocks', () => {
     runElevated('clear', (error, stdout, stderr) => {
         if (error) {
             console.error('Blocker elevation error:', error);
-            if (mainWindow) {
+            if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.webContents.send('blocker-error', 'Failed to clear all blocks.');
             }
         } else {
             console.log('All blocks cleared manually:', stdout);
             blocksApplied = false;
-            if (mainWindow) {
+            if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.webContents.send('blocker-status', 'All blocks cleared');
             }
         }
@@ -905,14 +952,22 @@ ipcMain.on('stop-health-mode', () => {
     if (popupWindow) popupWindow.close();
 });
 
-ipcMain.on('close-popup', () => {
-    if (popupWindow && !popupWindow.isDestroyed()) {
-        popupWindow.close();
-    }
+// Detect a system-level Cmd+Q / Quit request and allow blocker windows to close normally
+app.on('before-quit', () => {
+    isQuitting = true;
 });
 
 let isClearingOnQuit = false;
 app.on('will-quit', (e) => {
+    // Gracefully clear all recurring background processes and active timers on quit
+    clearInterval(tickInterval);
+    for (const key in timers) {
+        if (timers[key].timeout) clearTimeout(timers[key].timeout);
+    }
+    timers = {};
+    if (healthIntervals.eye) clearInterval(healthIntervals.eye);
+    if (healthIntervals.posture) clearInterval(healthIntervals.posture);
+
     stopProxy();
     if (blocksApplied && !isClearingOnQuit) {
         e.preventDefault();
