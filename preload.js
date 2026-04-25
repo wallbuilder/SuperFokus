@@ -1,11 +1,68 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+// Whitelist of channels the renderer can SEND to the main process
+const ALLOWED_SEND_CHANNELS = [
+    'theme-changed',
+    'start-timer',
+    'stop-timer',
+    'pause-timer',
+    'resume-timer',
+    'show-popup',
+    'close-popup',
+    'open-pomo-timer',
+    'update-pomo-timer',
+    'close-pomo-timer',
+    'show-break-popup',
+    'close-fullscreen',
+    'next-phase-triggered',
+    'blocker-show-popup',
+    'blocker-expand-fullscreen',
+    'blocker-start',
+    'blocker-stop',
+    'update-blocker-rules',
+    'clear-all-blocks',
+    'start-health-mode',
+    'stop-health-mode'
+];
+
+// Whitelist of channels the renderer can LISTEN to from the main process
+const ALLOWED_ON_CHANNELS = [
+    'display-message',
+    'set-theme',
+    'pomo-popup-closed',
+    'set-fullscreen-data',
+    'timer-tick',
+    'update-display',
+    'start-next-phase',
+    'blocker-status',
+    'blocker-error'
+];
+
+// Prefix-based whitelist for dynamic timer channels
+const TIMER_PREFIXES = [
+    'timer-complete-',
+    'timer-started-',
+    'timer-stopped-',
+    'timer-paused-',
+    'timer-resumed-'
+];
+
 contextBridge.exposeInMainWorld('electronAPI', {
     send: (channel, data) => {
-        ipcRenderer.send(channel, data);
+        if (ALLOWED_SEND_CHANNELS.includes(channel)) {
+            ipcRenderer.send(channel, data);
+        } else {
+            console.warn(`Blocked unauthorized IPC send on channel: ${channel}`);
+        }
     },
     on: (channel, func) => {
-        ipcRenderer.on(channel, (event, ...args) => func(event, ...args));
+        const isTimerChannel = TIMER_PREFIXES.some(prefix => channel.startsWith(prefix));
+        if (ALLOWED_ON_CHANNELS.includes(channel) || isTimerChannel) {
+            // Remove event from args for security - renderer shouldn't need it
+            ipcRenderer.on(channel, (event, ...args) => func(...args));
+        } else {
+            console.warn(`Blocked unauthorized IPC listener registration on channel: ${channel}`);
+        }
     },
     platform: process.platform
 });

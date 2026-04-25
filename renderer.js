@@ -2,13 +2,13 @@ const ipcRenderer = window.electronAPI;
 // Chart loaded from window
 
 // Listen for blocker errors (Site Blocker Phase)
-ipcRenderer.on('blocker-error', (event, errorMsg) => {
+ipcRenderer.on('blocker-error', (errorMsg) => {
     console.error('Site Blocker error:', errorMsg);
     customAlert(`Site Blocker Error: ${errorMsg}`);
 });
 
 // Listen for blocker status updates
-ipcRenderer.on('blocker-status', (event, statusMsg) => {
+ipcRenderer.on('blocker-status', (statusMsg) => {
     console.log('Site Blocker status:', statusMsg);
 });
 
@@ -1094,7 +1094,7 @@ function updatePomoDisplay() {
     });
 }
 
-ipcRenderer.on('timer-tick', (event, data) => {
+ipcRenderer.on('timer-tick', (data) => {
     if (data.id === 'pomo') {
         pomoTimer = data.seconds;
         updatePomoDisplay();
@@ -1293,8 +1293,8 @@ function updateLocalRepeatingTimer(endTime) {
     // Local timer removed in v0.9.2 - now synced via timer-tick IPC from main.js
 }
 
-ipcRenderer.on('timer-started-repeating', (event, endTime) => updateLocalRepeatingTimer(endTime));
-ipcRenderer.on('timer-resumed-repeating', (event, endTime) => updateLocalRepeatingTimer(endTime));
+ipcRenderer.on('timer-started-repeating', (endTime) => updateLocalRepeatingTimer(endTime));
+ipcRenderer.on('timer-resumed-repeating', (endTime) => updateLocalRepeatingTimer(endTime));
 ipcRenderer.on('timer-paused-repeating', () => {
     if (repeatingLocalInterval) clearInterval(repeatingLocalInterval);
 });

@@ -91,7 +91,7 @@ function startAutoCloseCountdown(totalSeconds) {
     }, 1000);
 }
 
-ipcRenderer.on('display-message', (event, payload) => {
+ipcRenderer.on('display-message', (payload) => {
     clearCountdown();
     
     if (autoCloseTimer) {
