@@ -1,0 +1,22 @@
+Planned Updates
+
+# Features
+
+  ## Deep Work Flow
+   - A mode designed for absolute, uninterrupted concentration for long periods of time (e.g., 90-120 minutes).
+   - It combines the timer with the existing "Site Blocker" functionality. When activated, it       automatically blocks all distracting sites (or only allows a whitelist), silences non-essential notifications (if possible via OS integration), and simply counts up or counts down a long session without any break reminders until the very end. (This can be adjusted in the config options.)
+   - Icon : A lotus flower or a brain icon.
+
+  ## Task Management & Calendar Integrations
+   - Allow users to pull their daily tasks into SuperFokus.
+   - Connect with Todoist, Google Tasks, or Notion APIs.
+   - Automatically populate the Micro-Task Sprint mode with the user's daily to-do list.
+   - Automatically block out time on Google Calendar when a "Pomo Style" or "Deep Work" session is active.
+
+  ## Cloud Sync
+   - Add a lightweight backend (like Firebase or Supabase) to sync user presets, Pomo configs, and session histories.
+   - Allow users to seamlessly transition between work and personal devices without losing their stats and configurations.
+
+  ## Gamification (Streaks & Unlockables)
+   - Add a new "Fokus Streak" section that tracks daily consecutive Fokusing days to encourage users to maintain their habits.
+   - Allow users to unlock new custom chimes, dark mode themes, or UI elements by reaching milestone hours of focus.
