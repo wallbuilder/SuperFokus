@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const net = require('net');
+const sudo = require('sudo-prompt');
 
 app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
 app.commandLine.appendSwitch('disable-http-cache');
@@ -27,6 +28,8 @@ let blockerRules = {
 let macBlockActive = false;
 let macFocusEnforcer = null;
 let proxyServer = null;
+const helperPath = path.join(__dirname, 'fokus-sb-helper.js');
+let blocksApplied = false;
 
 function startProxy(allowedHosts, allowedUrls) {
     if (proxyServer) proxyServer.close();
@@ -279,8 +282,9 @@ function createPopupWindow(message, autoDismissMs = 10000, healthType = null, is
                 fullscreen: false,
                 resizable: false,
                 webPreferences: {
-                    nodeIntegration: true,
-                    contextIsolation: false,
+                    nodeIntegration: false,
+                    contextIsolation: true,
+                    preload: path.join(__dirname, 'preload.js'),
                 },
             });
         } else {
@@ -292,8 +296,9 @@ function createPopupWindow(message, autoDismissMs = 10000, healthType = null, is
                 frame: true,
                 resizable: false,
                 webPreferences: {
-                    nodeIntegration: true,
-                    contextIsolation: false,
+                    nodeIntegration: false,
+                    contextIsolation: true,
+                    preload: path.join(__dirname, 'preload.js'),
                 },
             });
         }
@@ -624,15 +629,7 @@ app.whenReady().then(() => {
   createApplicationMenu();
 
   // Startup Cleanup: Clear any zombie blocks from previous ungraceful exits
-  const { exec } = require('child_process');
-  const hp = path.join(__dirname, 'fokus-sb-helper.js');
-  let cmd = `pkexec node "${hp}" clear`;
-  if (process.platform === 'win32') {
-      cmd = `powershell.exe -Command "Start-Process node -ArgumentList '\\"${hp}\\" clear' -Verb RunAs"`;
-  } else if (process.platform === 'darwin') {
-      cmd = `osascript -e 'do shell script "node \\"${hp}\\" clear" with administrator privileges'`;
-  }
-  exec(cmd, (error) => {
+  runElevated('clear', (error) => {
       if (error) {
           console.log('[Startup] Failsafe check cancelled or failed.');
       } else {
@@ -642,7 +639,7 @@ app.whenReady().then(() => {
 
   process.on('uncaughtException', (err) => {
       console.error('CRITICAL UNCAUGHT EXCEPTION:', err);
-      exec(cmd, () => {
+      runElevated('clear', () => {
           process.exit(1);
       });
   });
@@ -693,9 +690,6 @@ ipcMain.on('blocker-stop', () => {
     } catch (e) {}
     if (popupWindow) popupWindow.close();
 });
-const { exec } = require('child_process');
-const helperPath = path.join(__dirname, 'fokus-sb-helper.js');
-let blocksApplied = false;
 
 function normalizeHost(value) {
     if (!value || typeof value !== 'string') return null;
@@ -711,6 +705,13 @@ function normalizeHost(value) {
         const host = input.replace(/^https?:\/\//i, '').split(/[\/?#]/)[0].split(':')[0].toLowerCase();
         return host || null;
     }
+}
+
+function runElevated(args, callback) {
+    const command = `node "${helperPath}" ${args}`;
+    sudo.exec(command, { name: 'SuperFokus' }, (error, stdout, stderr) => {
+        if (callback) callback(error, stdout, stderr);
+    });
 }
 
 ipcMain.on('update-blocker-rules', (event, rules) => {
@@ -743,13 +744,8 @@ ipcMain.on('update-blocker-rules', (event, rules) => {
     } else if (rules.mode === 'block' && rules.active && allHosts.size > 0) {
         console.log('[Block] Applying hosts blocks for', allHosts.size, 'domains');
         const domainsList = Array.from(allHosts).join(',');
-        let cmd = `pkexec node "${helperPath}" apply "${domainsList}"`;
-        if (process.platform === 'win32') {
-            cmd = `powershell.exe -Command "Start-Process node -ArgumentList '\\"${helperPath}\\" apply \\"${domainsList}\\"' -Verb RunAs"`;
-        } else if (process.platform === 'darwin') {
-            cmd = `osascript -e 'do shell script "node \\"${helperPath}\\" apply \\"${domainsList}\\"" with administrator privileges'`;
-        }
-        exec(cmd, (error, stdout, stderr) => {
+        
+        runElevated(`apply "${domainsList}"`, (error, stdout, stderr) => {
             if (error) {
                 console.error('[Block] Blocker elevation error:', error);
                 const errorMsg = error.message || 'Failed to apply Site Blocker.';
@@ -775,7 +771,7 @@ ipcMain.on('update-blocker-rules', (event, rules) => {
         console.log('[Block] Clearing blocks and stopping proxy');
         stopProxy();
         if (blocksApplied) {
-            sudo.exec(`node "${helperPath}" clear`, { name: 'SuperFokus' }, (error, stdout, stderr) => {
+            runElevated('clear', (error, stdout, stderr) => {
                 if (error) {
                     console.error('[Block] Blocker elevation error:', error);
                     if (mainWindow) {
@@ -795,7 +791,7 @@ ipcMain.on('update-blocker-rules', (event, rules) => {
 
 ipcMain.on('clear-all-blocks', () => {
     stopProxy();
-    sudo.exec(`node "${helperPath}" clear`, { name: 'SuperFokus' }, (error, stdout, stderr) => {
+    runElevated('clear', (error, stdout, stderr) => {
         if (error) {
             console.error('Blocker elevation error:', error);
             if (mainWindow) {
@@ -865,13 +861,7 @@ app.on('will-quit', (e) => {
     if (blocksApplied && !isClearingOnQuit) {
         e.preventDefault();
         isClearingOnQuit = true;
-        let cmd = `pkexec node "${helperPath}" clear`;
-        if (process.platform === 'win32') {
-            cmd = `powershell.exe -Command "Start-Process node -ArgumentList '\\"${helperPath}\\" clear' -Verb RunAs"`;
-        } else if (process.platform === 'darwin') {
-            cmd = `osascript -e 'do shell script "node \\"${helperPath}\\" clear" with administrator privileges'`;
-        }
-        exec(cmd, () => {
+        runElevated('clear', () => {
             blocksApplied = false;
             app.quit();
         });

@@ -151,7 +151,7 @@ ipcRenderer.on('display-message', (event, payload) => {
     }
 
     // Only auto-start countdown on macOS; on other platforms show message only
-    if (process.platform === 'darwin' && delay && Number(delay) > 0) {
+    if (window.electronAPI.platform === 'darwin' && delay && Number(delay) > 0) {
         startCountdown(Number(delay), fullscreenData);
     }
     
