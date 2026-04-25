@@ -1,6 +1,6 @@
 {
   "name": "fokus",
-  "version": "0.9.7w",
+  "version": "0.9.7.5",
   "description": "Fokus is an Electron application designed to help regulate computer and homework time while minimizing distractions.",
   "main": "main.js",
   "scripts": {
