@@ -4,7 +4,6 @@ import { store } from '../utils/storage.js';
 import { customAlert } from '../ui/modals.js';
 import { recordFocusSession } from '../utils/stats.js';
 import { formatTime, setInputsLocked, toggleStartStopButton } from '../utils/ui-helpers.js';
-import { isWorkflowRunning, startNextWorkflowBlock } from './workflows.js';
 
 const infiniteRoundsCheckbox = document.getElementById('infinite-rounds');
 const roundsContainer = document.getElementById('rounds-container');
@@ -89,8 +88,8 @@ ipcRenderer.on('timer-complete-repeating', () => {
 
     if (currentRounds <= 0 && (!infiniteRoundsCheckbox || !infiniteRoundsCheckbox.checked)) {
         stopRepeatingReminders();
-        if (typeof isWorkflowRunning !== 'undefined' && isWorkflowRunning) {
-            setTimeout(() => { if (typeof startNextWorkflowBlock === 'function') startNextWorkflowBlock(); }, 500);
+        if (window.isWorkflowRunningFlag) {
+            setTimeout(() => { if (typeof window.triggerNextWorkflowBlock === 'function') window.triggerNextWorkflowBlock(); }, 500);
         }
     } else {
         repeatingTimer = currentRepeatingTotalSeconds;
@@ -153,7 +152,7 @@ if (startRepeatingBtn) {
             startRepeatingReminders();
         } else {
             stopRepeatingReminders();
-            if (typeof isWorkflowRunning !== 'undefined' && isWorkflowRunning) {
+            if (window.isWorkflowRunningFlag) {
                 const stopWf = document.getElementById('stop-workflow-btn');
                 if (stopWf) stopWf.click();
             }

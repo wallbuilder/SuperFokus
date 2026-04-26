@@ -3,7 +3,6 @@ import { playChime } from '../utils/audio.js';
 import { store } from '../utils/storage.js';
 import { recordFocusSession } from '../utils/stats.js';
 import { formatTime, setInputsLocked } from '../utils/ui-helpers.js';
-import { isWorkflowRunning, startNextWorkflowBlock } from './workflows.js';
 
 const sprintDurationSelect = document.getElementById('sprint-duration');
 const sprintTasksInput = document.getElementById('sprint-tasks');
@@ -180,6 +179,9 @@ ipcRenderer.on('timer-complete-sprint', () => {
             currentSprintTaskIndex++;
             if (currentSprintTaskIndex >= sprintTasks.length) {
                 stopSprintMode();
+                if (window.isWorkflowRunningFlag) {
+                    setTimeout(() => { if (typeof window.triggerNextWorkflowBlock === 'function') window.triggerNextWorkflowBlock(); }, 500);
+                }
             } else {
                 startNextSprintTask();
             }
@@ -193,8 +195,8 @@ ipcRenderer.on('timer-complete-sprint', () => {
 export function startNextSprintTask() {
     if (currentSprintTaskIndex >= sprintTasks.length && sprintTasks.length > 0) {
         stopSprintMode();
-        if (typeof isWorkflowRunning !== 'undefined' && isWorkflowRunning) {
-            setTimeout(() => { if (typeof startNextWorkflowBlock === 'function') startNextWorkflowBlock(); }, 500);
+        if (window.isWorkflowRunningFlag) {
+            setTimeout(() => { if (typeof window.triggerNextWorkflowBlock === 'function') window.triggerNextWorkflowBlock(); }, 500);
         }
         return;
     }
@@ -220,7 +222,7 @@ export function stopSprintMode() {
 if (stopSprintBtn) {
     stopSprintBtn.addEventListener('click', () => {
         stopSprintMode();
-        if (typeof isWorkflowRunning !== 'undefined' && isWorkflowRunning) {
+        if (window.isWorkflowRunningFlag) {
             const stopWf = document.getElementById('stop-workflow-btn');
             if (stopWf) stopWf.click();
         }
@@ -257,6 +259,9 @@ if (nextSprintBtn) {
         currentSprintTaskIndex++;
         if (currentSprintTaskIndex >= sprintTasks.length) {
             stopSprintMode();
+            if (window.isWorkflowRunningFlag) {
+                setTimeout(() => { if (typeof window.triggerNextWorkflowBlock === 'function') window.triggerNextWorkflowBlock(); }, 500);
+            }
         } else {
             startNextSprintTask();
         }
@@ -269,6 +274,9 @@ if (skipSprintBtn) {
         currentSprintTaskIndex++;
         if (currentSprintTaskIndex >= sprintTasks.length) {
             stopSprintMode();
+            if (window.isWorkflowRunningFlag) {
+                setTimeout(() => { if (typeof window.triggerNextWorkflowBlock === 'function') window.triggerNextWorkflowBlock(); }, 500);
+            }
         } else {
             startNextSprintTask();
         }

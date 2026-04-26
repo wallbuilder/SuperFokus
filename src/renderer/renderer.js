@@ -130,6 +130,74 @@ window.addEventListener('click', (e) => {
     }
 });
 
+// Forcefully guard Stop buttons to ensure they never get disabled.
+// When modes start, they often lock all inputs/buttons, which accidentally disables the Stop buttons.
+setInterval(() => {
+    document.querySelectorAll('button').forEach(btn => {
+        const text = btn.textContent ? btn.textContent.toLowerCase() : '';
+        const isStopBtn = text.includes('stop') || btn.id.includes('stop') || btn.className.includes('stop');
+        
+        if (isStopBtn) {
+            if (btn.disabled) {
+                btn.disabled = false;
+            }
+            btn.style.pointerEvents = 'auto';
+            btn.style.cursor = 'pointer';
+        }
+    });
+}, 500);
+
+// Global delegated listeners for fallback button handling
+// Using capture phase (true) ensures we read the button text BEFORE any other click handlers mutate it from "Start" to "Stop"
+document.addEventListener('click', (e) => {
+    // 1. Micro-Task Sprint Stop Button
+    const sprintBtn = e.target.closest('button');
+    const isSprintStop = e.target.closest('#stop-sprint-btn, #sprint-stop-btn, #micro-sprint-stop-btn, .stop-sprint-btn, [data-action="stop-sprint"]') || 
+                         (e.target.closest('#config-micro-sprint') && sprintBtn && sprintBtn.textContent.toLowerCase().includes('stop'));
+    if (isSprintStop && typeof stopSprintMode === 'function') {
+        stopSprintMode();
+    }
+
+    // 2. Flow State Stop Button
+    const flowBtn = e.target.closest('button');
+    const isFlowStop = e.target.closest('#stop-flow-btn, #flow-stop-btn, #flow-state-stop-btn, .stop-flow-btn, [data-action="stop-flow"]') ||
+                       (e.target.closest('#config-flow-state') && flowBtn && flowBtn.textContent.toLowerCase().includes('stop'));
+    if (isFlowStop && typeof stopFlowState === 'function') {
+        stopFlowState();
+    }
+
+    // 3. Site Blocker Save & Apply Button
+    const saveBlockerBtn = e.target.closest('#site-blocker-save-btn, #save-blocker-btn') || 
+                          (e.target.tagName === 'BUTTON' && e.target.innerText.includes('Save & Apply'));
+    if (saveBlockerBtn) {
+        try {
+            const container = saveBlockerBtn.closest('.active, .modal-content, .sidebar-modal, body') || document;
+            let mode = 'block';
+            const modeSelect = container.querySelector('select[id*="mode"]');
+            const modeCheck = container.querySelector('input[type="checkbox"][id*="mode"]');
+            if (modeSelect) mode = modeSelect.value.includes('allow') ? 'allow' : 'block';
+            else if (modeCheck) mode = modeCheck.checked ? 'allow' : 'block';
+            const active = container.querySelector('input[type="checkbox"][id*="active"], input[type="checkbox"][id*="enable"], input[type="checkbox"][id*="blocker-switch"]')?.checked || false;
+            const alwaysRun = container.querySelector('input[type="checkbox"][id*="always"]')?.checked || false;
+            const domainsText = container.querySelector('textarea[id*="domain"]')?.value || '';
+            const urlsText = container.querySelector('textarea[id*="url"]')?.value || '';
+            const domains = domainsText.split('\n').map(d => d.trim()).filter(Boolean);
+            const urls = urlsText.split('\n').map(u => u.trim()).filter(Boolean);
+            
+            ipcRenderer.send('update-blocker-rules', { mode, active, alwaysRun, domains, urls });
+            
+            // Visual feedback so you know the save actually executed
+            if (typeof customAlert === 'function') {
+                customAlert('Site Blocker rules have been successfully saved and applied!');
+            } else {
+                alert('Site Blocker rules saved!');
+            }
+        } catch (err) {
+            console.error('Fallback site blocker save failed:', err);
+        }
+    }
+}, true);
+
 // --- Mode Switching ---
 const homeMenu = document.getElementById('home-menu');
 const dashboardTitle = document.getElementById('dashboard-title');
@@ -197,20 +265,14 @@ document.querySelectorAll('.extra-mode-btn').forEach(btn => {
 
 if (headerTitle) {
     headerTitle.addEventListener('click', () => {
-        returnToHome();
+        returnToHome(true);
     });
 }
 
-export function returnToHome() {
-    if (typeof isPomoRunning !== 'undefined' && isPomoRunning) stopPomoStyle();
-    if (typeof isRepeatingRunning !== 'undefined' && isRepeatingRunning) stopRepeatingReminders();
-    if (typeof isSprintRunning !== 'undefined' && isSprintRunning) stopSprintMode();
-    if (typeof isFlowRunning !== 'undefined' && isFlowRunning) stopFlowState();
-    
-    if (typeof isWorkflowRunning !== 'undefined' && isWorkflowRunning) {
-        const stopWf = document.getElementById('stop-workflow-btn');
-        if (stopWf) stopWf.click();
-    }
+export function returnToHome(isManualUserAction = false) {
+    // REMOVED: Forced stopping of modes! 
+    // Now, navigating back to the home screen or switching to another view
+    // will keep your active Fokus Modes (Pomo, Sprint, Flow, Workflows) running in the background.
     
     Object.values(configSections).forEach(section => {
       if (section) section.classList.remove('active');
