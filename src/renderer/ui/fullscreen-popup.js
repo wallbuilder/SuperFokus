@@ -1,4 +1,4 @@
-const { ipcRenderer } = require('electron');
+const ipcRenderer = window.electronAPI;
 
 let timerSeconds = 0;
 let timerInterval = null;
@@ -13,7 +13,7 @@ function formatTime(seconds) {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-ipcRenderer.on('set-fullscreen-data', (event, data) => {
+ipcRenderer.on('set-fullscreen-data', (data) => {
     document.getElementById('title').innerText = `${data.type} Time`;
     timerSeconds = data.duration;
     isAutoStart = data.autoStart;
