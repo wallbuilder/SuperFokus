@@ -677,6 +677,7 @@ const stopWorkflowBtn = document.getElementById('stop-workflow-btn');
 
 function resetWorkflowState() {
     isWorkflowRunning = false;
+    window.isWorkflowRunningFlag = false;
     currentWorkflowBlockIndex = 0;
     currentWorkflowCycle = 0;
     if (startWorkflowBtn) startWorkflowBtn.style.display = 'block';
@@ -781,6 +782,8 @@ if (startWorkflowBtn) {
             return;
         }
         isWorkflowRunning = true;
+        window.isWorkflowRunningFlag = true;
+        window.triggerNextWorkflowBlock = startNextWorkflowBlock;
         currentWorkflowBlockIndex = 0;
         currentWorkflowCycle = 0;
         startWorkflowBtn.style.display = 'none';
@@ -815,8 +818,8 @@ ipcRenderer.on('timer-complete-workflow-break', () => {
     ipcRenderer.send('close-fullscreen');
     ipcRenderer.send('close-pomo-timer');
     
-    if (isWorkflowRunning) {
-        setTimeout(() => { if (typeof startNextWorkflowBlock === 'function') startNextWorkflowBlock(); }, 500);
+    if (isWorkflowRunning || window.isWorkflowRunningFlag) {
+        setTimeout(() => { if (typeof window.triggerNextWorkflowBlock === 'function') window.triggerNextWorkflowBlock(); }, 500);
     }
 });
 
