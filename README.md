@@ -4,7 +4,7 @@ SuperFokus is a versatile, Electron-based productivity application designed to h
 
 ## Core Features (Fokus Modes)
 
-SuperFokus offers three primary modes to suit your workflow:
+SuperFokus offers three primary Fokus Modes to suit your workflow:
 
 ### 1. Repeating Reminders
 The classic mode. Sets up a continuous loop of reminders to keep you on track.
@@ -21,9 +21,9 @@ A structured time-management mode that balances work sessions with scheduled bre
 - **Auto-Start:** Optionally toggle auto-start for the next phase to keep your hands off the timer.
 - **Quick Pause:** Pause your work session or break at any time.
 
-### 3. Micro-Task Sprint Mode ("Speed Run")
+### 3. Micro-Task Sprint Mode
 Designed to break down larger tasks into rapid, high-speed intervals.
-- **Rapid Tasks:** Allocate 5, 10, or 15 minutes per task.
+- **Rapid Tasks:** Allocate a set amount of time to each task. (5 min., 10 min., 15 min., or a custom amount)
 - **Visual Velocity:** Dedicated countdown timer for specific tasks to maintain momentum.
 
 ## Sidebar Features & Tools
@@ -48,9 +48,9 @@ The SuperFokus sidebar provides quick access to powerful tools and analytics wit
 
 ### Example 1: The "Deep Work" Session
 1. Open **SuperFokus** and select **Pomo Style** from the Dashboard dropdown.
-2. Under **Pomo Presets**, select "Deep Work - 50/10" (or create your own sequence).
+2. Under **Pomo Presets**, select "Deep Work - 50/10" (or create your own sequence using the Dynamic Pomo Builder interface).
 3. Set **Action at end of phase** to "Block screen AND remind" so you are forced to step away from your monitor during breaks.
-4. Select your desired number of **Cycles** and click **Start**.
+4. Select your desired number of **Cycles** (it will default to 4 cycles if you don't enter a number) and click **Start**.
 
 ### Example 2: Blocking Distractions While Studying
 1. Open the sidebar (☰) and select **Site Blocker**.
@@ -65,7 +65,7 @@ The SuperFokus sidebar provides quick access to powerful tools and analytics wit
 3. Click **Start Health Mode**.
 4. SuperFokus will run quietly in the background, pinging you every 20 minutes to rest your eyes and every 45 minutes to fix your posture.
 
-## Technical Details
+## TECHNICAL DETAILS
 - Built with Electron.js.
-- Site Blocker utilizes a separate elevated helper script to modify the Windows `hosts` file for true system-wide blocking.
+- Site Blocker utilizes a separate elevated helper script to modify the Windows `hosts` file (or any other system's `hosts` file) for true system-wide blocking.
 - Timer precision is maintained using a timestamp-based calculation approach rather than simple `setInterval` ticks to prevent timer drift over long sessions.
