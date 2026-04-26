@@ -428,15 +428,38 @@
         padding: 12px;
         border-radius: 8px;
         cursor: grab;
-        border: 2px dashed var(--header-grad-1);
+        border: 2px dashed var(--border-color);
         user-select: none;
         transition: all 0.2s ease;
         font-size: 0.95rem;
       }
+      .workflow-palette-item[data-type="pomo"] {
+        border-color: #6a11cb;
+      }
+      .workflow-palette-item[data-type="sprint"] {
+        border-color: #3498db;
+      }
+      .workflow-palette-item[data-type="repeating"] {
+        border-color: #27ae60;
+      }
+      .workflow-palette-item[data-type="break"] {
+        border-color: #f1c40f;
+      }
       .workflow-palette-item:hover {
         background: var(--input-bg);
-        box-shadow: 0 2px 8px rgba(106, 17, 203, 0.1);
         transform: translateY(-1px);
+      }
+      .workflow-palette-item[data-type="pomo"]:hover {
+        box-shadow: 0 2px 8px rgba(106, 17, 203, 0.2);
+      }
+      .workflow-palette-item[data-type="sprint"]:hover {
+        box-shadow: 0 2px 8px rgba(52, 152, 219, 0.2);
+      }
+      .workflow-palette-item[data-type="repeating"]:hover {
+        box-shadow: 0 2px 8px rgba(39, 174, 96, 0.2);
+      }
+      .workflow-palette-item[data-type="break"]:hover {
+        box-shadow: 0 2px 8px rgba(241, 196, 15, 0.2);
       }
       .workflow-palette-item strong {
         display: block;
@@ -515,7 +538,7 @@
     <div id="startup-screen">
       <div class="startup-content">
         <h1>SuperFokus</h1>
-        <div id="startup-version">Beta v0.9.8w</div>
+        <div id="startup-version">Beta v0.9.9w</div>
       </div>
       <div id="startup-loading-text" style="position: absolute; bottom: 65px; width: 500px; text-align: center; font-size: 0.85rem; color: rgba(255,255,255,0.8); opacity: 0; animation: slideUpFade 1.2s ease-out forwards 0.3s; letter-spacing: 0.5px;">Initializing...</div>
       <div id="startup-loading-bar-container" style="position: absolute; bottom: 50px; width: 500px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; opacity: 0; animation: slideUpFade 1.2s ease-out forwards 0.3s;">
@@ -703,7 +726,6 @@
                 <button class="action-btn extra-mode-btn" data-switch-mode="pomo-style" style="margin-top: 0; background: var(--header-grad-1);">Pomo Style</button>
                 <button class="action-btn extra-mode-btn" data-switch-mode="micro-sprint" style="margin-top: 0; background: var(--header-grad-1);">Micro-Task Sprint</button>
                 <button class="action-btn extra-mode-btn" data-switch-mode="flow-state" style="margin-top: 0; background: var(--header-grad-1);">Flow State Stopwatch</button>
-                <button class="action-btn extra-mode-btn" data-switch-mode="site-blocker" style="margin-top: 0; background: var(--header-grad-1);">Site Blocker</button>
                 <button class="action-btn extra-mode-btn" data-switch-mode="workflows" style="margin-top: 0; background: var(--header-grad-1);">Workflows</button>
             </div>
         </div>
@@ -726,7 +748,7 @@
           <button class="hamburger-btn" id="menu-toggle">
             <span class="icon">☰</span>
           </button>
-          <h1 id="header-title" style="cursor: pointer; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">SuperFokus</h1>
+          <h1 id="header-title" style="cursor: pointer; transition: opacity 0.2s;">SuperFokus</h1>
       </div>
       <div class="header-right">
           <button class="dark-mode-toggle" id="theme-toggle">🌙 Dark Mode</button>
@@ -764,9 +786,15 @@
       <!-- Flow State Config -->
       <div id="config-flow-state" class="config-section">
         <h3>Flow State Stopwatch</h3>
-        <div class="form-group">
-          <label for="flow-chime-interval">Periodic Chimes (minutes):</label>
-          <input type="number" id="flow-chime-interval" placeholder="e.g. 15 (0 to disable)" min="0" value="0">
+        <div class="form-group" style="display: flex; gap: 10px;">
+          <div style="flex: 1;">
+            <label for="flow-chime-interval">Periodic Chimes (minutes):</label>
+            <input type="number" id="flow-chime-interval" placeholder="e.g. 15" min="0" value="0">
+          </div>
+          <div style="flex: 1;">
+            <label for="flow-chime-interval-seconds">Periodic Chimes (seconds):</label>
+            <input type="number" id="flow-chime-interval-seconds" placeholder="e.g. 0" min="0" max="59" value="0">
+          </div>
         </div>
         
         <div id="flow-timer-display" class="hidden timer-display">
@@ -951,6 +979,12 @@
           <label for="sprint-tasks">Tasks (one per line):</label>
           <textarea id="sprint-tasks" placeholder="e.g. Reply to emails&#10;Organize desk"></textarea>
         </div>
+        <div class="form-group">
+          <label class="toggle-switch">
+            <input type="checkbox" id="sprint-autostart">
+            <span class="slider"></span>
+          </label> Autostart next task
+        </div>
         
         <div id="sprint-timer-display" class="hidden timer-display">
           <div id="sprint-current-task" style="font-size: 1.4rem; font-weight: 500; color: var(--header-grad-1);">Task</div>
@@ -1053,7 +1087,7 @@
     <div style="position: fixed; bottom: 15px; left: 20px; font-size: 0.85rem; color: #95a5a6; font-weight: 500; z-index: 1000;">
       <a href="https://github.com/wallbuilder/SuperFokus" target="_blank" style="color: inherit; text-decoration: none;">GitHub Page</a>
     </div>
-    <div id="version">SuperFokus Beta v0.9.8w</div>
+    <div id="version">SuperFokus Beta v0.9.9w</div>
 
     <!-- Audio for chimes -->
     <audio id="chime-audio" src="chime.mp3" preload="auto"></audio>
@@ -1067,6 +1101,6 @@
     </div>
 
     <script src="node_modules/chart.js/dist/chart.umd.js"></script>
-    <script src="renderer.js"></script>
+    <script type="module" src="./src/renderer/renderer.js"></script>
   </body>
 </html>

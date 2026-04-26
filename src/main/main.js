@@ -41,6 +41,8 @@ app.commandLine.appendSwitch('disable-http-cache');
 let mainWindow = null;
 let popupWindow = null;
 let pomoTimerWindow = null;
+let microSprintTimerWindow = null;
+let flowTimerWindow = null;
 let fullscreenWindow = null;
 let isQuitting = false;
 
@@ -181,7 +183,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 900,
     height: 700,
-    icon: path.join(__dirname, 'fokusicon.png'),
+    icon: path.join(__dirname, '../../assets/fokusicon.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -191,7 +193,7 @@ function createWindow() {
 
   mainWindow.maximize();
 
-  mainWindow.loadFile('index.html');
+    mainWindow.loadFile(path.join(__dirname, '../../index.html'));
 
   mainWindow.on('close', (event) => {
     if (!isQuitting) {
@@ -318,10 +320,11 @@ function createPopupWindow(message, autoDismissMs = 10000, healthType = null, is
             currentPopupIsBlocking = false;
         }
 
-        popupWindow.loadFile('popup.html');
+        popupWindow.loadFile(path.join(__dirname, '../renderer/ui/popup.html'));
         
         popupWindow.webContents.on('did-finish-load', () => {
-            // Mac-specific visibility and level to keep popup on top of other apps/workspaces
+            // Send theme info
+            popupWindow.webContents.send('set-theme', currentThemeIsDark);
             if (process.platform === 'darwin') {
                 try {
                     popupWindow.setAlwaysOnTop(true, 'floating');
@@ -380,21 +383,43 @@ let currentThemeIsDark = false;
 
 ipcMain.on('theme-changed', (event, isDark) => {
     currentThemeIsDark = isDark;
-    if (pomoTimerWindow) {
+    if (pomoTimerWindow && !pomoTimerWindow.isDestroyed()) {
         pomoTimerWindow.webContents.send('set-theme', isDark);
+    }
+    if (microSprintTimerWindow && !microSprintTimerWindow.isDestroyed()) {
+        microSprintTimerWindow.webContents.send('set-theme', isDark);
+    }
+    if (flowTimerWindow && !flowTimerWindow.isDestroyed()) {
+        flowTimerWindow.webContents.send('set-theme', isDark);
+    }
+    if (popupWindow && !popupWindow.isDestroyed()) {
+        popupWindow.webContents.send('set-theme', isDark);
+    }
+    if (fullscreenWindow && !fullscreenWindow.isDestroyed()) {
+        fullscreenWindow.webContents.send('set-theme', isDark);
     }
 });
 
 function createPomoTimerWindow() {
-    if (pomoTimerWindow) {
+    const { width: screenWidth, height: screenHeight, x: screenX, y: screenY } = screen.getPrimaryDisplay().workArea;
+    const windowWidth = 400;
+    const windowHeight = 250;
+    const x = screenX;
+    const y = screenY + screenHeight - windowHeight;
+
+    if (pomoTimerWindow && !pomoTimerWindow.isDestroyed()) {
+        pomoTimerWindow.setPosition(x, y);
+        pomoTimerWindow.setSize(windowWidth, windowHeight);
         pomoTimerWindow.show();
         pomoTimerWindow.webContents.send('set-theme', currentThemeIsDark);
         return;
     }
 
     pomoTimerWindow = new BrowserWindow({
-        width: 350,
-        height: 200,
+        width: windowWidth,
+        height: windowHeight,
+        x: x,
+        y: y,
         alwaysOnTop: true,
         frame: true,
         resizable: true,
@@ -413,7 +438,7 @@ function createPomoTimerWindow() {
         console.warn('Pomo timer window tuning failed', e);
     }
 
-    pomoTimerWindow.loadFile('pomo-timer.html');
+    pomoTimerWindow.loadFile(path.join(__dirname, '../renderer/features/pomo-timer.html'));
 
     pomoTimerWindow.webContents.on('did-finish-load', () => {
         pomoTimerWindow.webContents.send('set-theme', currentThemeIsDark);
@@ -425,6 +450,116 @@ function createPomoTimerWindow() {
             pomoTimerWindow.hide();
             if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.webContents.send('pomo-popup-closed');
+            }
+        }
+    });
+}
+
+function createMicroSprintTimerWindow() {
+    const { width: screenWidth, height: screenHeight, x: screenX, y: screenY } = screen.getPrimaryDisplay().workArea;
+    const windowWidth = 400;
+    const windowHeight = 250;
+    const x = screenX;
+    const y = screenY + screenHeight - windowHeight;
+
+    if (microSprintTimerWindow && !microSprintTimerWindow.isDestroyed()) {
+        microSprintTimerWindow.setPosition(x, y);
+        microSprintTimerWindow.setSize(windowWidth, windowHeight);
+        microSprintTimerWindow.show();
+        microSprintTimerWindow.webContents.send('set-theme', currentThemeIsDark);
+        return;
+    }
+
+    microSprintTimerWindow = new BrowserWindow({
+        width: windowWidth,
+        height: windowHeight,
+        x: x,
+        y: y,
+        alwaysOnTop: true,
+        frame: true,
+        resizable: true,
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload: path.join(__dirname, 'preload.js')
+        },
+    });
+
+    try {
+        microSprintTimerWindow.setAlwaysOnTop(true, 'floating');
+        microSprintTimerWindow.setVisibleOnAllWorkspaces(true);
+        microSprintTimerWindow.setFullScreenable(false);
+    } catch (e) {
+        console.warn('Micro sprint timer window tuning failed', e);
+    }
+
+    microSprintTimerWindow.loadFile(path.join(__dirname, '../renderer/features/micro-sprint-timer.html'));
+
+    microSprintTimerWindow.webContents.on('did-finish-load', () => {
+        microSprintTimerWindow.webContents.send('set-theme', currentThemeIsDark);
+    });
+
+    microSprintTimerWindow.on('close', (e) => {
+        if (!isQuitting) {
+            e.preventDefault();
+            microSprintTimerWindow.hide();
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('micro-sprint-popup-closed');
+            }
+        }
+    });
+}
+
+function createFlowTimerWindow() {
+    const { width: screenWidth, height: screenHeight, x: screenX, y: screenY } = screen.getPrimaryDisplay().workArea;
+    const windowWidth = 400;
+    const windowHeight = 250;
+    const x = screenX;
+    const y = screenY + screenHeight - windowHeight;
+
+    if (flowTimerWindow && !flowTimerWindow.isDestroyed()) {
+        flowTimerWindow.setPosition(x, y);
+        flowTimerWindow.setSize(windowWidth, windowHeight);
+        flowTimerWindow.show();
+        flowTimerWindow.webContents.send('set-theme', currentThemeIsDark);
+        return;
+    }
+
+    flowTimerWindow = new BrowserWindow({
+        width: windowWidth,
+        height: windowHeight,
+        x: x,
+        y: y,
+        alwaysOnTop: true,
+        frame: true,
+        resizable: true,
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload: path.join(__dirname, 'preload.js')
+        },
+    });
+
+    try {
+        flowTimerWindow.setAlwaysOnTop(true, 'floating');
+        flowTimerWindow.setVisibleOnAllWorkspaces(true);
+        flowTimerWindow.setFullScreenable(false);
+    } catch (e) {
+        console.warn('Flow timer window tuning failed', e);
+    }
+
+    flowTimerWindow.loadFile(path.join(__dirname, '../renderer/features/flow-timer.html'));
+
+    flowTimerWindow.webContents.on('did-finish-load', () => {
+        flowTimerWindow.webContents.send('set-theme', currentThemeIsDark);
+    });
+
+    flowTimerWindow.on('close', (e) => {
+        if (!isQuitting) {
+            e.preventDefault();
+            flowTimerWindow.hide();
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('flow-popup-closed');
             }
         }
     });
@@ -493,7 +628,7 @@ function createFullscreenWindow(data) {
         }
     });
 
-    fullscreenWindow.loadFile('fullscreen-popup.html');
+    fullscreenWindow.loadFile(path.join(__dirname, '../renderer/ui/fullscreen-popup.html'));
 
     fullscreenWindow.webContents.on('did-finish-load', () => {
         fullscreenWindow.webContents.send('set-fullscreen-data', data);
@@ -603,6 +738,7 @@ let tickInterval = setInterval(() => {
         };
         if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('timer-tick', state);
         if (pomoTimerWindow && !pomoTimerWindow.isDestroyed()) pomoTimerWindow.webContents.send('timer-tick', state);
+        if (microSprintTimerWindow && !microSprintTimerWindow.isDestroyed()) microSprintTimerWindow.webContents.send('timer-tick', state);
         if (fullscreenWindow && !fullscreenWindow.isDestroyed()) fullscreenWindow.webContents.send('timer-tick', state);
     }
 }, 1000);
@@ -717,6 +853,38 @@ ipcMain.on('close-pomo-timer', () => {
     }
 });
 
+ipcMain.on('open-micro-sprint-timer', () => {
+    createMicroSprintTimerWindow();
+});
+
+ipcMain.on('update-micro-sprint-timer', (event, data) => {
+    if (microSprintTimerWindow) {
+        microSprintTimerWindow.webContents.send('update-display', data);
+    }
+});
+
+ipcMain.on('close-micro-sprint-timer', () => {
+    if (microSprintTimerWindow) {
+        microSprintTimerWindow.close();
+    }
+});
+
+ipcMain.on('open-flow-timer', () => {
+    createFlowTimerWindow();
+});
+
+ipcMain.on('update-flow-timer', (event, data) => {
+    if (flowTimerWindow) {
+        flowTimerWindow.webContents.send('update-display', data);
+    }
+});
+
+ipcMain.on('close-flow-timer', () => {
+    if (flowTimerWindow) {
+        flowTimerWindow.close();
+    }
+});
+
 ipcMain.on('show-break-popup', (event, data) => {
     if (data.fullScreen) {
         createFullscreenWindow(data);
@@ -759,7 +927,7 @@ ipcMain.on('next-phase-triggered', () => {
 app.whenReady().then(() => {
   createWindow();
   if (process.platform === 'darwin') {
-      try { app.dock.setIcon(path.join(__dirname, 'fokusicon.png')); } catch (e) {}
+      try { app.dock.setIcon(path.join(__dirname, '../../assets/fokusicon.png')); } catch (e) {}
   }
   createApplicationMenu();
 
@@ -989,3 +1157,4 @@ app.on('window-all-closed', () => {
     // app.quit(); // Handled by tray/isQuitting
   }
 });
+

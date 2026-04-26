@@ -17,15 +17,6 @@ function createOrUpdateCountdown(seconds) {
     if (!el) {
         el = document.createElement('div');
         el.id = 'popup-countdown';
-        el.style.position = 'absolute';
-        el.style.right = '12px';
-        el.style.bottom = '12px';
-        el.style.padding = '6px 10px';
-        el.style.background = 'rgba(0,0,0,0.6)';
-        el.style.color = 'white';
-        el.style.borderRadius = '6px';
-        el.style.fontSize = '14px';
-        el.style.zIndex = 9999;
         document.body.appendChild(el);
     }
     el.innerText = `Expanding in ${seconds}s`;
@@ -48,45 +39,35 @@ function startCountdown(delaySeconds, fullscreenData) {
 
 function setCloseButtonState(closeBtn, remaining) {
     if (!closeBtn) return;
+    const btnText = document.getElementById('close-btn-text');
+    if (!btnText) return;
 
     const isHovered = closeBtn.matches(':hover');
 
     if (remaining > 1) {
         closeBtn.disabled = false;
-        closeBtn.style.backgroundColor = '#2c3e50';
-        closeBtn.style.color = 'white';
-        closeBtn.style.boxShadow = '0 0 10px rgba(0,0,0,0.25)';
         closeBtn.title = 'Click to close now';
-        closeBtn.innerText = isHovered ? 'Close now' : `Closes in (${remaining})`;
+        btnText.innerText = isHovered ? 'Close now' : `Closes in (${remaining})`;
     } else if (remaining === 1) {
         closeBtn.disabled = true; // final lock at 1s
-        closeBtn.style.backgroundColor = '#b0bec5';
-        closeBtn.style.color = '#495057';
-        closeBtn.style.boxShadow = 'none';
         closeBtn.title = 'Auto-closing momentarily';
-        closeBtn.innerText = `Closes in (1)`;
+        btnText.innerText = `Closes in (1)`;
     } else {
         closeBtn.disabled = true;
-        closeBtn.style.backgroundColor = '#9e9e9e';
-        closeBtn.style.color = '#ffffff';
         closeBtn.title = '';
-        closeBtn.innerText = `Closing...`;
+        btnText.innerText = `Closing...`;
     }
 }
 
 function startAutoCloseCountdown(totalSeconds) {
     let remaining = totalSeconds;
-    const timerEl = document.getElementById('timer');
     const closeBtn = document.getElementById('close-btn');
     
-    if (timerEl) timerEl.innerText = remaining;
     setCloseButtonState(closeBtn, remaining);
 
     if (autoCloseInterval) clearInterval(autoCloseInterval);
     autoCloseInterval = setInterval(() => {
         remaining -= 1;
-        if (timerEl) timerEl.innerText = Math.max(0, remaining);
-
         setCloseButtonState(closeBtn, Math.max(0, remaining));
 
         if (remaining <= 0) {
@@ -96,6 +77,14 @@ function startAutoCloseCountdown(totalSeconds) {
         }
     }, 1000);
 }
+
+ipcRenderer.on('set-theme', (isDark) => {
+    if (isDark) {
+        document.body.classList.add('dark-mode');
+    } else {
+        document.body.classList.remove('dark-mode');
+    }
+});
 
 ipcRenderer.on('display-message', (payload) => {
     clearCountdown();
@@ -180,7 +169,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         closeBtn.addEventListener('mouseenter', () => {
             if (!closeBtn.disabled) {
-                closeBtn.innerText = 'Close now';
+                const btnText = document.getElementById('close-btn-text');
+                if (btnText) btnText.innerText = 'Close now';
             }
         });
     }

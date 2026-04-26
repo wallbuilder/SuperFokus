@@ -32,11 +32,13 @@
         body.dark-mode #timer.paused { color: #666; }
         .progress-container {
             width: 100%;
-            height: 12px;
+            height: 14px;
             background: #eee;
-            border-radius: 6px;
+            border-radius: 7px;
             overflow: hidden;
             transition: background 0.3s;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
         }
         body.dark-mode .progress-container { background: #333; }
         #progress-bar {
@@ -53,6 +55,6 @@
     <div class="progress-container">
         <div id="progress-bar"></div>
     </div>
-    <script src="pomo-timer.js"></script>
+    <script type="module" src="./pomo-timer-window.js"></script>
 </body>
 </html>
