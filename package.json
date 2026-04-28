@@ -1,18 +1,49 @@
 {
   "name": "fokus",
-  "version": "1.0.0 Alpha",
+  "version": "1.0.0-alpha",
   "description": "Fokus is an Electron application designed to help regulate computer and homework time while minimizing distractions.",
   "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dist": "electron-builder --win"
+  },
+  "build": {
+    "appId": "com.superfokus.app",
+    "productName": "SuperFokus",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/fokusicon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "asar": true,
+    "asarUnpack": [
+      "src/main/fokus-sb-helper.js"
+    ],
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "index.html",
+      "package.json"
+    ]
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
-    "electron": "^41.0.2"
+    "electron": "^41.0.2",
+    "electron-builder": "^26.8.1"
   },
   "dependencies": {
     "chart.js": "^4.5.1",
