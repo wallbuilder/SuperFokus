@@ -323,8 +323,8 @@ function handlePhaseEnd() {
     
     if (currentPhaseIndex >= activePomoSequence.length && !pomoInfiniteCheckbox.checked && currentRepeatCount + 1 >= totalRepeatsPlanned) {
         stopPomoStyle();
-        if (typeof isWorkflowRunning !== 'undefined' && isWorkflowRunning) {
-            setTimeout(() => { if (typeof startNextWorkflowBlock === 'function') startNextWorkflowBlock(); }, 500);
+        if (window.isWorkflowRunningFlag) {
+            setTimeout(() => { if (typeof window.triggerNextWorkflowBlock === 'function') window.triggerNextWorkflowBlock(); }, 500);
         }
         return;
     }
@@ -388,7 +388,7 @@ startPomoBtn.addEventListener('click', () => {
         startPomoPhase();
     } else {
         stopPomoStyle();
-        if (typeof isWorkflowRunning !== 'undefined' && isWorkflowRunning) {
+        if (window.isWorkflowRunningFlag) {
             const stopWf = document.getElementById('stop-workflow-btn');
             if (stopWf) stopWf.click();
         }
@@ -418,12 +418,12 @@ document.addEventListener('click', (e) => {
 continuePomoBtn.addEventListener('click', startPomoPhase);
 
 ipcRenderer.on('start-next-phase', () => {
-    if (typeof isWorkflowRunning !== 'undefined' && isWorkflowRunning) {
+    if (window.isWorkflowRunningFlag) {
         ipcRenderer.send('stop-timer', 'workflow-break');
         ipcRenderer.send('close-popup');
         ipcRenderer.send('close-fullscreen');
         ipcRenderer.send('close-pomo-timer');
-        setTimeout(() => { if (typeof startNextWorkflowBlock === 'function') startNextWorkflowBlock(); }, 500);
+        setTimeout(() => { if (typeof window.triggerNextWorkflowBlock === 'function') window.triggerNextWorkflowBlock(); }, 500);
     } else {
         ipcRenderer.send('stop-timer', 'pomo');
         handlePhaseEnd();

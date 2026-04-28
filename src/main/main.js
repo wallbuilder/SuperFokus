@@ -59,7 +59,9 @@ let blockerRules = {
 let macBlockActive = false;
 let macFocusEnforcer = null;
 let proxyServer = null;
-const helperPath = path.join(__dirname, 'fokus-sb-helper.js');
+const helperPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'app.asar.unpacked', 'src', 'main', 'fokus-sb-helper.js')
+    : path.join(__dirname, 'fokus-sb-helper.js');
 let blocksApplied = false;
 
 let timers = {};
@@ -983,7 +985,12 @@ ipcMain.on('blocker-stop', () => {
 });
 
 function runElevated(args, callback) {
-    const command = `node "${helperPath}" ${args}`;
+    const nodePath = process.execPath;
+    // On Windows, we use ELECTRON_RUN_AS_NODE to execute a script with the Electron binary
+    const command = app.isPackaged 
+        ? `set ELECTRON_RUN_AS_NODE=1 && "${nodePath}" "${helperPath}" ${args}`
+        : `node "${helperPath}" ${args}`;
+    
     sudo.exec(command, { name: 'SuperFokus' }, (error, stdout, stderr) => {
         if (callback) callback(error, stdout, stderr);
     });
