@@ -1,38 +1,5 @@
-< [DO NOT DELETE THIS TEXT]
-
-UPDATE DOCUMENTATION DESCRIPTION
-
-This file is strictly for the purpose of documenting/writing down changes to the SuperFokus codebase so they can later be summarized into a commit message.
-Before each commit, the contents of this file should be mostly discarded of, EXCLUDING this chunk of text.
-Each new edit to the file that documents new changes should also list the date and time of implementation
-(Example chunk of documentation: 
-{1/1/2025 at 12:00 PM}
-    **Fixed Bugs**
-     - Fixed critical bugs
-     - Other Example text
-
-    **Added New Features**
-     - Added new features
-     - Other Example text
-
-{1/2/2025 at 12:00 PM}
-    **Fixed Bugs**
-     - Fixed critical bugs
-     - Other example text
-
-    **Added New Features**
-     - Added new features
-     - Other example text
-
-And so on, until all the update goals have been met)
-[DO NOT DELETE THIS TEXT] >
-
-{5/25/2026 at 11:20 PM}
-    **Fixed Bugs**
-     - Fixed site blocker
-     - Fixed stop button error on modes
-     - Fixed workflows
-
-    **Added New Features**
-     - Added logo
-(INSERT TEXT HERE)
+SuperFokus v1.0.0-beta-w Update
+- Implemented tabbed Customization modal.
+- Added Sub-Presets for Workflows.
+- Unified preset UI with default options for Repeating and Sprint modes.
+- Version bumped to 1.0.0-beta-w.

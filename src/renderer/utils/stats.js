@@ -1,11 +1,19 @@
 import { store } from './storage.js';
 
-let totalFocusTime = store.get('totalFocusTime', 0); // in minutes
-let completedRounds = store.get('completedRounds', 0);
-let dailyStats = store.get('dailyStats', {}); // { "YYYY-MM-DD": minutes }
-let sessionHistory = store.get('sessionHistory', []); // [{ time, mode, duration }]
+let totalFocusTime = 0; // in minutes
+let completedRounds = 0;
+let dailyStats = {}; // { "YYYY-MM-DD": minutes }
+let sessionHistory = []; // [{ time, mode, duration }]
 
-export function updateStatsUI() {
+export async function initStats() {
+    totalFocusTime = await store.get('totalFocusTime', 0);
+    completedRounds = await store.get('completedRounds', 0);
+    dailyStats = await store.get('dailyStats', {});
+    sessionHistory = await store.get('sessionHistory', []);
+    await updateStatsUI();
+}
+
+export async function updateStatsUI() {
     const statTotalTimeEl = document.getElementById('stat-total-time');
     const statRoundsEl = document.getElementById('stat-rounds');
     if (statTotalTimeEl) statTotalTimeEl.innerText = `${totalFocusTime}m`;

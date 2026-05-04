@@ -77,7 +77,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         }
     },
     store: {
-        get: (key, defaultValue) => ipcRenderer.sendSync('store-get-sync', key, defaultValue),
+        get: (key, defaultValue) => ipcRenderer.invoke('store-get', key, defaultValue),
         set: (key, value) => ipcRenderer.send('store-set', key, value)
     },
     normalizeHost: (val) => {

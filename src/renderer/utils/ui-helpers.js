@@ -1,9 +1,17 @@
 export function setInputsLocked(sectionId, locked) {
     const section = document.getElementById(sectionId);
     if (!section) return;
-    const inputs = section.querySelectorAll('input, select, textarea, button:not(.start-btn):not(.stop-btn):not(.continue-btn)');
+    const inputs = section.querySelectorAll('input, select, textarea, button');
     inputs.forEach(input => {
-        input.disabled = locked;
+        const text = input.textContent ? input.textContent.toLowerCase() : '';
+        const isStopBtn = text.includes('stop') || input.id.includes('stop') || input.className.includes('stop');
+        const isContinueBtn = text.includes('continue') || input.id.includes('continue') || input.className.includes('continue');
+        
+        if (isStopBtn || isContinueBtn) {
+            input.disabled = false; // Always enabled
+        } else {
+            input.disabled = locked;
+        }
     });
 }
 

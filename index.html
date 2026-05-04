@@ -540,8 +540,8 @@
         <h1>SuperFokus</h1>
         <div id="startup-version">v1.0.0 Alpha</div>
       </div>
-      <div id="startup-loading-text" style="position: absolute; bottom: 65px; width: 500px; text-align: center; font-size: 0.85rem; color: rgba(255,255,255,0.8); opacity: 0; animation: slideUpFade 1.2s ease-out forwards 0.3s; letter-spacing: 0.5px;">Initializing...</div>
-      <div id="startup-loading-bar-container" style="position: absolute; bottom: 50px; width: 500px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; opacity: 0; animation: slideUpFade 1.2s ease-out forwards 0.3s;">
+      <div id="startup-loading-text" style="position: absolute; bottom: 65px; left: 0; right: 0; margin: 0 auto; width: 500px; text-align: center; font-size: 0.85rem; color: rgba(255,255,255,0.8); opacity: 0; animation: slideUpFade 1.2s ease-out forwards 0.3s; letter-spacing: 0.5px;">Initializing...</div>
+      <div id="startup-loading-bar-container" style="position: absolute; bottom: 50px; left: 0; right: 0; margin: 0 auto; width: 500px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; opacity: 0; animation: slideUpFade 1.2s ease-out forwards 0.3s;">
         <div id="startup-loading-bar" style="width: 0%; height: 100%; background: white; transition: width 0.3s ease-out;"></div>
       </div>
     </div>
@@ -551,10 +551,10 @@
             <span class="modal-close">✕</span>
             <h2>About SuperFokus</h2>
             <p><strong>Introduction:</strong> SuperFokus is a versatile productivity tool designed to help you stay concentrated, manage your time, and minimize distractions. Built on core principles of focused work sessions, it provides three distinct "Fokus Modes" that you can configure to perfectly match your workflow and personal habits.</p>
-            <p><strong>Repeating Reminders:</strong> The "original" mode of Fokus. It involves a popup that continuously flashes on your screen after a set amount of minutes and seconds. You can configure custom messages and define the exact number of reminder rounds.</p>
-            <p><strong>Pomo Style:</strong> A structured time-management mode that functions similarly to Repeating Reminders, but incorporates scheduled breaks. You can configure dynamic work and break sequences, and either receive a gentle reminder or have the application completely block your screen to enforce downtime.</p>
+            <p><strong>Repeating Reminderrs:</strong> The "original" mode of Fokus. It involves a popup that continuously flashes on your screen after a set amount of minutes and seconds. You can configure custom messages and define the exact number of reminder rounds.</p>
+            <p><strong>Pomo Style:</strong> A structured time-management mode that functions similarly to Repeating Reminders, but incorporates scheduled breaks. You can configure dynamic work and break sequences, and either receive a gentle reminder or have the application comletely block your screen to enforce downtime.</p>
             <p><strong>Site Blocker:</strong> A powerful tool to keep you away from digital distractions. You can create lists of specific domains or URLs to either block completely or exclusively allow, ensuring your browser remains a tool for work rather than procrastination.</p>
-            <p><strong>Sidebar Features:</strong> The robust sidebar gives you access to real-time productivity statistics, a visual heatmap of your activity, comprehensive session history logs, and customization options to tailor themes and audio notifications to your liking.</p>
+            <p><strong>Sidebar Features:</strong>> The robust sidebar gives you access to real-time productivity statistics, a visual heatmap of your activity, comprehensive session history logs, and customization options to tailor themes and audio notifications to your liking.</p>
             <p><strong>Conclusion:</strong> Together, these features make SuperFokus not just a simple timer, but a comprehensive environment for mastering your attention. Whether you are studying, coding, or just trying to get through the day's tasks, SuperFokus is here to keep you on track.</p>
         </div>
     </div>
@@ -595,36 +595,82 @@
         <div class="modal-content">
             <span class="modal-close">✕</span>
             <h2>Customization</h2>
-            <div class="form-group">
-                <label>Theme Preference:</label>
-                <button class="action-btn" id="theme-toggle-modal" style="background: var(--header-grad-1);">Toggle Dark Mode</button>
+            
+            <div class="tabs" style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; overflow-x: auto;">
+                <button class="tab-btn active" data-tab="tab-themes" style="background: none; border: none; color: var(--text-color); padding: 5px 10px; cursor: pointer; font-size: 1rem; font-weight: 500; border-radius: 5px; transition: 0.3s;">Themes</button>
+                <button class="tab-btn" data-tab="tab-sounds" style="background: none; border: none; color: var(--text-color); padding: 5px 10px; cursor: pointer; font-size: 1rem; font-weight: 500; border-radius: 5px; transition: 0.3s;">Sounds</button>
+                <button class="tab-btn" data-tab="tab-integration" style="background: none; border: none; color: var(--text-color); padding: 5px 10px; cursor: pointer; font-size: 1rem; font-weight: 500; border-radius: 5px; transition: 0.3s;">Integration</button>
+                <button class="tab-btn" data-tab="tab-advanced" style="background: none; border: none; color: var(--text-color); padding: 5px 10px; cursor: pointer; font-size: 1rem; font-weight: 500; border-radius: 5px; transition: 0.3s;">Advanced</button>
             </div>
-            <div class="form-group">
-                <label class="toggle-switch">
-                  <input type="checkbox" id="toggle-header-dark-mode" checked>
-                  <span class="slider"></span>
-                </label> Show Dark Mode Toggle in Header
-            </div>
-            <div class="form-group">
-                <label for="chime-selector">Chime Sound:</label>
-                <div style="display: flex; gap: 10px;">
-                    <select id="chime-selector" style="flex: 1;">
-                        <option value="chime.mp3">Classic Chime</option>
-                        <option value="gentle.mp3">Gentle Notification</option>
-                        <option value="custom">Custom (Upload below)</option>
-                    </select>
-                    <button class="action-btn" id="test-chime-btn" style="margin-top: 0; width: auto; padding: 0.85rem; background: var(--header-grad-1);">Test</button>
+
+            <!-- Themes Tab -->
+            <div id="tab-themes" class="tab-content active" style="display: block;">
+                <div class="form-group">
+                    <label>Theme Preference:</label>
+                    <button class="action-btn" id="theme-toggle-modal" style="background: var(--header-grad-1); margin-top: 0.5rem;">Toggle Dark Mode</button>
                 </div>
-                <div style="margin-top: 10px;">
-                    <label>Volume:</label>
-                    <input type="range" id="chime-volume" min="0" max="1" step="0.1" value="1" style="width: 100%;">
+                <div class="form-group">
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="toggle-header-dark-mode" checked>
+                      <span class="slider"></span>
+                    </label> Show Dark Mode Toggle in Header
                 </div>
-                <input type="file" id="chime-file-input" accept="audio/*" style="display: none;">
-                <button class="action-btn" id="upload-chime-btn" style="margin-top: 10px; width: 100%; background: var(--header-grad-1);">Upload Custom Chime</button>
+                <div class="form-group">
+                    <label>Custom Theme Colors:</label>
+                    <div style="display: flex; gap: 15px; align-items: center; margin-top: 10px;">
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
+                            <label style="font-size: 0.85rem; color: var(--timer-subtext);">Main Color</label>
+                            <input type="color" id="custom-main-color" value="#6a11cb" style="width: 100%; height: 40px; border: none; border-radius: 8px; cursor: pointer; padding: 0; background: none;">
+                        </div>
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
+                            <label style="font-size: 0.85rem; color: var(--timer-subtext);">Accent Color</label>
+                            <input type="color" id="custom-accent-color" value="#2575fc" style="width: 100%; height: 40px; border: none; border-radius: 8px; cursor: pointer; padding: 0; background: none;">
+                        </div>
+                        <button class="action-btn" id="reset-theme-colors-btn" style="flex: 1; margin-top: auto; padding: 0.75rem; background: var(--timer-bg); color: var(--text-color); border: 1px solid var(--border-color);">Reset</button>
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Failsafe:</label>
-                <button class="action-btn" id="clear-blocker-modal-btn" style="margin-top: 0; width: 100%; background: #e74c3c;">Clear All Site Blocks</button>
+
+            <!-- Sounds Tab -->
+            <div id="tab-sounds" class="tab-content" style="display: none;">
+                <div class="form-group">
+                    <label for="chime-selector">Chime Sound:</label>
+                    <div style="display: flex; gap: 10px;">
+                        <select id="chime-selector" style="flex: 1;">
+                            <option value="chime.mp3">Classic Chime</option>
+                            <option value="gentle.mp3">Gentle Notification</option>
+                            <option value="custom">Custom (Upload below)</option>
+                        </select>
+                        <button class="action-btn" id="test-chime-btn" style="margin-top: 0; width: auto; padding: 0.85rem; background: var(--header-grad-1);">Test</button>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <label>Volume:</label>
+                        <input type="range" id="chime-volume" min="0" max="1" step="0.1" value="1" style="width: 100%;">
+                    </div>
+                    <input type="file" id="chime-file-input" accept="audio/*" style="display: none;">
+                    <button class="action-btn" id="upload-chime-btn" style="margin-top: 10px; width: 100%; background: var(--header-grad-1);">Upload Custom Chime</button>
+                </div>
+            </div>
+
+            <!-- Integration Tab -->
+            <div id="tab-integration" class="tab-content" style="display: none;">
+                <div style="text-align: center; color: var(--timer-subtext); padding: 2rem 0;">
+                    <em>Integration options coming soon.</em>
+                </div>
+            </div>
+
+            <!-- Advanced Tab -->
+            <div id="tab-advanced" class="tab-content" style="display: none;">
+                <div class="form-group">
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="github-browser-toggle" checked>
+                      <span class="slider"></span>
+                    </label> Open GitHub links in external browser
+                </div>
+                <div class="form-group" style="margin-top: 1.5rem;">
+                    <label>Failsafe:</label>
+                    <button class="action-btn" id="clear-blocker-modal-btn" style="margin-top: 0; width: 100%; background: #e74c3c;">Clear All Site Blocks</button>
+                </div>
             </div>
         </div>
     </div>
@@ -723,8 +769,8 @@
             <h2>Select Another Mode</h2>
             <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;" id="extra-mode-buttons">
                 <button class="action-btn extra-mode-btn" data-switch-mode="repeating-reminders" style="margin-top: 0; background: var(--header-grad-1);">Repeating Reminders</button>
-                <button class="action-btn extra-mode-btn" data-switch-mode="pomo-style" style="margin-top: 0; background: var(--header-grad-1);">Pomo Style</button>
-                <button class="action-btn extra-mode-btn" data-switch-mode="micro-sprint" style="margin-top: 0; background: var(--header-grad-1);">Micro-Task Sprint</button>
+                <button class="action-btn extra-mode-btn" data-switch-mode="pomo-style" style="margin-top: 0; background: var(--header-grad-1);">Pmo Style</button>
+                <button class="action-btn exttra-mode-btn" data-switch-mode="micro-sprint" style="margin-top: 0; background: var(--header-grad-1);">Micro-Task Sprint</button>
                 <button class="action-btn extra-mode-btn" data-switch-mode="flow-state" style="margin-top: 0; background: var(--header-grad-1);">Flow State Stopwatch</button>
                 <button class="action-btn extra-mode-btn" data-switch-mode="workflows" style="margin-top: 0; background: var(--header-grad-1);">Workflows</button>
             </div>
@@ -744,7 +790,7 @@
 
     <!-- Main Dashboard/Home Screen -->
     <header>
-      <div class="header-left">
+     <div class="header-left">
           <button class="hamburger-btn" id="menu-toggle">
             <span class="icon">☰</span>
           </button>
@@ -767,7 +813,7 @@
           <span class="icon pomo-icon">✓</span> Pomo Style
         </button>
         <button class="home-btn" data-mode="micro-sprint">
-          <span class="icon">☑</span> Micro-Task Sprint
+          <span class="icon">🗎</span> Micro-Task Sprint
         </button>
         <button class="home-btn" data-mode="flow-state">
           <span class="icon">⏱</span> Flow State Stopwatch
@@ -815,7 +861,10 @@
           <label for="repeating-presets">Repeating Presets:</label>
           <div style="display: flex; gap: 10px;">
             <select id="repeating-presets" style="flex: 1;">
-              <option value="custom">Custom</option>
+               <option value="custom">Custom</option>
+               <option value="concentration">Concentration - 30s</option>
+               <option value="high-intensity">High-Intensity - 20s</option>
+               <option value="quick-work">Quick Work - 1m</option>
             </select>
             <button class="action-btn" id="delete-repeating-preset-btn" style="margin-top: 0; width: auto; padding: 0.85rem; background: #e74c3c; display: none;">Delete</button>
             <button class="action-btn" id="save-repeating-preset-btn" style="margin-top: 0; width: auto; padding: 0.85rem; background: var(--header-grad-1);">Save Preset</button>
@@ -882,7 +931,7 @@
               <option value="quick-study">Quick Study - 25/5</option>
               <option value="homework">Homework - 45/15</option>
             </select>
-            <button class="action-btn" id="delete-pomo-preset-btn" style="margin-top: 0; width: auto; padding: 0.85rem; background: #e74c3c; display: none;">Delete</button>
+            <button class="action-btn" id="delete-pomo-preset-btn" style="magin-top: 0; width: auto; padding: 0.85rem; background: #e74c3c; display: none;">Delete</button>
             <button class="action-btn" id="save-pomo-preset-btn" style="margin-top: 0; width: auto; padding: 0.85rem; background: var(--header-grad-1);">Save Preset</button>
           </div>
           <div id="save-preset-container" style="display: none; gap: 10px; margin-top: 10px;">
@@ -914,7 +963,7 @@
             <input type="number" id="pomo-repeats" placeholder="e.g. 4" min="1">
         </div>
         <div class="form-group">
-            <label class="toggle-switch">
+             <label class="toggle-switch">
               <input type="checkbox" id="pomo-infinite">
               <span class="slider"></span>
             </label> Infinite Rounds
@@ -981,7 +1030,7 @@
         </div>
         <div class="form-group">
           <label class="toggle-switch">
-            <input type="checkbox" id="sprint-autostart">
+            <input type="checkbox" id="sprint-utostart">
             <span class="slider"></span>
           </label> Autostart next task
         </div>
@@ -1087,7 +1136,7 @@
     <div style="position: fixed; bottom: 15px; left: 20px; font-size: 0.85rem; color: #95a5a6; font-weight: 500; z-index: 1000;">
       <a href="https://github.com/wallbuilder/SuperFokus" target="_blank" style="color: inherit; text-decoration: none;">GitHub Page</a>
     </div>
-    <div id="version">SuperFokus v1.0.0 Alpha </div>
+    <div id="version">SuperFokus v1.0.0-beta-w </div>
 
     <!-- Audio for chimes -->
     <audio id="chime-audio" src="chime.mp3" preload="auto"></audio>

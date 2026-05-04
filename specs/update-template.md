@@ -4,23 +4,24 @@
 # Features
 
 ## {Feature 1 Name}
-- {Detailed description of the feature's core functionality.}
-- {Specific UI/UX requirements (e.g., icons, animations, placement).}
-- {Edge cases, constraints, or configurable options (e.g., "Add to Customization dialog").}
+    - {Detailed description of the feature's core functionality.}
+    - {Specific UI/UX requirements (e.g., icons, animations, placement).}
+    - {Edge cases, constraints, or configurable options (e.g., "Add to Customization dialog").}
 
 ## {Feature 2 Name}
-- {Detailed description of the feature.}
-- {Any dependencies on other features or specific technical instructions.}
+    - {Detailed description of the feature.}
+    - {Any dependencies on other features or specific technical instructions.}
 
-#QOL
-- {Minor improvement or tweak to existing behavior 1}
-- {UI polish, animation adjustments, or text changes}
-- {Additional configurable presets or toggles}
+# QOL
+    - {Minor improvement or tweak to existing behavior 1}
+    - {UI polish, animation adjustments, or text changes}
+    - {Additional configurable presets or toggles}
 
 # Bugs (& Fixes if possible) 
-- {Describe bug 1, what currently happens, and the expected behavior.}
-- {Describe bug 2, including any specific errors or conditions that trigger it.}
+    - {Describe bug 1, what currently happens, and the expected behavior.}
+    - {Describe bug 2, including any specific errors or conditions that trigger it.}
 
 # Technical & Other Requirements
-- **Version Bump:** MUST change all instances of the old version number to "v{VER}" across all files (e.g., UI headers, package.json, etc.).
-- {Any specific architectural constraints, failsafes, or IPC/Main process requirements}
+   - **Version Bump:** MUST change all instances of the old version number to "v(VER)" across all files (e.g., UI headers, package.json, etc.).
+   - Put an account of all your changes into the file "UPADATE_DOCUMENTATION.txt"
+   - {Any specific architectural constraints, failsafes, or IPC/Main process requirements}
