@@ -18,7 +18,7 @@ Each new edit to the file that documents new changes should also list the date a
     - Added a new color picker for the main application "pad" labeled "BG 2 COLOR", which controls the `--container-bg` variable.
     - Fixed an issue where the new pad color was not applying due to a race condition in file writing by sequentially patching `theme.js` logic.
     - Updated the reset colors button to prompt a confirmation alert before reverting to default custom colors.
-    - Updated the main header title to respect the "Heading 1" custom color when a Custom Theme is active.
+    - Added a dedicated "HEADER TEXT" color picker for the main 'SuperFokus' title, decoupling it from the "Heading 1" color.
 
 < [DO NOT DELETE THIS TEXT]
 (Example chunk of documentation: 

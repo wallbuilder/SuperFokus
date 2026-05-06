@@ -132,6 +132,7 @@ function applyTheme() {
     // Reset standard styles
     document.documentElement.style.removeProperty('--header-grad-1');
     document.documentElement.style.removeProperty('--header-grad-2');
+    document.documentElement.style.removeProperty('--header-title-color');
     document.documentElement.style.removeProperty('--h1-color');
     document.documentElement.style.removeProperty('--h2-color');
     document.documentElement.style.removeProperty('--h3-color');
@@ -240,6 +241,7 @@ if (resetThemeColorsBtn) {
             store.delete('customContainerBgColor');
             if (customMainColor) customMainColor.value = '#6a11cb';
             if (customAccentColor) customAccentColor.value = '#2575fc';
+            if (customHeaderTextColor) customHeaderTextColor.value = '#ffffff';
             if (customH1Color) customH1Color.value = '#2c3e50';
             if (customH2Color) customH2Color.value = '#2c3e50';
             if (customH3Color) customH3Color.value = '#2c3e50';
