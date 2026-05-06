@@ -1,25 +1,40 @@
 import { ipcRenderer } from '../utils/ipc.js';
 import { store } from '../utils/storage.js';
+import { sharedState } from '../utils/state.js';
 import { customAlert } from '../ui/modals.js';
 import { playChime } from '../utils/audio.js';
-import { startPomoPhase, stopPomoStyle } from './pomo-timer.js';
-import { startRepeatingReminders, stopRepeatingReminders } from './repeating.js';
-import { startNextSprintTask, stopSprintMode } from './micro-sprint.js';
+import { startPomoPhase, stopPomoStyle, startPomoStyle, pomoState } from './pomo-timer.js';
+import { startRepeatingReminders, stopRepeatingReminders, repeatingState } from './repeating.js';
+import { startNextSprintTask, stopSprintMode, startSprintMode, sprintState } from './micro-sprint.js';
 import { setInputsLocked, toggleStartStopButton, formatTime } from '../utils/ui-helpers.js';
 import { recordFocusSession } from '../utils/stats.js';
 
+// Centralized Workflow State
+export const workflowState = {
+    isWorkflowRunning: false,
+    currentBlockIndex: 0,
+    currentCycle: 0
+};
+
 ipcRenderer.on('timer-tick', (data) => {
     if (data.id === 'workflow-break') {
-        const currentBlock = workflowBlocks[currentWorkflowBlockIndex];
+        const currentBlock = workflowBlocks[workflowState.currentBlockIndex];
         if (currentBlock && currentBlock.type === 'break') {
-            const durationSecs = (currentBlock.duration || 5) * 60;
             ipcRenderer.send('update-pomo-timer', {
                 phase: 'Break Time',
-                timeLeft: formatTime(data.seconds),
-                percent: durationSecs > 0 ? (data.seconds / durationSecs) * 100 : 0
+                timeLeft: formatTime(data.remaining),
+                percent: data.total > 0 ? (data.remaining / data.total) * 100 : 0
             });
         }
     }
+});
+
+ipcRenderer.on('timer-started-workflow-break', (data) => {
+    // Ticks are handled by timer-tick event
+});
+
+ipcRenderer.on('timer-stopped-workflow-break', () => {
+    // No interval to stop
 });
 
 function setupWorkflowEventListeners() {
@@ -101,7 +116,7 @@ function setupWorkflowEventListeners() {
             }
         });
 
-        window.workflowStack.addEventListener('drop', (e) => {
+        window.workflowStack.addEventListener('drop', async (e) => {
             e.preventDefault();
             window.workflowStack.style.backgroundColor = '';
             const ph = document.getElementById('workflow-drop-placeholder');
@@ -126,7 +141,7 @@ function setupWorkflowEventListeners() {
                         targetIndex--;
                     }
                     workflowBlocks.splice(targetIndex, 0, movedBlock);
-                    renderWorkflowStack();
+                    await renderWorkflowStack();
                 }
                 window._draggedWorkflowItem = { type: null, index: null };
                 return;
@@ -146,7 +161,7 @@ function setupWorkflowEventListeners() {
                         blocksScreen: false
                     };
                 } else {
-                    const availablePresets = getAvailablePresetsForType(type);
+                    const availablePresets = await getAvailablePresetsForType(type);
                     const defaultPresetKey = availablePresets.length > 0 ? availablePresets[0].key : 'custom';
                 
                     block = {
@@ -158,7 +173,7 @@ function setupWorkflowEventListeners() {
                     };
                 }
                 workflowBlocks.splice(targetIndex, 0, block);
-                renderWorkflowStack();
+                await renderWorkflowStack();
 
                 // If modifying a preset, switch back to custom
                 if (workflowPresetsSelect && workflowPresetsSelect.value !== 'custom') {
@@ -170,51 +185,69 @@ function setupWorkflowEventListeners() {
         });
 
         // Event delegation for workflow stack interactions
-        window.workflowStack.addEventListener('click', (e) => {
+        window.workflowStack.addEventListener('click', async (e) => {
             if (e.target.classList.contains('remove-block-btn')) {
                 const index = parseInt(e.target.dataset.index, 10);
                 if (!isNaN(index)) {
                     workflowBlocks.splice(index, 1);
-                    renderWorkflowStack();
+                    await renderWorkflowStack();
                 }
             }
         });
 
-        window.workflowStack.addEventListener('change', (e) => {
+        window.workflowStack.addEventListener('change', async (e) => {
+            const index = parseInt(e.target.dataset.index, 10);
+            if (isNaN(index)) return;
+
             if (e.target.classList.contains('block-preset-input')) {
-                const index = parseInt(e.target.dataset.index, 10);
-                if (!isNaN(index)) {
-                    workflowBlocks[index].presetKey = e.target.value;
-                    renderWorkflowStack();
-                }
+                workflowBlocks[index].presetKey = e.target.value;
+                await renderWorkflowStack(); // Re-render needed for preset details update
             } else if (e.target.classList.contains('block-cycles-input')) {
-                const index = parseInt(e.target.dataset.index, 10);
-                if (!isNaN(index)) {
-                    workflowBlocks[index].cycles = Math.max(1, parseInt(e.target.value, 10) || 1);
-                    renderWorkflowStack();
-                }
+                workflowBlocks[index].cycles = Math.max(1, parseInt(e.target.value, 10) || 1);
+                updateBlockDurationDisplay(index);
+                await updateTotalDuration();
             } else if (e.target.classList.contains('block-break-duration')) {
-                const index = parseInt(e.target.dataset.index, 10);
-                if (!isNaN(index)) {
-                    workflowBlocks[index].duration = Math.max(1, parseInt(e.target.value, 10) || 1);
-                    renderWorkflowStack();
-                }
+                workflowBlocks[index].duration = Math.max(1, parseInt(e.target.value, 10) || 1);
+                updateBlockDurationDisplay(index);
+                await updateTotalDuration();
             } else if (e.target.classList.contains('block-break-screen')) {
-                const index = parseInt(e.target.dataset.index, 10);
-                if (!isNaN(index)) {
-                    workflowBlocks[index].blocksScreen = e.target.checked;
-                    renderWorkflowStack();
-                }
+                workflowBlocks[index].blocksScreen = e.target.checked;
             }
         });
 
     } catch (error) {
         console.error('[Startup] Error setting up workflow event listeners:', error);
     }
-    }
+}
 
-    function setupWorkflowPresetsEventListeners() {
-        try {
+async function updateBlockDurationDisplay(index) {
+    const block = workflowBlocks[index];
+    if (!block) return;
+    const dur = await calculateBlockDuration(block);
+    const blockEls = window.workflowStack.querySelectorAll('.workflow-block');
+    if (blockEls[index]) {
+        const durationEl = blockEls[index].querySelector('.block-duration-display');
+        if (durationEl) durationEl.innerText = `${dur}m`;
+    }
+}
+
+async function updateTotalDuration() {
+    let totalDuration = 0;
+    for (const block of workflowBlocks) {
+        totalDuration += await calculateBlockDuration(block);
+    }
+    
+    let durationText = `${totalDuration}m`;
+    if (totalDuration >= 60) {
+        const hours = Math.floor(totalDuration / 60);
+        const mins = totalDuration % 60;
+        durationText = mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    }
+    if (window.workflowTotalDurationEl) window.workflowTotalDurationEl.innerText = durationText;
+}
+
+function setupWorkflowPresetsEventListeners() {
+    try {
         const deleteWorkflowPresetBtn = document.getElementById('delete-workflow-preset-btn');
         const saveWorkflowPresetBtn = document.getElementById('save-workflow-preset-btn');
         const confirmSaveWorkflowPresetBtn = document.getElementById('confirm-save-workflow-preset-btn');
@@ -223,7 +256,7 @@ function setupWorkflowEventListeners() {
         const workflowPresetNameInput = document.getElementById('workflow-preset-name-input');
         
         if (workflowPresetsSelect) {
-            workflowPresetsSelect.addEventListener('change', (e) => {
+            workflowPresetsSelect.addEventListener('change', async (e) => {
                 const val = e.target.value;
                 if (deleteWorkflowPresetBtn) {
                     deleteWorkflowPresetBtn.style.display = val.startsWith('custom-preset-') ? 'block' : 'none';
@@ -232,7 +265,7 @@ function setupWorkflowEventListeners() {
                     const key = val.replace('custom-preset-', '');
                     if (workflowPresets[key]) {
                         workflowBlocks = JSON.parse(JSON.stringify(workflowPresets[key]));
-                        renderWorkflowStack();
+                        await renderWorkflowStack();
                     }
                 }
                 updateWorkflowCurrentPresetDisplay();
@@ -294,8 +327,15 @@ function setupWorkflowEventListeners() {
 
 // Workflow elements will be initialized in initializeDomElements()
 let workflowBlocks = [];
-let workflowPresets = store.get('workflowPresets', {});
+let workflowPresets = {};
 const workflowPresetsSelect = document.getElementById('workflow-presets');
+
+export async function initWorkflows() {
+    workflowPresets = await store.get('workflowPresets', {});
+    updateWorkflowPresetOptions();
+    updateWorkflowCurrentPresetDisplay();
+    await renderWorkflowStack();
+}
 
 function updateWorkflowPresetOptions() {
     if (!workflowPresetsSelect) return;
@@ -311,7 +351,6 @@ function updateWorkflowPresetOptions() {
         workflowPresetsSelect.appendChild(option);
     });
 }
-updateWorkflowPresetOptions();
 
 function updateWorkflowCurrentPresetDisplay() {
     const presetDisplay = document.getElementById('workflow-current-preset');
@@ -329,10 +368,10 @@ function updateWorkflowCurrentPresetDisplay() {
 }
 
 // Helper: Get available presets for a given type
-function getAvailablePresetsForType(type) {
+async function getAvailablePresetsForType(type) {
     const presets = [];
     if (type === 'pomo') {
-        const customPresets = store.get('customPomoPresets', {});
+        const customPresets = await store.get('customPomoPresets', {});
         presets.push({ key: 'deep-work', label: 'Deep Work - 50/10' });
         presets.push({ key: 'quick-study', label: 'Quick Study - 25/5' });
         presets.push({ key: 'homework', label: 'Homework - 45/15' });
@@ -340,13 +379,13 @@ function getAvailablePresetsForType(type) {
             presets.push({ key: `custom-preset-${key}`, label: `Custom: ${key}` });
         });
     } else if (type === 'sprint') {
-        const sprintPresets = store.get('sprintPresets', {});
+        const sprintPresets = await store.get('sprintPresets', {});
         presets.push({ key: 'custom', label: 'Custom' });
         Object.keys(sprintPresets).forEach(key => {
             presets.push({ key: `custom-preset-${key}`, label: `Custom: ${key}` });
         });
     } else if (type === 'repeating') {
-        const repeatingPresets = store.get('repeatingPresets', {});
+        const repeatingPresets = await store.get('repeatingPresets', {});
         presets.push({ key: 'custom', label: 'Custom' });
         Object.keys(repeatingPresets).forEach(key => {
             presets.push({ key: `custom-preset-${key}`, label: `Custom: ${key}` });
@@ -356,7 +395,7 @@ function getAvailablePresetsForType(type) {
 }
 
 // Helper: Get preset details based on type and presetKey
-function getPresetDetails(type, presetKey) {
+async function getPresetDetails(type, presetKey) {
     const details = {
         type: type,
         presetKey: presetKey,
@@ -368,7 +407,7 @@ function getPresetDetails(type, presetKey) {
     };
 
     if (type === 'pomo') {
-        const customPresets = store.get('customPomoPresets', {});
+        const customPresets = await store.get('customPomoPresets', {});
         let seq = null;
         if (presetKey === 'deep-work') {
             seq = [{ type: 'work', duration: 50 }, { type: 'break', duration: 10 }];
@@ -392,7 +431,7 @@ function getPresetDetails(type, presetKey) {
             details.duration = Math.round(totalMins * 10) / 10;
         }
     } else if (type === 'sprint') {
-        const sprintPresets = store.get('sprintPresets', {});
+        const sprintPresets = await store.get('sprintPresets', {});
         if (presetKey === 'custom') {
             details.displayName = 'Custom Sprint';
             const sprintDurationSelect = document.getElementById('sprint-duration');
@@ -406,7 +445,7 @@ function getPresetDetails(type, presetKey) {
             }
         }
     } else if (type === 'repeating') {
-        const repeatingPresets = store.get('repeatingPresets', {});
+        const repeatingPresets = await store.get('repeatingPresets', {});
         if (presetKey === 'custom') {
             details.displayName = 'Custom Reminders';
             const reminderIntervalInput = document.getElementById('reminder-interval');
@@ -437,7 +476,7 @@ function getPresetDetails(type, presetKey) {
     return details;
 }
 
-function calculateBlockDuration(block) {
+async function calculateBlockDuration(block) {
     let baseMins = 0;
     
     if (block.type === 'break') {
@@ -447,7 +486,7 @@ function calculateBlockDuration(block) {
 
     // If block has presetKey, use it for calculation
     if (block.presetKey) {
-        const details = getPresetDetails(block.type, block.presetKey);
+        const details = await getPresetDetails(block.type, block.presetKey);
         baseMins = details.duration || 0;
     } else {
         // Fallback to old behavior for blocks without presetKey
@@ -461,18 +500,16 @@ function calculateBlockDuration(block) {
         } else if (block.type === 'repeating') {
             const reminderIntervalInput = document.getElementById('reminder-interval');
             const reminderIntervalSecondsInput = document.getElementById('reminder-interval-seconds');
-            const reminderRoundsInput = document.getElementById('reminder-rounds');
             const intervalMins = reminderIntervalInput ? (parseInt(reminderIntervalInput.value, 10) || 0) : 0;
             const intervalSecs = reminderIntervalSecondsInput ? (parseInt(reminderIntervalSecondsInput.value, 10) || 0) : 0;
-            const rounds = reminderRoundsInput ? (parseInt(reminderRoundsInput.value, 10) || 1) : 1;
-            baseMins = ((intervalMins * 60 + intervalSecs) * rounds) / 60;
+            baseMins = (intervalMins * 60 + intervalSecs) / 60; // Workflow variant: 1 round duration
         }
     }
     
     return Math.max(1, Math.round(baseMins * block.cycles));
 }
 
-function addWorkflowBlock(type) {
+async function addWorkflowBlock(type) {
     let block;
     if (type === 'break') {
         block = {
@@ -485,7 +522,7 @@ function addWorkflowBlock(type) {
         };
     } else {
         // Get the first available preset as default
-        const availablePresets = getAvailablePresetsForType(type);
+        const availablePresets = await getAvailablePresetsForType(type);
         const defaultPresetKey = availablePresets.length > 0 ? availablePresets[0].key : 'custom';
         block = {
             id: 'block-' + Date.now(),
@@ -496,10 +533,10 @@ function addWorkflowBlock(type) {
         };
     }
     workflowBlocks.push(block);
-    renderWorkflowStack();
+    await renderWorkflowStack();
 }
 
-function renderWorkflowStack() {
+async function renderWorkflowStack() {
     try {
         if (!window.workflowStack) {
             console.error('[Startup] workflowStack element not found!');
@@ -518,8 +555,10 @@ function renderWorkflowStack() {
         if (window.workflowStackPlaceholder) window.workflowStackPlaceholder.style.display = 'none';
         let totalDuration = 0;
 
-        workflowBlocks.forEach((block, index) => {
-            const dur = calculateBlockDuration(block);
+        const fragment = document.createDocumentFragment();
+
+        for (const [index, block] of workflowBlocks.entries()) {
+            const dur = await calculateBlockDuration(block);
             totalDuration += dur;
 
             const blockEl = document.createElement('div');
@@ -553,8 +592,8 @@ function renderWorkflowStack() {
                 typeColor = '#f1c40f';
             }
 
-            const availablePresets = getAvailablePresetsForType(block.type);
-            const presetDetails = getPresetDetails(block.type, block.presetKey);
+            const availablePresets = await getAvailablePresetsForType(block.type);
+            const presetDetails = await getPresetDetails(block.type, block.presetKey);
 
             // Create preset details static content
             let presetDetailsHtml = '';
@@ -620,8 +659,15 @@ function renderWorkflowStack() {
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 6px;">
                             <label style="font-size: 0.75rem; color: var(--timer-subtext); text-transform: uppercase; font-weight: 500;">Total Duration</label>
-                            <div style="padding: 8px; text-align: center; font-weight: 600; color: var(--header-grad-1); background: var(--timer-bg); border-radius: 6px; border: 1px solid var(--border-color);">${dur}m</div>
+                            <div class="block-duration-display" style="padding: 8px; text-align: center; font-weight: 600; color: var(--header-grad-1); background: var(--timer-bg); border-radius: 6px; border: 1px solid var(--border-color);">${dur}m</div>
                         </div>
+                    </div>
+                `;
+            } else {
+                cyclesHtml = `
+                    <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">
+                        <label style="font-size: 0.75rem; color: var(--timer-subtext); text-transform: uppercase; font-weight: 500;">Total Duration</label>
+                        <div class="block-duration-display" style="padding: 8px; text-align: center; font-weight: 600; color: var(--header-grad-1); background: var(--timer-bg); border-radius: 6px; border: 1px solid var(--border-color);">${dur}m</div>
                     </div>
                 `;
             }
@@ -652,42 +698,34 @@ function renderWorkflowStack() {
                 </div>
             `;
 
-            window.workflowStack.appendChild(blockEl);
-        });
-
-        let durationText = `${totalDuration}m`;
-        if (totalDuration >= 60) {
-            const hours = Math.floor(totalDuration / 60);
-            const mins = totalDuration % 60;
-            durationText = mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+            fragment.appendChild(blockEl);
         }
-        if (window.workflowTotalDurationEl) window.workflowTotalDurationEl.innerText = durationText;
+
+        window.workflowStack.appendChild(fragment);
+
+        await updateTotalDuration();
     } catch (error) {
         console.error('[Startup] Error rendering workflow stack:', error);
     }
 }
 
 // --- Workflow Execution Logic ---
-let isWorkflowRunning = false;
-let currentWorkflowBlockIndex = 0;
-let currentWorkflowCycle = 0;
-
 const startWorkflowBtn = document.getElementById('start-workflow-btn');
 const stopWorkflowBtn = document.getElementById('stop-workflow-btn');
 
 function resetWorkflowState() {
-    isWorkflowRunning = false;
-    window.isWorkflowRunningFlag = false;
-    currentWorkflowBlockIndex = 0;
-    currentWorkflowCycle = 0;
+    workflowState.isWorkflowRunning = false;
+    sharedState.isWorkflowRunning = false;
+    workflowState.currentBlockIndex = 0;
+    workflowState.currentCycle = 0;
     if (startWorkflowBtn) startWorkflowBtn.style.display = 'block';
     if (stopWorkflowBtn) stopWorkflowBtn.style.display = 'none';
 }
 
 function startNextWorkflowBlock() {
-    if (!isWorkflowRunning) return;
+    if (!workflowState.isWorkflowRunning) return;
 
-    if (currentWorkflowBlockIndex >= workflowBlocks.length) {
+    if (workflowState.currentBlockIndex >= workflowBlocks.length) {
         customAlert('Workflow Complete!');
         resetWorkflowState();
         const workflowsHomeBtn = document.querySelector('.home-btn[data-mode="workflows"]');
@@ -695,16 +733,16 @@ function startNextWorkflowBlock() {
         return;
     }
 
-    const currentBlock = workflowBlocks[currentWorkflowBlockIndex];
+    const currentBlock = workflowBlocks[workflowState.currentBlockIndex];
     
-    if (currentWorkflowCycle >= currentBlock.cycles) {
-        currentWorkflowBlockIndex++;
-        currentWorkflowCycle = 0;
+    if (workflowState.currentCycle >= currentBlock.cycles) {
+        workflowState.currentBlockIndex++;
+        workflowState.currentCycle = 0;
         startNextWorkflowBlock();
         return;
     }
 
-    currentWorkflowCycle++;
+    workflowState.currentCycle++;
     
     // Execute Break Block if it is next in the Workflow
     if (currentBlock.type === 'break') {
@@ -748,16 +786,14 @@ function startNextWorkflowBlock() {
             if (pomoPresetsSelect) {
                 pomoPresetsSelect.value = currentBlock.presetKey;
                 pomoPresetsSelect.dispatchEvent(new Event('change'));
-                const startPomoBtn = document.getElementById('start-pomo-btn');
-                if (startPomoBtn) startPomoBtn.click();
+                startPomoStyle();
             }
         } else if (currentBlock.type === 'sprint') {
             const sprintPresetsSelect = document.getElementById('sprint-presets');
             if (sprintPresetsSelect) {
                 sprintPresetsSelect.value = currentBlock.presetKey;
                 sprintPresetsSelect.dispatchEvent(new Event('change'));
-                const startSprintBtn = document.getElementById('start-sprint-btn');
-                if (startSprintBtn) startSprintBtn.click();
+                startSprintMode();
             }
         } else if (currentBlock.type === 'repeating') {
             const repeatingPresetsSelect = document.getElementById('repeating-presets');
@@ -768,8 +804,7 @@ function startNextWorkflowBlock() {
                 const reminderRoundsInput = document.getElementById('reminder-rounds');
                 if (reminderRoundsInput) reminderRoundsInput.value = 1; // 1 round per cycle
                 
-                const startRepeatingBtn = document.getElementById('start-repeating-btn');
-                if (startRepeatingBtn) startRepeatingBtn.click();
+                startRepeatingReminders();
             }
         }
     }, 100); // slight delay to ensure UI updates after switching modes
@@ -781,11 +816,11 @@ if (startWorkflowBtn) {
             customAlert('Please add blocks to your Building Stack first.');
             return;
         }
-        isWorkflowRunning = true;
-        window.isWorkflowRunningFlag = true;
-        window.triggerNextWorkflowBlock = startNextWorkflowBlock;
-        currentWorkflowBlockIndex = 0;
-        currentWorkflowCycle = 0;
+        workflowState.isWorkflowRunning = true;
+        sharedState.isWorkflowRunning = true;
+        sharedState.triggerNextWorkflowBlock = startNextWorkflowBlock;
+        workflowState.currentBlockIndex = 0;
+        workflowState.currentCycle = 0;
         startWorkflowBtn.style.display = 'none';
         if (stopWorkflowBtn) stopWorkflowBtn.style.display = 'block';
         startNextWorkflowBlock();
@@ -794,16 +829,16 @@ if (startWorkflowBtn) {
 
 if (stopWorkflowBtn) {
     stopWorkflowBtn.addEventListener('click', () => {
-        isWorkflowRunning = false;
+        workflowState.isWorkflowRunning = false;
         
         ipcRenderer.send('stop-timer', 'workflow-break');
         ipcRenderer.send('close-popup');
         ipcRenderer.send('close-fullscreen');
         ipcRenderer.send('close-pomo-timer');
 
-        if (typeof isPomoRunning !== 'undefined' && isPomoRunning) stopPomoStyle();
-        if (typeof isRepeatingRunning !== 'undefined' && isRepeatingRunning) stopRepeatingReminders();
-        if (typeof isSprintRunning !== 'undefined' && isSprintRunning) stopSprintMode();
+        if (pomoState.isPomoRunning) stopPomoStyle();
+        if (repeatingState.isRepeatingRunning) stopRepeatingReminders();
+        if (sprintState.isSprintRunning) stopSprintMode();
         
         resetWorkflowState();
         
@@ -818,10 +853,10 @@ ipcRenderer.on('timer-complete-workflow-break', () => {
     ipcRenderer.send('close-fullscreen');
     ipcRenderer.send('close-pomo-timer');
     
-    if (isWorkflowRunning || window.isWorkflowRunningFlag) {
-        setTimeout(() => { if (typeof window.triggerNextWorkflowBlock === 'function') window.triggerNextWorkflowBlock(); }, 500);
+    if (workflowState.isWorkflowRunning || sharedState.isWorkflowRunning) {
+        setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
     }
 });
 
 
-export { setupWorkflowEventListeners, setupWorkflowPresetsEventListeners, isWorkflowRunning, startNextWorkflowBlock };
+export { setupWorkflowEventListeners, setupWorkflowPresetsEventListeners, startNextWorkflowBlock };

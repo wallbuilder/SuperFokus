@@ -3,7 +3,7 @@ const fsSync = require('fs');
 const path = require('path');
 const os = require('os');
 const { exec } = require('child_process');
-const { normalizeHost, DOMAIN_REGEX, IP_REGEX } = require('./utils');
+const { normalizeHost, DOMAIN_REGEX, IP_REGEX } = require('../renderer/utils/utils.js');
 
 // Determine hosts file path based on platform
 const HOSTS_FILE = process.platform === 'darwin'

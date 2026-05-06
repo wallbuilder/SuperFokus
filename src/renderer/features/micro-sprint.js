@@ -1,6 +1,7 @@
 import { ipcRenderer } from '../utils/ipc.js';
 import { playChime } from '../utils/audio.js';
 import { store } from '../utils/storage.js';
+import { sharedState } from '../utils/state.js';
 import { recordFocusSession } from '../utils/stats.js';
 import { formatTime, setInputsLocked } from '../utils/ui-helpers.js';
 
@@ -16,19 +17,14 @@ const nextSprintBtn = document.getElementById('next-sprint-btn');
 const skipSprintBtn = document.getElementById('skip-sprint-btn');
 const sprintAutostartCheckbox = document.getElementById('sprint-autostart');
 
-export let isSprintRunning = false;
-let sprintTasks = [];
-let currentSprintTaskIndex = 0;
-let sprintTimerSeconds = 0;
-let sprintDurationSeconds = 0;
-
-// Load autostart preference
-if (sprintAutostartCheckbox) {
-    sprintAutostartCheckbox.checked = store.get('sprintAutostart', false);
-    sprintAutostartCheckbox.addEventListener('change', (e) => {
-        store.set('sprintAutostart', e.target.checked);
-    });
-}
+// --- Sprint State ---
+export const sprintState = {
+    isSprintRunning: false,
+    sprintTasks: [],
+    currentSprintTaskIndex: 0,
+    sprintTimerSeconds: 0,
+    sprintDurationSeconds: 0
+};
 
 // Presets and Custom Duration Logic
 const sprintPresetsSelect = document.getElementById('sprint-presets');
@@ -41,7 +37,22 @@ const cancelSaveSprintPresetBtn = document.getElementById('cancel-save-sprint-pr
 const customSprintDurationContainer = document.getElementById('custom-sprint-duration-container');
 const customSprintDurationInput = document.getElementById('custom-sprint-duration');
 
-let sprintPresets = store.get('sprintPresets', {});
+let sprintPresets = {};
+
+export async function initSprint() {
+    sprintPresets = await store.get('sprintPresets', {});
+    if (sprintAutostartCheckbox) {
+        sprintAutostartCheckbox.checked = await store.get('sprintAutostart', false);
+    }
+    updateSprintPresetOptions();
+}
+
+// Load autostart preference listener
+if (sprintAutostartCheckbox) {
+    sprintAutostartCheckbox.addEventListener('change', (e) => {
+        store.set('sprintAutostart', e.target.checked);
+    });
+}
 
 function updateSprintPresetOptions() {
     if (!sprintPresetsSelect) return;
@@ -57,7 +68,6 @@ function updateSprintPresetOptions() {
         sprintPresetsSelect.appendChild(option);
     });
 }
-updateSprintPresetOptions();
 
 if (sprintDurationSelect) {
     sprintDurationSelect.addEventListener('change', (e) => {
@@ -75,7 +85,14 @@ if (sprintPresetsSelect) {
         if (deleteSprintPresetBtn) {
             deleteSprintPresetBtn.style.display = val.startsWith('custom-preset-') ? 'block' : 'none';
         }
-        if (val.startsWith('custom-preset-')) {
+        if (val === 'quick-chores') {
+            if (sprintDurationSelect) {
+                sprintDurationSelect.value = '5';
+                sprintDurationSelect.dispatchEvent(new Event('change'));
+            }
+            if (sprintTasksInput) sprintTasksInput.value = "Clean desk\nCheck email\nStretch";
+            if (sprintAutostartCheckbox) sprintAutostartCheckbox.checked = true;
+        } else if (val.startsWith('custom-preset-')) {
             const key = val.replace('custom-preset-', '');
             if (sprintPresets[key]) {
                 const data = sprintPresets[key];
@@ -148,39 +165,48 @@ if (cancelSaveSprintPresetBtn) {
 }
 
 function updateSprintDisplay() {
-    if (sprintTimeLeft) sprintTimeLeft.innerText = formatTime(sprintTimerSeconds);
-    const taskName = sprintTasks[currentSprintTaskIndex] || `Sprint ${currentSprintTaskIndex + 1}`;
+    if (sprintTimeLeft) sprintTimeLeft.innerText = formatTime(sprintState.sprintTimerSeconds);
+    const taskName = sprintState.sprintTasks[sprintState.currentSprintTaskIndex] || `Sprint ${sprintState.currentSprintTaskIndex + 1}`;
     if (sprintCurrentTask) sprintCurrentTask.innerText = taskName;
-    const tasksLeftText = `Remaining Tasks: ${Math.max(0, sprintTasks.length - currentSprintTaskIndex - 1)}`;
+    const tasksLeftText = `Remaining Tasks: ${Math.max(0, sprintState.sprintTasks.length - sprintState.currentSprintTaskIndex - 1)}`;
     if (sprintTasksLeft) sprintTasksLeft.innerText = tasksLeftText;
 
     // Update timer popup
     ipcRenderer.send('update-micro-sprint-timer', {
         task: taskName,
-        timeLeft: formatTime(sprintTimerSeconds),
-        percent: (sprintTimerSeconds / sprintDurationSeconds) * 100,
+        timeLeft: formatTime(sprintState.sprintTimerSeconds),
+        percent: (sprintState.sprintTimerSeconds / sprintState.sprintDurationSeconds) * 100,
         tasksLeft: tasksLeftText
     });
 }
 
 ipcRenderer.on('timer-tick', (data) => {
     if (data.id === 'sprint') {
-        sprintTimerSeconds = data.seconds;
+        sprintState.sprintTimerSeconds = data.remaining;
         updateSprintDisplay();
     }
 });
 
+ipcRenderer.on('timer-started-sprint', (data) => {
+    // Ticks are handled by timer-tick event
+});
+
+ipcRenderer.on('timer-stopped-sprint', () => {
+    sprintState.sprintTimerSeconds = 0;
+    updateSprintDisplay();
+});
+
 ipcRenderer.on('timer-complete-sprint', () => {
     playChime();
-    recordFocusSession(Math.round(sprintDurationSeconds / 60), 'Micro-Task Sprint');
+    recordFocusSession(Math.round(sprintState.sprintDurationSeconds / 60), 'Micro-Task Sprint');
     
     if (sprintAutostartCheckbox && sprintAutostartCheckbox.checked) {
         setTimeout(() => {
-            currentSprintTaskIndex++;
-            if (currentSprintTaskIndex >= sprintTasks.length) {
+            sprintState.currentSprintTaskIndex++;
+            if (sprintState.currentSprintTaskIndex >= sprintState.sprintTasks.length) {
                 stopSprintMode();
-                if (window.isWorkflowRunningFlag) {
-                    setTimeout(() => { if (typeof window.triggerNextWorkflowBlock === 'function') window.triggerNextWorkflowBlock(); }, 500);
+                if (sharedState.isWorkflowRunning) {
+                    setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
                 }
             } else {
                 startNextSprintTask();
@@ -193,22 +219,22 @@ ipcRenderer.on('timer-complete-sprint', () => {
 });
 
 export function startNextSprintTask() {
-    if (currentSprintTaskIndex >= sprintTasks.length && sprintTasks.length > 0) {
+    if (sprintState.currentSprintTaskIndex >= sprintState.sprintTasks.length && sprintState.sprintTasks.length > 0) {
         stopSprintMode();
-        if (window.isWorkflowRunningFlag) {
-            setTimeout(() => { if (typeof window.triggerNextWorkflowBlock === 'function') window.triggerNextWorkflowBlock(); }, 500);
+        if (sharedState.isWorkflowRunning) {
+            setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
         }
         return;
     }
     if (nextSprintBtn) nextSprintBtn.style.display = 'none';
     if (skipSprintBtn) skipSprintBtn.style.display = 'block'; // Allow skipping during the sprint
-    sprintTimerSeconds = sprintDurationSeconds;
+    sprintState.sprintTimerSeconds = sprintState.sprintDurationSeconds;
     updateSprintDisplay();
-    ipcRenderer.send('start-timer', { id: 'sprint', seconds: sprintTimerSeconds });
+    ipcRenderer.send('start-timer', { id: 'sprint', seconds: sprintState.sprintTimerSeconds });
 }
 
 export function stopSprintMode() {
-    isSprintRunning = false;
+    sprintState.isSprintRunning = false;
     ipcRenderer.send('stop-timer', 'sprint');
     ipcRenderer.send('close-micro-sprint-timer');
     if (startSprintBtn) startSprintBtn.style.display = 'block';
@@ -222,18 +248,18 @@ export function stopSprintMode() {
 if (stopSprintBtn) {
     stopSprintBtn.addEventListener('click', () => {
         stopSprintMode();
-        if (window.isWorkflowRunningFlag) {
+        if (sharedState.isWorkflowRunning) {
             const stopWf = document.getElementById('stop-workflow-btn');
             if (stopWf) stopWf.click();
         }
     });
 }
 
-if (startSprintBtn) {
-    startSprintBtn.addEventListener('click', () => {
+export function startSprintMode() {
+    if (!sprintState.isSprintRunning) {
         const rawTasks = sprintTasksInput ? sprintTasksInput.value.split('\n').map(t => t.trim()).filter(Boolean) : [];
-        sprintTasks = rawTasks.length > 0 ? rawTasks : ['Unnamed Sprint'];
-        currentSprintTaskIndex = 0;
+        sprintState.sprintTasks = rawTasks.length > 0 ? rawTasks : ['Unnamed Sprint'];
+        sprintState.currentSprintTaskIndex = 0;
         
         let durationMins = 5;
         if (sprintDurationSelect && sprintDurationSelect.value === 'custom') {
@@ -241,26 +267,40 @@ if (startSprintBtn) {
         } else if (sprintDurationSelect) {
             durationMins = parseInt(sprintDurationSelect.value, 10) || 5;
         }
-        sprintDurationSeconds = durationMins * 60;
+        sprintState.sprintDurationSeconds = durationMins * 60;
         
-        isSprintRunning = true;
-        startSprintBtn.style.display = 'none';
+        sprintState.isSprintRunning = true;
+        if (startSprintBtn) startSprintBtn.style.display = 'none';
         if (stopSprintBtn) stopSprintBtn.style.display = 'block';
         setInputsLocked('config-micro-sprint', true);
         if (sprintTimerDisplay) sprintTimerDisplay.classList.remove('hidden');
         
         ipcRenderer.send('open-micro-sprint-timer');
         startNextSprintTask();
+    }
+}
+
+if (startSprintBtn) {
+    startSprintBtn.addEventListener('click', () => {
+        if (!sprintState.isSprintRunning) {
+            startSprintMode();
+        } else {
+            stopSprintMode();
+            if (sharedState.isWorkflowRunning) {
+                const stopWf = document.getElementById('stop-workflow-btn');
+                if (stopWf) stopWf.click();
+            }
+        }
     });
 }
 
 if (nextSprintBtn) {
     nextSprintBtn.addEventListener('click', () => {
-        currentSprintTaskIndex++;
-        if (currentSprintTaskIndex >= sprintTasks.length) {
+        sprintState.currentSprintTaskIndex++;
+        if (sprintState.currentSprintTaskIndex >= sprintState.sprintTasks.length) {
             stopSprintMode();
-            if (window.isWorkflowRunningFlag) {
-                setTimeout(() => { if (typeof window.triggerNextWorkflowBlock === 'function') window.triggerNextWorkflowBlock(); }, 500);
+            if (sharedState.isWorkflowRunning) {
+                setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
             }
         } else {
             startNextSprintTask();
@@ -271,14 +311,15 @@ if (nextSprintBtn) {
 if (skipSprintBtn) {
     skipSprintBtn.addEventListener('click', () => {
         ipcRenderer.send('stop-timer', 'sprint'); // Stop current sprint without recording
-        currentSprintTaskIndex++;
-        if (currentSprintTaskIndex >= sprintTasks.length) {
+        sprintState.currentSprintTaskIndex++;
+        if (sprintState.currentSprintTaskIndex >= sprintState.sprintTasks.length) {
             stopSprintMode();
-            if (window.isWorkflowRunningFlag) {
-                setTimeout(() => { if (typeof window.triggerNextWorkflowBlock === 'function') window.triggerNextWorkflowBlock(); }, 500);
+            if (sharedState.isWorkflowRunning) {
+                setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
             }
         } else {
             startNextSprintTask();
         }
     });
 }
+

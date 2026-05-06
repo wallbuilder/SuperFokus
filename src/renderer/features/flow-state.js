@@ -3,7 +3,15 @@ import { recordFocusSession } from '../utils/stats.js';
 import { playChime } from '../utils/audio.js';
 import { ipcRenderer } from '../utils/ipc.js';
 
-// --- Flow State Stopwatch Mode ---
+// --- Flow State ---
+export const flowState = {
+    isFlowRunning: false,
+    flowStartTime: 0,
+    currentFlowElapsed: 0,
+    totalChimeIntervalSeconds: 0,
+    nextChimeSeconds: 0
+};
+
 const flowChimeIntervalInput = document.getElementById('flow-chime-interval');
 const flowChimeIntervalSecondsInput = document.getElementById('flow-chime-interval-seconds');
 const startFlowBtn = document.getElementById('start-flow-btn');
@@ -11,9 +19,17 @@ const stopFlowBtn = document.getElementById('stop-flow-btn');
 const flowTimerDisplay = document.getElementById('flow-timer-display');
 const flowTimeElapsed = document.getElementById('flow-time-elapsed');
 
-let isFlowRunning = false;
-let flowStartTime = 0;
-let flowInterval = null;
+ipcRenderer.on('timer-tick', (data) => {
+    if (data.id === 'flow') {
+        flowState.currentFlowElapsed = data.total - data.remaining;
+        updateFlowDisplay(flowState.currentFlowElapsed);
+        
+        if (flowState.totalChimeIntervalSeconds > 0 && flowState.currentFlowElapsed >= flowState.nextChimeSeconds) {
+            playChime();
+            flowState.nextChimeSeconds += flowState.totalChimeIntervalSeconds;
+        }
+    }
+});
 
 function formatFlowTime(elapsedSeconds) {
     const h = Math.floor(elapsedSeconds / 3600);
@@ -31,61 +47,54 @@ function updateFlowDisplay(elapsedSeconds) {
 }
 
 function startFlowState() {
-    isFlowRunning = true;
+    flowState.isFlowRunning = true;
     startFlowBtn.style.display = 'none';
     stopFlowBtn.style.display = 'block';
     setInputsLocked('config-flow-state', true);
     flowTimerDisplay.classList.remove('hidden');
     
-    flowStartTime = Date.now();
+    flowState.flowStartTime = Date.now();
+    flowState.currentFlowElapsed = 0;
     let chimeIntervalMinutes = parseInt(flowChimeIntervalInput.value, 10) || 0;
     let chimeIntervalSeconds = parseInt(flowChimeIntervalSecondsInput.value, 10) || 0;
-    let totalChimeIntervalSeconds = (chimeIntervalMinutes * 60) + chimeIntervalSeconds;
-    let nextChimeSeconds = totalChimeIntervalSeconds > 0 ? totalChimeIntervalSeconds : 0;
+    flowState.totalChimeIntervalSeconds = (chimeIntervalMinutes * 60) + chimeIntervalSeconds;
+    flowState.nextChimeSeconds = flowState.totalChimeIntervalSeconds > 0 ? flowState.totalChimeIntervalSeconds : 0;
     
     updateFlowDisplay(0);
     ipcRenderer.send('open-flow-timer');
-    
-    flowInterval = setInterval(() => {
-        const elapsedSeconds = Math.floor((Date.now() - flowStartTime) / 1000);
-        updateFlowDisplay(elapsedSeconds);
-        
-        if (nextChimeSeconds > 0 && elapsedSeconds >= nextChimeSeconds) {
-            playChime();
-            nextChimeSeconds += totalChimeIntervalSeconds;
-        }
-    }, 1000);
+    // Start a long-running timer (24h) in Main to receive ticks for the stopwatch
+    ipcRenderer.send('start-timer', { id: 'flow', seconds: 86400 });
 }
 
 function stopFlowState() {
-    if (!isFlowRunning) return;
-    isFlowRunning = false;
+    if (!flowState.isFlowRunning) return;
+    flowState.isFlowRunning = false;
     startFlowBtn.style.display = 'block';
     stopFlowBtn.style.display = 'none';
     setInputsLocked('config-flow-state', false);
     flowTimerDisplay.classList.add('hidden');
     
-    if (flowInterval) {
-        clearInterval(flowInterval);
-        flowInterval = null;
-    }
-    
+    ipcRenderer.send('stop-timer', 'flow');
     ipcRenderer.send('close-flow-timer');
     
-    const elapsedSeconds = Math.floor((Date.now() - flowStartTime) / 1000);
-    const elapsedMinutes = Math.round(elapsedSeconds / 60);
+    const elapsedMinutes = Math.round(flowState.currentFlowElapsed / 60);
     if (elapsedMinutes > 0) {
         recordFocusSession(elapsedMinutes, 'Flow State');
     }
+}
+
+export async function initFlow() {
+    // No specific presets to load for Flow State currently, 
+    // but follows the initialization pattern of other modules.
 }
 
 startFlowBtn.addEventListener('click', startFlowState);
 stopFlowBtn.addEventListener('click', stopFlowState);
 
 ipcRenderer.on('flow-popup-closed', () => {
-    if (isFlowRunning) {
+    if (flowState.isFlowRunning) {
         stopFlowState();
     }
 });
 
-export { startFlowState, stopFlowState, isFlowRunning };
+export { startFlowState, stopFlowState };

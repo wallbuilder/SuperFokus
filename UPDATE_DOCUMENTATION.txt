@@ -4,7 +4,23 @@ UPDATE DOCUMENTATION DESCRIPTION
 
 This file is strictly for the purpose of documenting/writing down changes to the SuperFokus codebase so they can later be summarized into a commit message.
 Before each commit, the contents of this file should be mostly discarded of, EXCLUDING this chunk of text.
-Each new edit to the file that documents new changes should also list the date and time of implementation
+Each new edit to the file that documents new changes should also list the date and time of implementation.
+[DO NOT DELETE THIS TEXT] >
+
+{5/5/2026 at 5:45 PM}
+    **Fixed Theme Application and Settings**
+    - Fixed an issue where the "Reset Custom Colors" button threw an error due to a missing storage deletion method. Added the required IPC method to `storage.js`, `preload.js`, and `main.js`.
+    - Fixed an issue where setting custom background colors (`--bg-grad-1` and `--bg-grad-2`) would permanently override the standard background colors when switching back to Dark Mode by updating the cleanup logic in `theme.js`.
+
+{5/5/2026 at 6:00 PM}
+    **UI Customization Adjustments & Bug Fix**
+    - Renamed "BG 2 COLOR" to "BG 1 GRADIENT" in the Custom Theme creator.
+    - Added a new color picker for the main application "pad" labeled "BG 2 COLOR", which controls the `--container-bg` variable.
+    - Fixed an issue where the new pad color was not applying due to a race condition in file writing by sequentially patching `theme.js` logic.
+    - Updated the reset colors button to prompt a confirmation alert before reverting to default custom colors.
+    - Added a dedicated "HEADER TEXT" color picker for the main 'SuperFokus' title, decoupling it from the "Heading 1" color.
+
+< [DO NOT DELETE THIS TEXT]
 (Example chunk of documentation: 
 {1/1/2025 at 12:00 PM}
     **Fixed Bugs**
@@ -26,13 +42,3 @@ Each new edit to the file that documents new changes should also list the date a
 
 And so on, until all the update goals have been met)
 [DO NOT DELETE THIS TEXT] >
-
-{5/25/2026 at 11:20 PM}
-    **Fixed Bugs**
-     - Fixed site blocker
-     - Fixed stop button error on modes
-     - Fixed workflows
-
-    **Added New Features**
-     - Added logo
-(INSERT TEXT HERE)

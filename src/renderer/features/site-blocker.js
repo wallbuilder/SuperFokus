@@ -1,5 +1,14 @@
 import { ipcRenderer, normalizeHost } from '../utils/ipc.js';
 
+// --- Blocker State ---
+export const blockerState = {
+    isBlockerActive: false,
+    blockerMode: 'block',
+    alwaysRun: false,
+    domains: [],
+    urls: []
+};
+
 // --- Site Blocker ---
 const saveBlockerBtn = document.getElementById('save-blocker-btn');
 const clearBlockerBtn = document.getElementById('clear-blocker-btn');
@@ -44,11 +53,12 @@ siteBlockerMode.addEventListener('change', () => {
 });
 
 function updateBlocker() {
-    const mode = siteBlockerMode.value;
+    blockerState.blockerMode = siteBlockerMode.value;
     const rawDomains = domainListInput.value.split('\n').map(s => s.trim()).filter(Boolean);
     const rawUrls = urlListInput ? urlListInput.value.split('\n').map(s => s.trim()).filter(Boolean) : [];
-    const active = siteBlockerEnabled.checked;
-    const alwaysRun = siteBlockerAlwaysRun.checked;
+    blockerState.isBlockerActive = siteBlockerEnabled.checked;
+    blockerState.alwaysRun = siteBlockerAlwaysRun.checked;
+    blockerState.urls = rawUrls;
 
     const domainSet = new Set();
 
@@ -74,18 +84,26 @@ function updateBlocker() {
         if (host) addBlockingHost(host);
     });
 
-    const domains = Array.from(domainSet).sort();
+    blockerState.domains = Array.from(domainSet).sort();
     
     // Validation
-    if (active && domains.length === 0) {
+    if (blockerState.isBlockerActive && blockerState.domains.length === 0) {
         alert('⚠️ No domains entered! Please add domains/URLs to block before enabling.');
         siteBlockerEnabled.checked = false;
+        blockerState.isBlockerActive = false;
         return;
     }
 
-    console.log('[Blocker]', {mode, active, domainCount: domains.length, domains});
-    ipcRenderer.send('update-blocker-rules', { mode, domains, urls: rawUrls, active, alwaysRun });
+    console.log('[Blocker]', {mode: blockerState.blockerMode, active: blockerState.isBlockerActive, domainCount: blockerState.domains.length, domains: blockerState.domains});
+    ipcRenderer.send('update-blocker-rules', { 
+        mode: blockerState.blockerMode, 
+        domains: blockerState.domains, 
+        urls: blockerState.urls, 
+        active: blockerState.isBlockerActive, 
+        alwaysRun: blockerState.alwaysRun 
+    });
 }
+
 
 saveBlockerBtn.addEventListener('click', () => {
     updateBlocker();

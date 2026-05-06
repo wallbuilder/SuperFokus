@@ -1,15 +1,26 @@
 import { ipcRenderer } from '../utils/ipc.js';
 import { store } from '../utils/storage.js';
+import { sharedState } from '../utils/state.js';
 import { customAlert } from '../ui/modals.js';
 import { playChime } from '../utils/audio.js';
 import { setInputsLocked, toggleStartStopButton } from '../utils/ui-helpers.js';
 import { recordFocusSession } from '../utils/stats.js';
 
-// --- Dynamic Pomo Sequence ---
-let pomoSequence = [
-    { type: 'work', duration: 25 },
-    { type: 'break', duration: 5 }
-];
+// --- Pomo State ---
+export const pomoState = {
+    pomoSequence: [
+        { type: 'work', duration: 25 },
+        { type: 'break', duration: 5 }
+    ],
+    isPomoRunning: false,
+    isPomoPaused: false,
+    pomoTimer: 0,
+    currentPhaseIndex: 0,
+    currentRepeatCount: 0,
+    totalRepeatsPlanned: 1,
+    activePomoSequence: []
+};
+
 const sequenceListEl = document.getElementById('pomo-sequence-list');
 const addWorkBtn = document.getElementById('add-work-btn');
 const addBreakBtn = document.getElementById('add-break-btn');
@@ -22,7 +33,13 @@ const presetNameInput = document.getElementById('preset-name-input');
 const confirmSavePresetBtn = document.getElementById('confirm-save-preset-btn');
 const cancelSavePresetBtn = document.getElementById('cancel-save-preset-btn');
 
-let customPresets = store.get('customPomoPresets', {});
+let customPresets = {};
+
+export async function initPomo() {
+    customPresets = await store.get('customPomoPresets', {});
+    updatePresetOptions();
+    renderSequence();
+}
 
 function updatePresetOptions() {
     if (!pomoPresetsSelect) return;
@@ -40,7 +57,6 @@ function updatePresetOptions() {
         pomoPresetsSelect.appendChild(option);
     });
 }
-updatePresetOptions();
 
 if (pomoPresetsSelect) {
     pomoPresetsSelect.addEventListener('change', (e) => {
@@ -49,13 +65,23 @@ if (pomoPresetsSelect) {
             deletePomoPresetBtn.style.display = val.startsWith('custom-preset-') ? 'block' : 'none';
         }
         if (val === 'deep-work') {
-            pomoSequence = [{ type: 'work', duration: 50 }, { type: 'break', duration: 10 }];
+            pomoState.pomoSequence = [{ type: 'work', duration: 50 }, { type: 'break', duration: 10 }];
         } else if (val === 'quick-study') {
-            pomoSequence = [{ type: 'work', duration: 25 }, { type: 'break', duration: 5 }];
+            pomoState.pomoSequence = [{ type: 'work', duration: 25 }, { type: 'break', duration: 5 }];
+        } else if (val === 'homework') {
+            pomoState.pomoSequence = [{ type: 'work', duration: 45 }, { type: 'break', duration: 15 }];
         } else if (val.startsWith('custom-preset-')) {
             const key = val.replace('custom-preset-', '');
             if (customPresets[key]) {
-                pomoSequence = JSON.parse(JSON.stringify(customPresets[key]));
+                const data = customPresets[key];
+                if (Array.isArray(data)) {
+                    pomoState.pomoSequence = JSON.parse(JSON.stringify(data));
+                } else if (data.sequence) {
+                    pomoState.pomoSequence = JSON.parse(JSON.stringify(data.sequence));
+                    if (document.getElementById('pomo-repeats')) {
+                        document.getElementById('pomo-repeats').value = data.repeats || 1;
+                    }
+                }
             }
         }
         renderSequence();
@@ -80,7 +106,7 @@ if (deletePomoPresetBtn) {
 
 if (savePomoPresetBtn) {
     savePomoPresetBtn.addEventListener('click', () => {
-        if (pomoSequence.length === 0) {
+        if (pomoState.pomoSequence.length === 0) {
             customAlert('Add phases to sequence before saving as preset.');
             return;
         }
@@ -93,7 +119,11 @@ if (confirmSavePresetBtn) {
     confirmSavePresetBtn.addEventListener('click', () => {
         const name = presetNameInput.value;
         if (name && name.trim()) {
-            customPresets[name.trim()] = JSON.parse(JSON.stringify(pomoSequence));
+            const repeatsVal = document.getElementById('pomo-repeats') ? document.getElementById('pomo-repeats').value : 1;
+            customPresets[name.trim()] = {
+                sequence: JSON.parse(JSON.stringify(pomoState.pomoSequence)),
+                repeats: repeatsVal
+            };
             store.set('customPomoPresets', customPresets);
             updatePresetOptions();
             pomoPresetsSelect.value = `custom-preset-${name.trim()}`;
@@ -111,14 +141,15 @@ if (cancelSavePresetBtn) {
 }
 
 ipcRenderer.on('pomo-popup-closed', () => {
-    if (isPomoRunning) {
+    if (pomoState.isPomoRunning) {
         stopPomoStyle();
     }
 });
 
 function renderSequence() {
+    if (!sequenceListEl) return;
     sequenceListEl.innerHTML = '';
-    pomoSequence.forEach((item, index) => {
+    pomoState.pomoSequence.forEach((item, index) => {
         const unit = item.unit || 'mins';
         const div = document.createElement('div');
         div.className = 'sequence-item';
@@ -133,63 +164,56 @@ function renderSequence() {
                 <button class="remove-btn" data-index="${index}" style="margin-left: 10px;">X</button>
             </div>
         `;
-        sequenceListEl.appendChild(div);
+        if (sequenceListEl) sequenceListEl.appendChild(div);
     });
 }
 
-sequenceListEl.addEventListener('change', (e) => {
-    if (e.target.tagName === 'INPUT' && e.target.type === 'number') {
-        const idx = e.target.getAttribute('data-index');
-        if (idx !== null) {
-            let val = parseInt(e.target.value, 10) || 1;
-            const unitSelect = sequenceListEl.querySelector(`select[data-index="${idx}"]`);
-            if (unitSelect && unitSelect.value === 'secs' && val >= 60) {
-                val = 59;
-                e.target.value = val;
+if (sequenceListEl) {
+    sequenceListEl.addEventListener('change', (e) => {
+        if (e.target.tagName === 'INPUT' && e.target.type === 'number') {
+            const idx = e.target.getAttribute('data-index');
+            if (idx !== null) {
+                let val = parseInt(e.target.value, 10) || 1;
+                const unitSelect = sequenceListEl.querySelector(`select[data-index="${idx}"]`);
+                if (unitSelect && unitSelect.value === 'secs' && val >= 60) {
+                    val = 59;
+                    e.target.value = val;
+                }
+                pomoState.pomoSequence[idx].duration = val;
             }
-            pomoSequence[idx].duration = val;
-        }
-    } else if (e.target.tagName === 'SELECT') {
-        const idx = e.target.getAttribute('data-index');
-        if (idx !== null) {
-            const newUnit = e.target.value;
-            pomoSequence[idx].unit = newUnit;
-            if (newUnit === 'secs') {
-                const input = sequenceListEl.querySelector(`input[data-index="${idx}"]`);
-                if (input) {
-                    let val = parseInt(input.value, 10) || 1;
-                    if (val >= 60) {
-                        val = 59;
-                        input.value = val;
-                        pomoSequence[idx].duration = val;
+        } else if (e.target.tagName === 'SELECT') {
+            const idx = e.target.getAttribute('data-index');
+            if (idx !== null) {
+                const newUnit = e.target.value;
+                pomoState.pomoSequence[idx].unit = newUnit;
+                if (newUnit === 'secs') {
+                    const input = sequenceListEl.querySelector(`input[data-index="${idx}"]`);
+                    if (input) {
+                        let val = parseInt(input.value, 10) || 1;
+                        if (val >= 60) {
+                            val = 59;
+                            input.value = val;
+                            pomoState.pomoSequence[idx].duration = val;
+                        }
                     }
                 }
             }
         }
-    }
-});
+    });
 
-sequenceListEl.addEventListener('click', (e) => {
-    if (e.target.classList.contains('remove-btn')) {
-        const idx = e.target.getAttribute('data-index');
-        if (idx !== null) {
-            pomoSequence.splice(idx, 1);
-            renderSequence();
+    sequenceListEl.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-btn')) {
+            const idx = e.target.getAttribute('data-index');
+            if (idx !== null) {
+                pomoState.pomoSequence.splice(idx, 1);
+                renderSequence();
+            }
         }
-    }
-});
-renderSequence();
+    });
+}
 
-addWorkBtn.addEventListener('click', () => { pomoSequence.push({ type: 'work', duration: 25 }); renderSequence(); });
-addBreakBtn.addEventListener('click', () => { pomoSequence.push({ type: 'break', duration: 5 }); renderSequence(); });
-
-// Pomo State
-let isPomoRunning = false;
-let isPomoPaused = false;
-let pomoTimer = 0;
-let currentPhaseIndex = 0;
-let currentRepeatCount = 0;
-let totalRepeatsPlanned = 1;
+if (addWorkBtn) addWorkBtn.addEventListener('click', () => { pomoState.pomoSequence.push({ type: 'work', duration: 25 }); renderSequence(); });
+if (addBreakBtn) addBreakBtn.addEventListener('click', () => { pomoState.pomoSequence.push({ type: 'break', duration: 5 }); renderSequence(); });
 
 const startPomoBtn = document.getElementById('start-pomo-btn');
 const pausePomoBtn = document.getElementById('pause-pomo-btn');
@@ -230,16 +254,14 @@ function formatPhaseDuration(totalSeconds) {
     return `${s}s`;
 }
 
-let activePomoSequence = [];
-
-function updatePomoDisplay() {
-    pomoTimeLeft.innerText = formatTime(pomoTimer);
-    const currentPhase = isPomoRunning ? activePomoSequence[currentPhaseIndex] : pomoSequence[0];
-    pomoStatusText.innerText = currentPhase ? (currentPhase.type === 'work' ? 'Work Session' : 'Break Time') : 'Finished';
+function updatePomoDisplay(notifyWindow = false) {
+    if (pomoTimeLeft) pomoTimeLeft.innerText = formatTime(pomoState.pomoTimer);
+    const currentPhase = pomoState.isPomoRunning ? pomoState.activePomoSequence[pomoState.currentPhaseIndex] : pomoState.pomoSequence[0];
+    if (pomoStatusText) pomoStatusText.innerText = currentPhase ? (currentPhase.type === 'work' ? 'Work Session' : 'Break Time') : 'Finished';
     
-    const nextPhaseIdx = currentPhaseIndex + 1;
+    const nextPhaseIdx = pomoState.currentPhaseIndex + 1;
     let nextText = '--';
-    const sourceSeq = isPomoRunning ? activePomoSequence : pomoSequence;
+    const sourceSeq = pomoState.isPomoRunning ? pomoState.activePomoSequence : pomoState.pomoSequence;
     
     function getPhaseSecs(phase) {
         if (phase.totalSeconds) return phase.totalSeconds;
@@ -249,7 +271,7 @@ function updatePomoDisplay() {
     if (nextPhaseIdx < sourceSeq.length) {
         const nextPhase = sourceSeq[nextPhaseIdx];
         nextText = `${nextPhase.type === 'work' ? 'Work' : 'Break'} (${formatPhaseDuration(getPhaseSecs(nextPhase))})`;
-    } else if (pomoInfiniteCheckbox.checked || currentRepeatCount + 1 < totalRepeatsPlanned) {
+    } else if (pomoInfiniteCheckbox && pomoInfiniteCheckbox.checked || pomoState.currentRepeatCount + 1 < pomoState.totalRepeatsPlanned) {
         const firstPhase = sourceSeq[0];
         if (firstPhase) {
             nextText = `Repeat: ${firstPhase.type === 'work' ? 'Work' : 'Break'} (${formatPhaseDuration(getPhaseSecs(firstPhase))})`;
@@ -257,21 +279,41 @@ function updatePomoDisplay() {
     } else {
         nextText = 'Finish';
     }
-    pomoRoundsLeft.innerText = `Next: ${nextText}`;
+    if (pomoRoundsLeft) pomoRoundsLeft.innerText = `Next: ${nextText}`;
 
-    const totalSecs = currentPhase ? getPhaseSecs(currentPhase) : 1;
-    ipcRenderer.send('update-pomo-timer', {
-        phase: pomoStatusText.innerText,
-        timeLeft: formatTime(pomoTimer),
-        percent: currentPhase ? (pomoTimer / totalSecs) * 100 : 0
-    });
+    if (notifyWindow) {
+        const totalSecs = currentPhase ? getPhaseSecs(currentPhase) : 1;
+        ipcRenderer.send('update-pomo-timer', {
+            phase: pomoStatusText ? pomoStatusText.innerText : '',
+            timeLeft: formatTime(pomoState.pomoTimer),
+            percent: currentPhase ? (pomoState.pomoTimer / totalSecs) * 100 : 0
+        });
+    }
 }
 
 ipcRenderer.on('timer-tick', (data) => {
     if (data.id === 'pomo') {
-        pomoTimer = data.seconds;
-        updatePomoDisplay();
+        pomoState.pomoTimer = data.remaining;
+        updatePomoDisplay(false);
     }
+});
+
+ipcRenderer.on('timer-started-pomo', (data) => {
+    // Ticks are handled by timer-tick event
+});
+
+ipcRenderer.on('timer-paused-pomo', (remainingSeconds) => {
+    pomoState.pomoTimer = remainingSeconds;
+    updatePomoDisplay();
+});
+
+ipcRenderer.on('timer-resumed-pomo', (data) => {
+    // Ticks are handled by timer-tick event
+});
+
+ipcRenderer.on('timer-stopped-pomo', () => {
+    pomoState.pomoTimer = 0;
+    updatePomoDisplay();
 });
 
 ipcRenderer.on('timer-complete-pomo', () => {
@@ -279,23 +321,23 @@ ipcRenderer.on('timer-complete-pomo', () => {
 });
 
 function startPomoPhase() {
-    if (currentPhaseIndex >= activePomoSequence.length) {
-        currentRepeatCount++;
-        if (pomoInfiniteCheckbox.checked || currentRepeatCount < totalRepeatsPlanned) {
-            currentPhaseIndex = 0;
+    if (pomoState.currentPhaseIndex >= pomoState.activePomoSequence.length) {
+        pomoState.currentRepeatCount++;
+        if (pomoInfiniteCheckbox && pomoInfiniteCheckbox.checked || pomoState.currentRepeatCount < pomoState.totalRepeatsPlanned) {
+            pomoState.currentPhaseIndex = 0;
         } else {
             stopPomoStyle();
             return;
         }
     }
     
-    continuePomoBtn.style.display = 'none';
-    const currentPhase = activePomoSequence[currentPhaseIndex];
-    pomoTimer = currentPhase.totalSeconds;
+    if (continuePomoBtn) continuePomoBtn.style.display = 'none';
+    const currentPhase = pomoState.activePomoSequence[pomoState.currentPhaseIndex];
+    pomoState.pomoTimer = currentPhase.totalSeconds;
     updatePomoDisplay();
 
     // Ensure timer is registered in main BEFORE showing the popup to avoid instant-close race conditions
-    ipcRenderer.send('start-timer', { id: 'pomo', seconds: pomoTimer });
+    ipcRenderer.send('start-timer', { id: 'pomo', seconds: pomoState.pomoTimer, durationSeconds: pomoState.pomoTimer });
 
     if (currentPhase.type === 'break') {
         const pomoActionEl = document.querySelector('input[name="pomo-action"]:checked');
@@ -304,14 +346,14 @@ function startPomoPhase() {
             type: 'Break', 
             duration: currentPhase.totalSeconds, 
             fullScreen: (pomoAction === 'block'),
-            autoStart: pomoAutostartCheckbox.checked
+            autoStart: pomoAutostartCheckbox ? pomoAutostartCheckbox.checked : false
         });
     }
 }
 
 function handlePhaseEnd() {
     playChime();
-    const finishedPhase = activePomoSequence[currentPhaseIndex];
+    const finishedPhase = pomoState.activePomoSequence[pomoState.currentPhaseIndex];
     if (finishedPhase.type === 'work') {
         recordFocusSession(Math.round(finishedPhase.totalSeconds / 60), 'Pomo Work');
     }
@@ -319,33 +361,33 @@ function handlePhaseEnd() {
     ipcRenderer.send('close-popup');
     ipcRenderer.send('close-fullscreen');
     
-    currentPhaseIndex++;
+    pomoState.currentPhaseIndex++;
     
-    if (currentPhaseIndex >= activePomoSequence.length && !pomoInfiniteCheckbox.checked && currentRepeatCount + 1 >= totalRepeatsPlanned) {
+    if (pomoState.currentPhaseIndex >= pomoState.activePomoSequence.length && (!pomoInfiniteCheckbox || !pomoInfiniteCheckbox.checked) && pomoState.currentRepeatCount + 1 >= pomoState.totalRepeatsPlanned) {
         stopPomoStyle();
-        if (window.isWorkflowRunningFlag) {
-            setTimeout(() => { if (typeof window.triggerNextWorkflowBlock === 'function') window.triggerNextWorkflowBlock(); }, 500);
+        if (sharedState.isWorkflowRunning) {
+            setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
         }
         return;
     }
 
-    if (pomoAutostartCheckbox.checked) {
+    if (pomoAutostartCheckbox && pomoAutostartCheckbox.checked) {
         startPomoPhase();
     } else {
-        pomoTimer = 0; // Ensure display reads 0
+        pomoState.pomoTimer = 0; // Ensure display reads 0
         updatePomoDisplay();
-        continuePomoBtn.style.display = 'block';
+        if (continuePomoBtn) continuePomoBtn.style.display = 'block';
     }
 }
 
 function stopPomoStyle() {
-    isPomoRunning = false;
-    isPomoPaused = false;
+    pomoState.isPomoRunning = false;
+    pomoState.isPomoPaused = false;
     ipcRenderer.send('stop-timer', 'pomo');
     toggleStartStopButton(startPomoBtn);
     setInputsLocked('config-pomo-style', false);
-    pomoTimerDisplay.classList.add('hidden');
-    continuePomoBtn.style.display = 'none';
+    if (pomoTimerDisplay) pomoTimerDisplay.classList.add('hidden');
+    if (continuePomoBtn) continuePomoBtn.style.display = 'none';
     if(pausePomoBtn) {
         pausePomoBtn.style.display = 'none';
         pausePomoBtn.innerText = 'Pause ⏸';
@@ -355,59 +397,67 @@ function stopPomoStyle() {
     ipcRenderer.send('close-fullscreen');
 }
 
-startPomoBtn.addEventListener('click', () => {
-    if (!isPomoRunning) {
-        if (pomoSequence.length === 0) {
+export function startPomoStyle() {
+    if (!pomoState.isPomoRunning) {
+        if (pomoState.pomoSequence.length === 0) {
             customAlert('Please add at least one phase to the sequence.');
             return;
         }
         
-        activePomoSequence = [];
-        pomoSequence.forEach(phase => {
+        pomoState.activePomoSequence = [];
+        pomoState.pomoSequence.forEach(phase => {
             const phaseSecs = phase.duration * ((phase.unit || 'mins') === 'mins' ? 60 : 1);
-            if (activePomoSequence.length > 0 && activePomoSequence[activePomoSequence.length - 1].type === phase.type) {
-                activePomoSequence[activePomoSequence.length - 1].totalSeconds += phaseSecs;
+            if (pomoState.activePomoSequence.length > 0 && pomoState.activePomoSequence[pomoState.activePomoSequence.length - 1].type === phase.type) {
+                pomoState.activePomoSequence[pomoState.activePomoSequence.length - 1].totalSeconds += phaseSecs;
             } else {
-                activePomoSequence.push({ type: phase.type, totalSeconds: phaseSecs });
+                pomoState.activePomoSequence.push({ type: phase.type, totalSeconds: phaseSecs });
             }
         });
 
-        totalRepeatsPlanned = parseInt(pomoRepeatsInput.value, 10) || 1;
-        isPomoRunning = true;
-        isPomoPaused = false;
-        currentPhaseIndex = 0;
-        currentRepeatCount = 0;
+        pomoState.totalRepeatsPlanned = pomoRepeatsInput ? (parseInt(pomoRepeatsInput.value, 10) || 1) : 1;
+        pomoState.isPomoRunning = true;
+        pomoState.isPomoPaused = false;
+        pomoState.currentPhaseIndex = 0;
+        pomoState.currentRepeatCount = 0;
         toggleStartStopButton(startPomoBtn);
         setInputsLocked('config-pomo-style', true);
-        pomoTimerDisplay.classList.remove('hidden');
+        if (pomoTimerDisplay) pomoTimerDisplay.classList.remove('hidden');
         if(pausePomoBtn) {
             pausePomoBtn.style.display = 'block';
             pausePomoBtn.innerText = 'Pause ⏸';
         }
         ipcRenderer.send('open-pomo-timer');
         startPomoPhase();
-    } else {
-        stopPomoStyle();
-        if (window.isWorkflowRunningFlag) {
-            const stopWf = document.getElementById('stop-workflow-btn');
-            if (stopWf) stopWf.click();
-        }
     }
-});
+}
+
+if (startPomoBtn) {
+    startPomoBtn.addEventListener('click', () => {
+        if (!pomoState.isPomoRunning) {
+            startPomoStyle();
+        } else {
+            stopPomoStyle();
+            if (sharedState.isWorkflowRunning) {
+                const stopWf = document.getElementById('stop-workflow-btn');
+                if (stopWf) stopWf.click();
+            }
+        }
+    });
+}
 
 // More robust pause button handling for Pomo Style using event delegation
 document.addEventListener('click', (e) => {
     if (e.target.id === 'pause-pomo-btn') {
         // Allow pause/resume if timer has been started, regardless of current state
-        if (!isPomoPaused) {
+        if (!pomoState.isPomoPaused) {
             ipcRenderer.send('pause-timer', 'pomo');
-            isPomoPaused = true;
+            pomoState.isPomoPaused = true;
             const timerDisplay = document.getElementById('pomo-timer-display');
             if (timerDisplay) timerDisplay.classList.add('paused');
             e.target.innerText = 'Resume ▶️';
         } else {
             ipcRenderer.send('resume-timer', 'pomo');
-            isPomoPaused = false;
+            pomoState.isPomoPaused = false;
             const timerDisplay = document.getElementById('pomo-timer-display');
             if (timerDisplay) timerDisplay.classList.remove('paused');
             e.target.innerText = 'Pause ⏸';
@@ -415,19 +465,20 @@ document.addEventListener('click', (e) => {
     }
 });
 
-continuePomoBtn.addEventListener('click', startPomoPhase);
+if (continuePomoBtn) continuePomoBtn.addEventListener('click', startPomoPhase);
 
 ipcRenderer.on('start-next-phase', () => {
-    if (window.isWorkflowRunningFlag) {
+    if (sharedState.isWorkflowRunning) {
         ipcRenderer.send('stop-timer', 'workflow-break');
         ipcRenderer.send('close-popup');
         ipcRenderer.send('close-fullscreen');
         ipcRenderer.send('close-pomo-timer');
-        setTimeout(() => { if (typeof window.triggerNextWorkflowBlock === 'function') window.triggerNextWorkflowBlock(); }, 500);
+        setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
     } else {
         ipcRenderer.send('stop-timer', 'pomo');
         handlePhaseEnd();
     }
 });
 
-export { stopPomoStyle, startPomoPhase, isPomoRunning, pomoSequence };
+export { stopPomoStyle, startPomoPhase };
+

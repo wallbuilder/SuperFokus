@@ -1,22 +1,26 @@
 import { ipcRenderer } from './ipc.js';
 
 export const store = {
-    get: (key, defaultValue) => {
-        return ipcRenderer.store.get(key, defaultValue);
+    get: async (key, defaultValue) => {
+        return await ipcRenderer.store.get(key, defaultValue);
     },
     set: (key, value) => {
         ipcRenderer.store.set(key, value);
+    },
+    delete: (key) => {
+        ipcRenderer.store.delete(key);
     }
 };
 
-export function migrateStore() {
-    if (!store.get('migratedToElectronStore', false)) {
+export async function migrateStore() {
+    const isMigrated = await store.get('migratedToElectronStore', false);
+    if (!isMigrated) {
         const keysToMigrate = [
             'darkMode', 'showHeaderDarkModeToggle', 'totalFocusTime', 'completedRounds', 
             'dailyStats', 'sessionHistory', 'customChimeData', 'customPomoPresets', 
             'repeatingPresets', 'sprintPresets', 'workflowPresets'
         ];
-        keysToMigrate.forEach(key => {
+        for (const key of keysToMigrate) {
             const val = localStorage.getItem(key);
             if (val !== null) {
                 try {
@@ -25,7 +29,7 @@ export function migrateStore() {
                     console.error(`Migration failed for key: ${key}`, e);
                 }
             }
-        });
+        }
         store.set('migratedToElectronStore', true);
         console.log('[Migration] Settings moved to electron-store.');
     }

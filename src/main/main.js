@@ -5,7 +5,7 @@ const http = require('http');
 const net = require('net');
 const util = require('util');
 const sudo = require('sudo-prompt');
-const { normalizeHost } = require('./utils');
+const { normalizeHost } = require('../renderer/utils/utils.js');
 
 // Polyfills for sudo-prompt which expects these to exist on the util module
 if (typeof util.isObject !== 'function') {
@@ -21,17 +21,28 @@ let store;
     store = new Store();
 })();
 
+function isOriginSafe(event) {
+    try {
+        return new URL(event.senderFrame.url).protocol === 'file:';
+    } catch (e) {
+        return false;
+    }
+}
+
 // IPC Handlers for settings (electron-store)
 ipcMain.on('store-set', (event, key, value) => {
+    if (!isOriginSafe(event)) return;
     if (store) store.set(key, value);
 });
 
-ipcMain.on('store-get-sync', (event, key, defaultValue) => {
-    event.returnValue = store ? store.get(key, defaultValue) : defaultValue;
+ipcMain.handle('store-get', async (event, key, defaultValue) => {
+    if (!isOriginSafe(event)) return defaultValue;
+    return store ? store.get(key, defaultValue) : defaultValue;
 });
 
-ipcMain.handle('store-get', async (event, key, defaultValue) => {
-    return store ? store.get(key, defaultValue) : defaultValue;
+ipcMain.on('store-delete', (event, key) => {
+    if (!isOriginSafe(event)) return;
+    if (store) store.delete(key);
 });
 
 
@@ -65,32 +76,43 @@ const helperPath = app.isPackaged
 let blocksApplied = false;
 
 let timers = {};
+let timerInterval = null;
 let currentPopupIsBlocking = false;
 
 function startProxy(allowedHosts, allowedUrls) {
     if (proxyServer) proxyServer.close();
 
-    const urlsArray = Array.isArray(allowedUrls) ? allowedUrls : Array.from(allowedUrls || []);
+    // Pre-parse allowed URLs once to avoid overhead during requests
+    const parsedAllowedUrls = [];
+    if (allowedUrls) {
+        allowedUrls.forEach(urlStr => {
+            try {
+                parsedAllowedUrls.push(new URL(urlStr));
+            } catch (e) {
+                // Ignore invalid URLs
+            }
+        });
+    }
 
     proxyServer = http.createServer((req, res) => {
         const host = (req.headers.host || '').split(':')[0].toLowerCase();
         const fullUrl = `http://${host}${req.url}`;
 
-        // Check if hostname is allowed
+        // Check if hostname is allowed (Set lookup is O(1))
         const hostAllowed = allowedHosts.has(host) || allowedHosts.has('www.' + host) ||
                           host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
 
-        // Check if specific URL is allowed
-        const urlAllowed = urlsArray.some(allowedUrl => {
+        // Check if specific URL is allowed using pre-parsed objects
+        let urlAllowed = false;
+        if (!hostAllowed) {
             try {
-                const allowed = new URL(allowedUrl);
                 const requested = new URL(fullUrl);
-                return allowed.hostname === requested.hostname &&
-                       requested.pathname.startsWith(allowed.pathname);
-            } catch (e) {
-                return false;
-            }
-        });
+                urlAllowed = parsedAllowedUrls.some(allowed => {
+                    return allowed.hostname === requested.hostname &&
+                           requested.pathname.startsWith(allowed.pathname);
+                });
+            } catch (e) {}
+        }
 
         if (hostAllowed || urlAllowed) {
             res.writeHead(200, {'Content-Type': 'text/html'});
@@ -110,14 +132,9 @@ function startProxy(allowedHosts, allowedUrls) {
         let hostAllowed = allowedHosts.has(host) || allowedHosts.has('www.' + host) ||
                           host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
 
-        if (!hostAllowed && urlsArray) {
-            hostAllowed = urlsArray.some(allowedUrl => {
-                try {
-                    const allowed = new URL(allowedUrl);
-                    return allowed.hostname === host || allowed.hostname === 'www.' + host || 'www.' + allowed.hostname === host;
-                } catch (e) {
-                    return false;
-                }
+        if (!hostAllowed) {
+            hostAllowed = parsedAllowedUrls.some(allowed => {
+                return allowed.hostname === host || allowed.hostname === 'www.' + host || 'www.' + allowed.hostname === host;
             });
         }
 
@@ -196,6 +213,29 @@ function createWindow() {
   mainWindow.maximize();
 
     mainWindow.loadFile(path.join(__dirname, '../../index.html'));
+
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('https://github.com/')) {
+       const useExternal = store ? store.get('githubExternalBrowser', true) : true;
+       if (useExternal) {
+           require('electron').shell.openExternal(url);
+       } else {
+           // Safe internal opening is unsupported right now without a custom BrowserWindow. Force external.
+           require('electron').shell.openExternal(url);
+       }
+       return { action: 'deny' };
+    }
+    require('electron').shell.openExternal(url);
+    return { action: 'deny' };
+  });
+
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+      const parsedUrl = new URL(url);
+      if (parsedUrl.protocol !== 'file:') {
+          event.preventDefault();
+          require('electron').shell.openExternal(url);
+      }
+  });
 
   mainWindow.on('close', (event) => {
     if (!isQuitting) {
@@ -642,7 +682,7 @@ function createFullscreenWindow(data) {
                 // WORKAROUND: Prevent premature window.close() calls from the broken internal timeout.
                 // Check exact remaining time. If it's less than 1 second, allow closing to prevent getting stuck due to tick desyncs.
                 const breakOrPomoRunning = Object.entries(timers).some(([id, t]) => {
-                    if (!t.timeout || (!id.includes('break') && !id.includes('pomo'))) return false;
+                    if (!t.isRunning || (!id.includes('break') && !id.includes('pomo'))) return false;
                     return (t.endTime - Date.now()) > 1000;
                 });
                 
@@ -725,103 +765,95 @@ function forceKillFullscreen() {
     }
 }
 
-let tickInterval = setInterval(() => {
-    const now = Date.now();
-    for (const [id, timer] of Object.entries(timers)) {
-        if (timer.timeout) {
-            timer.seconds = Math.max(0, Math.round((timer.endTime - now) / 1000));
+function broadcastToWindows(channel, ...args) {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, ...args);
+    if (pomoTimerWindow && !pomoTimerWindow.isDestroyed()) pomoTimerWindow.webContents.send(channel, ...args);
+    if (microSprintTimerWindow && !microSprintTimerWindow.isDestroyed()) microSprintTimerWindow.webContents.send(channel, ...args);
+    if (flowTimerWindow && !flowTimerWindow.isDestroyed()) flowTimerWindow.webContents.send(channel, ...args);
+    if (fullscreenWindow && !fullscreenWindow.isDestroyed()) fullscreenWindow.webContents.send(channel, ...args);
+}
+
+function startTimerService() {
+    if (timerInterval) return;
+    timerInterval = setInterval(() => {
+        const now = Date.now();
+        let activeTimersCount = 0;
+
+        for (const id in timers) {
+            const timer = timers[id];
+            if (!timer.isRunning) continue;
+
+            activeTimersCount++;
+            const remaining = Math.max(0, Math.round((timer.endTime - now) / 1000));
+            
+            // Broadcast tick
+            broadcastToWindows('timer-tick', { id, remaining, total: timer.totalSeconds });
+
+            if (remaining <= 0) {
+                timer.isRunning = false;
+                timer.remainingSeconds = 0;
+                broadcastToWindows(`timer-complete-${id}`);
+                
+                if (id.includes('break') || id.includes('pomo')) {
+                    forceKillFullscreen();
+                }
+            }
         }
-        const state = {
-            id,
-            running: !!timer.timeout,
-            seconds: timer.seconds || 0,
-            phase: timer.phase || '',
-            percent: timer.percent
-        };
-        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('timer-tick', state);
-        if (pomoTimerWindow && !pomoTimerWindow.isDestroyed()) pomoTimerWindow.webContents.send('timer-tick', state);
-        if (microSprintTimerWindow && !microSprintTimerWindow.isDestroyed()) microSprintTimerWindow.webContents.send('timer-tick', state);
-        if (fullscreenWindow && !fullscreenWindow.isDestroyed()) fullscreenWindow.webContents.send('timer-tick', state);
-    }
-}, 1000);
+
+        if (activeTimersCount === 0) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+    }, 1000);
+}
 
 // --- IPC Listeners ---
 
 ipcMain.on('start-timer', (event, data) => {
+    if (!isOriginSafe(event)) return;
     const { id, seconds } = data;
-    if (timers[id] && timers[id].timeout) clearTimeout(timers[id].timeout);
-    
     const durationMs = seconds * 1000;
     const endTime = Date.now() + durationMs;
 
     timers[id] = {
-        seconds: seconds,
+        totalSeconds: seconds,
+        remainingSeconds: seconds,
         endTime: endTime,
-        timeout: setTimeout(() => {
-            timers[id].seconds = 0;
-            timers[id].timeout = null;
-            if (mainWindow && !mainWindow.isDestroyed()) {
-                mainWindow.webContents.send(`timer-complete-${id}`);
-            }
-            // Forcefully close the blocker from the backend when the timer genuinely completes
-                if (id.includes('break') || id.includes('pomo')) {
-                    forceKillFullscreen();
-            }
-        }, durationMs)
+        isRunning: true
     };
 
-    if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send(`timer-started-${id}`, endTime);
-    }
+    broadcastToWindows(`timer-started-${id}`, { endTime, seconds });
+    startTimerService();
 });
 
 ipcMain.on('stop-timer', (event, id) => {
-    if (timers[id] && timers[id].timeout) {
-        clearTimeout(timers[id].timeout);
-        timers[id].timeout = null;
-        timers[id].seconds = 0;
+    if (timers[id]) {
+        timers[id].isRunning = false;
+        timers[id].remainingSeconds = 0;
     }
-    if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send(`timer-stopped-${id}`);
-    }
+    broadcastToWindows(`timer-stopped-${id}`);
     if (id.includes('break') || id.includes('pomo')) {
         forceKillFullscreen();
     }
 });
 
 ipcMain.on('pause-timer', (event, id) => {
-    if (timers[id] && timers[id].timeout) {
-        clearTimeout(timers[id].timeout);
-        timers[id].timeout = null;
-        const remaining = Math.round((timers[id].endTime - Date.now()) / 1000);
-        timers[id].seconds = Math.max(0, remaining);
+    if (timers[id] && timers[id].isRunning) {
+        timers[id].isRunning = false;
+        timers[id].remainingSeconds = Math.max(0, Math.round((timers[id].endTime - Date.now()) / 1000));
     }
-    if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send(`timer-paused-${id}`);
-    }
+    broadcastToWindows(`timer-paused-${id}`, timers[id] ? timers[id].remainingSeconds : 0);
 });
 
 ipcMain.on('resume-timer', (event, id) => {
-    if (timers[id] && !timers[id].timeout && timers[id].seconds > 0) {
-        const durationMs = timers[id].seconds * 1000;
+    if (timers[id] && !timers[id].isRunning && timers[id].remainingSeconds > 0) {
+        const durationMs = timers[id].remainingSeconds * 1000;
         const endTime = Date.now() + durationMs;
         timers[id].endTime = endTime;
+        timers[id].isRunning = true;
         
-        timers[id].timeout = setTimeout(() => {
-            timers[id].seconds = 0;
-            timers[id].timeout = null;
-            if (mainWindow && !mainWindow.isDestroyed()) {
-                mainWindow.webContents.send(`timer-complete-${id}`);
-            }
-            // Forcefully close the blocker from the backend when the timer genuinely completes
-                if (id.includes('break') || id.includes('pomo')) {
-                    forceKillFullscreen();
-            }
-        }, durationMs);
-
-        if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send(`timer-resumed-${id}`, endTime);
-        }
+        broadcastToWindows(`timer-resumed-${id}`, { endTime, seconds: timers[id].remainingSeconds });
+        startTimerService();
     }
 });
 
@@ -985,6 +1017,28 @@ ipcMain.on('blocker-stop', () => {
 });
 
 function runElevated(args, callback) {
+    // Basic validation of args to prevent shell injection
+    // Whitelist: 'clear', 'apply-file "<path>"'
+    const allowedCommands = ['clear', 'apply-file'];
+    const parts = args.split(' ');
+    const commandPart = parts[0];
+
+    if (!allowedCommands.includes(commandPart)) {
+        console.error('[Security] Blocked unauthorized elevated command:', commandPart);
+        if (callback) callback(new Error('Unauthorized command'));
+        return;
+    }
+
+    // For apply-file, ensure the path is a valid string and doesn't contain suspicious characters
+    if (commandPart === 'apply-file') {
+        const filePath = args.substring(commandPart.length).trim().replace(/^"|"$/g, '');
+        if (!filePath || filePath.includes(';') || filePath.includes('&') || filePath.includes('|') || filePath.includes('$') || filePath.includes('>') || filePath.includes('<')) {
+            console.error('[Security] Blocked suspicious file path in elevated command:', filePath);
+            if (callback) callback(new Error('Invalid file path'));
+            return;
+        }
+    }
+
     const nodePath = process.execPath;
     // On Windows, we use ELECTRON_RUN_AS_NODE to execute a script with the Electron binary
     const command = app.isPackaged 
@@ -1044,21 +1098,22 @@ ipcMain.on('update-blocker-rules', (event, rules) => {
         const domains = Array.from(allHosts);
         const tempPath = path.join(app.getPath('userData'), 'fokus_domains.json');
         
-        try {
-            fs.writeFileSync(tempPath, JSON.stringify(domains));
-            runElevated(`apply-file "${tempPath}"`, (error, stdout, stderr) => {
-                if (error) {
-                    console.error('[Block] Blocker elevation error:', error);
-                    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('blocker-error', error.message);
-                } else {
-                    blocksApplied = true;
-                    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('blocker-status', 'Domains blocked successfully');
-                }
+        fs.promises.writeFile(tempPath, JSON.stringify(domains))
+            .then(() => {
+                runElevated(`apply-file "${tempPath}"`, (error, stdout, stderr) => {
+                    if (error) {
+                        console.error('[Block] Blocker elevation error:', error);
+                        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('blocker-error', error.message);
+                    } else {
+                        blocksApplied = true;
+                        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('blocker-status', 'Domains blocked successfully');
+                    }
+                });
+            })
+            .catch(e => {
+                console.error('[Block] File write error:', e);
+                if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('blocker-error', 'Failed to prepare domain list.');
             });
-        } catch (e) {
-            console.error('[Block] File write error:', e);
-            if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('blocker-error', 'Failed to prepare domain list.');
-        }
     } else {
         console.log('[Block] Clearing blocks and stopping proxy');
         stopProxy();
@@ -1140,7 +1195,6 @@ app.on('before-quit', () => {
 let isClearingOnQuit = false;
 app.on('will-quit', (e) => {
     // Gracefully clear all recurring background processes and active timers on quit
-    clearInterval(tickInterval);
     for (const key in timers) {
         if (timers[key].timeout) clearTimeout(timers[key].timeout);
     }

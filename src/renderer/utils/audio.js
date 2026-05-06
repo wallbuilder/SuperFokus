@@ -59,11 +59,12 @@ const chimeSelector = document.getElementById('chime-selector');
 const chimeFileInput = document.getElementById('chime-file-input');
 const uploadChimeBtn = document.getElementById('upload-chime-btn');
 
-// Load saved custom chime
-const savedCustomChime = store.get('customChimeData', null);
-if (savedCustomChime && chimeSelector) {
-    chimeAudio.src = savedCustomChime;
-    chimeSelector.value = 'custom';
+export async function initAudio() {
+    const savedCustomChime = await store.get('customChimeData', null);
+    if (savedCustomChime && chimeSelector) {
+        chimeAudio.src = savedCustomChime;
+        chimeSelector.value = 'custom';
+    }
 }
 
 if (uploadChimeBtn && chimeFileInput) {
@@ -87,9 +88,10 @@ if (uploadChimeBtn && chimeFileInput) {
 }
 
 if (chimeSelector) {
-    chimeSelector.addEventListener('change', (e) => {
-        if (e.target.value === 'custom' && store.get('customChimeData')) {
-            chimeAudio.src = store.get('customChimeData');
+    chimeSelector.addEventListener('change', async (e) => {
+        const customData = await store.get('customChimeData');
+        if (e.target.value === 'custom' && customData) {
+            chimeAudio.src = customData;
         } else {
             chimeAudio.src = e.target.value;
         }

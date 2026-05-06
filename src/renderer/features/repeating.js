@@ -1,9 +1,19 @@
 import { ipcRenderer } from '../utils/ipc.js';
 import { playChime } from '../utils/audio.js';
 import { store } from '../utils/storage.js';
+import { sharedState } from '../utils/state.js';
 import { customAlert } from '../ui/modals.js';
 import { recordFocusSession } from '../utils/stats.js';
 import { formatTime, setInputsLocked, toggleStartStopButton } from '../utils/ui-helpers.js';
+
+// --- Repeating State ---
+export const repeatingState = {
+    repeatingTimer: 0,
+    currentRounds: 0,
+    isRepeatingRunning: false,
+    isRepeatingPaused: false,
+    currentRepeatingTotalSeconds: 0
+};
 
 const infiniteRoundsCheckbox = document.getElementById('infinite-rounds');
 const roundsContainer = document.getElementById('rounds-container');
@@ -19,12 +29,6 @@ const repeatingTimerDisplay = document.getElementById('repeating-timer-display')
 const repeatingTimeLeft = document.getElementById('repeating-time-left');
 const repeatingRoundsLeft = document.getElementById('repeating-rounds-left');
 
-let repeatingTimer = 0;
-let currentRounds = 0;
-export let isRepeatingRunning = false;
-let isRepeatingPaused = false;
-let currentRepeatingTotalSeconds = 0;
-
 if (infiniteRoundsCheckbox) {
     infiniteRoundsCheckbox.addEventListener('change', (event) => {
         if (event.target.checked) {
@@ -38,36 +42,38 @@ if (infiniteRoundsCheckbox) {
 }
 
 function updateRepeatingDisplay() {
-    if (repeatingTimeLeft) repeatingTimeLeft.innerText = formatTime(repeatingTimer);
+    if (repeatingTimeLeft) repeatingTimeLeft.innerText = formatTime(repeatingState.repeatingTimer);
     if (repeatingRoundsLeft) {
         if (infiniteRoundsCheckbox && infiniteRoundsCheckbox.checked) {
             repeatingRoundsLeft.innerText = 'Infinite rounds remaining. Press Stop to exit this mode.';
         } else {
-            repeatingRoundsLeft.innerText = `Rounds remaining: ${currentRounds}`;
+            repeatingRoundsLeft.innerText = `Rounds remaining: ${repeatingState.currentRounds}`;
         }
     }
 }
 
-let repeatingLocalInterval = null;
-function updateLocalRepeatingTimer(endTime) {
-    // Local timer removed in v0.9.2 - now synced via timer-tick IPC from main.js
-}
-
 ipcRenderer.on('timer-tick', (data) => {
     if (data.id === 'repeating') {
-        repeatingTimer = data.seconds;
+        repeatingState.repeatingTimer = data.remaining;
         updateRepeatingDisplay();
     }
 });
 
-ipcRenderer.on('timer-started-repeating', (endTime) => updateLocalRepeatingTimer(endTime));
-ipcRenderer.on('timer-resumed-repeating', (endTime) => updateLocalRepeatingTimer(endTime));
-ipcRenderer.on('timer-paused-repeating', () => {
-    if (repeatingLocalInterval) clearInterval(repeatingLocalInterval);
+ipcRenderer.on('timer-started-repeating', (data) => {
+    // Ticks handled by timer-tick
 });
+
+ipcRenderer.on('timer-resumed-repeating', (data) => {
+    // Ticks handled by timer-tick
+});
+
+ipcRenderer.on('timer-paused-repeating', (remainingSeconds) => {
+    repeatingState.repeatingTimer = remainingSeconds;
+    updateRepeatingDisplay();
+});
+
 ipcRenderer.on('timer-stopped-repeating', () => {
-    if (repeatingLocalInterval) clearInterval(repeatingLocalInterval);
-    repeatingTimer = 0;
+    repeatingState.repeatingTimer = 0;
     updateRepeatingDisplay();
 });
 
@@ -80,21 +86,21 @@ ipcRenderer.on('timer-complete-repeating', () => {
         type: 'Repeating Reminder',
         isAutoclose: true
     });
-    recordFocusSession(Math.round(currentRepeatingTotalSeconds / 60), 'Repeating Reminder');
+    recordFocusSession(Math.round(repeatingState.currentRepeatingTotalSeconds / 60), 'Repeating Reminder');
     
     if (infiniteRoundsCheckbox && !infiniteRoundsCheckbox.checked) {
-        currentRounds--;
+        repeatingState.currentRounds--;
     }
 
-    if (currentRounds <= 0 && (!infiniteRoundsCheckbox || !infiniteRoundsCheckbox.checked)) {
+    if (repeatingState.currentRounds <= 0 && (!infiniteRoundsCheckbox || !infiniteRoundsCheckbox.checked)) {
         stopRepeatingReminders();
-        if (window.isWorkflowRunningFlag) {
-            setTimeout(() => { if (typeof window.triggerNextWorkflowBlock === 'function') window.triggerNextWorkflowBlock(); }, 500);
+        if (sharedState.isWorkflowRunning) {
+            setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
         }
     } else {
-        repeatingTimer = currentRepeatingTotalSeconds;
+        repeatingState.repeatingTimer = repeatingState.currentRepeatingTotalSeconds;
         updateRepeatingDisplay();
-        ipcRenderer.send('start-timer', { id: 'repeating', seconds: repeatingTimer });
+        ipcRenderer.send('start-timer', { id: 'repeating', seconds: repeatingState.repeatingTimer });
     }
 });
 
@@ -114,11 +120,11 @@ export function startRepeatingReminders() {
         return;
     }
 
-    currentRepeatingTotalSeconds = totalSeconds;
-    isRepeatingRunning = true;
-    isRepeatingPaused = false;
-    currentRounds = isInfinite ? Infinity : rounds;
-    repeatingTimer = totalSeconds;
+    repeatingState.currentRepeatingTotalSeconds = totalSeconds;
+    repeatingState.isRepeatingRunning = true;
+    repeatingState.isRepeatingPaused = false;
+    repeatingState.currentRounds = isInfinite ? Infinity : rounds;
+    repeatingState.repeatingTimer = totalSeconds;
     
     toggleStartStopButton(startRepeatingBtn);
     setInputsLocked('config-repeating-reminders', true);
@@ -129,12 +135,12 @@ export function startRepeatingReminders() {
     }
     updateRepeatingDisplay();
 
-    ipcRenderer.send('start-timer', { id: 'repeating', seconds: repeatingTimer });
+    ipcRenderer.send('start-timer', { id: 'repeating', seconds: repeatingState.repeatingTimer });
 }
 
 export function stopRepeatingReminders() {
-    isRepeatingRunning = false;
-    isRepeatingPaused = false;
+    repeatingState.isRepeatingRunning = false;
+    repeatingState.isRepeatingPaused = false;
     ipcRenderer.send('stop-timer', 'repeating');
     toggleStartStopButton(startRepeatingBtn);
     setInputsLocked('config-repeating-reminders', false);
@@ -148,11 +154,11 @@ export function stopRepeatingReminders() {
 
 if (startRepeatingBtn) {
     startRepeatingBtn.addEventListener('click', () => {
-        if (!isRepeatingRunning) {
+        if (!repeatingState.isRepeatingRunning) {
             startRepeatingReminders();
         } else {
             stopRepeatingReminders();
-            if (window.isWorkflowRunningFlag) {
+            if (sharedState.isWorkflowRunning) {
                 const stopWf = document.getElementById('stop-workflow-btn');
                 if (stopWf) stopWf.click();
             }
@@ -169,7 +175,12 @@ const repeatingPresetNameInput = document.getElementById('repeating-preset-name-
 const confirmSaveRepeatingPresetBtn = document.getElementById('confirm-save-repeating-preset-btn');
 const cancelSaveRepeatingPresetBtn = document.getElementById('cancel-save-repeating-preset-btn');
 
-let repeatingPresets = store.get('repeatingPresets', {});
+let repeatingPresets = {};
+
+export async function initRepeating() {
+    repeatingPresets = await store.get('repeatingPresets', {});
+    updateRepeatingPresetOptions();
+}
 
 function updateRepeatingPresetOptions() {
     if (!repeatingPresetsSelect) return;
@@ -185,7 +196,6 @@ function updateRepeatingPresetOptions() {
         repeatingPresetsSelect.appendChild(option);
     });
 }
-updateRepeatingPresetOptions();
 
 if (repeatingPresetsSelect) {
     repeatingPresetsSelect.addEventListener('change', (e) => {
@@ -193,7 +203,22 @@ if (repeatingPresetsSelect) {
         if (deleteRepeatingPresetBtn) {
             deleteRepeatingPresetBtn.style.display = val.startsWith('custom-preset-') ? 'block' : 'none';
         }
-        if (val.startsWith('custom-preset-')) {
+        if (val === 'concentration') {
+            if (reminderIntervalInput) reminderIntervalInput.value = 0;
+            if (reminderIntervalSecondsInput) reminderIntervalSecondsInput.value = 30;
+            if (reminderRoundsInput) reminderRoundsInput.value = 5;
+            if (reminderMessageInput) reminderMessageInput.value = "Stay focused! Keep up the concentration.";
+        } else if (val === 'high-intensity') {
+            if (reminderIntervalInput) reminderIntervalInput.value = 0;
+            if (reminderIntervalSecondsInput) reminderIntervalSecondsInput.value = 20;
+            if (reminderRoundsInput) reminderRoundsInput.value = 10;
+            if (reminderMessageInput) reminderMessageInput.value = "High-intensity work! Push through!";
+        } else if (val === 'quick-work') {
+            if (reminderIntervalInput) reminderIntervalInput.value = 1;
+            if (reminderIntervalSecondsInput) reminderIntervalSecondsInput.value = 0;
+            if (reminderRoundsInput) reminderRoundsInput.value = 5;
+            if (reminderMessageInput) reminderMessageInput.value = "Quick work sprint. Stay on task.";
+        } else if (val.startsWith('custom-preset-')) {
             const key = val.replace('custom-preset-', '');
             if (repeatingPresets[key]) {
                 const data = repeatingPresets[key];
@@ -268,15 +293,15 @@ export function initializeRepeatingButtonListeners() {
       const btn = e.target.closest('#pause-repeating-btn');
       if (btn) {
         // Allow pause/resume if timer has been started, regardless of current state
-        if (!isRepeatingPaused) {
+        if (!repeatingState.isRepeatingPaused) {
           ipcRenderer.send('pause-timer', 'repeating');
-          isRepeatingPaused = true;
+          repeatingState.isRepeatingPaused = true;
           const repeatingDisplay = document.getElementById('repeating-timer-display');
           if (repeatingDisplay) repeatingDisplay.classList.add('paused');
           btn.innerText = 'Resume \u25B6\uFE0F';
         } else {
           ipcRenderer.send('resume-timer', 'repeating');
-          isRepeatingPaused = false;
+          repeatingState.isRepeatingPaused = false;
           const repeatingDisplay = document.getElementById('repeating-timer-display');
           if (repeatingDisplay) repeatingDisplay.classList.remove('paused');
           btn.innerText = 'Pause \u23F8';
