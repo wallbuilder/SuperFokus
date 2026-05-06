@@ -14,13 +14,14 @@ const customThemeOptions = document.getElementById('custom-theme-options');
 // Custom Theme Colors
 const customMainColor = document.getElementById('custom-main-color');
 const customAccentColor = document.getElementById('custom-accent-color');
+const customHeaderTitleColor = document.getElementById('custom-header-title-color');
 const customH1Color = document.getElementById('custom-h1-color');
 const customH2Color = document.getElementById('custom-h2-color');
 const customH3Color = document.getElementById('custom-h3-color');
 const customTextColor = document.getElementById('custom-text-color');
 const customBg1Color = document.getElementById('custom-bg1-color');
+const customBg1GradColor = document.getElementById('custom-bg1-grad-color');
 const customBg2Color = document.getElementById('custom-bg2-color');
-const customContainerBgColor = document.getElementById('custom-container-bg-color');
 const resetThemeColorsBtn = document.getElementById('reset-theme-colors-btn');
 
 // Settings Dropdown Elements
@@ -76,23 +77,25 @@ export async function initTheme() {
 
     const savedMain = await store.get('customMainColor', null);
     const savedAccent = await store.get('customAccentColor', null);
+    const savedHeaderTitle = await store.get('customHeaderTitleColor', null);
     const savedH1 = await store.get('customH1Color', null);
     const savedH2 = await store.get('customH2Color', null);
     const savedH3 = await store.get('customH3Color', null);
     const savedText = await store.get('customTextColor', null);
     const savedBg1 = await store.get('customBg1Color', null);
+    const savedBg1Grad = await store.get('customBg1GradColor', null);
     const savedBg2 = await store.get('customBg2Color', null);
-    const savedContainerBg = await store.get('customContainerBgColor', null);
     
     if (savedMain && customMainColor) customMainColor.value = savedMain;
     if (savedAccent && customAccentColor) customAccentColor.value = savedAccent;
+    if (savedHeaderTitle && customHeaderTitleColor) customHeaderTitleColor.value = savedHeaderTitle;
     if (savedH1 && customH1Color) customH1Color.value = savedH1;
     if (savedH2 && customH2Color) customH2Color.value = savedH2;
     if (savedH3 && customH3Color) customH3Color.value = savedH3;
     if (savedText && customTextColor) customTextColor.value = savedText;
     if (savedBg1 && customBg1Color) customBg1Color.value = savedBg1;
+    if (savedBg1Grad && customBg1GradColor) customBg1GradColor.value = savedBg1Grad;
     if (savedBg2 && customBg2Color) customBg2Color.value = savedBg2;
-    if (savedContainerBg && customContainerBgColor) customContainerBgColor.value = savedContainerBg;
 
     if (toggleSelect1) toggleSelect1.value = toggleState1;
     if (toggleSelect2) toggleSelect2.value = toggleState2;
@@ -121,13 +124,14 @@ function updateHeaderToggleButtonText() {
 function applyTheme() {
     const savedMain = customMainColor ? customMainColor.value : '#6a11cb';
     const savedAccent = customAccentColor ? customAccentColor.value : '#2575fc';
+    const savedHeaderTitle = customHeaderTitleColor ? customHeaderTitleColor.value : '#ffffff';
     const savedH1 = customH1Color ? customH1Color.value : '#2c3e50';
     const savedH2 = customH2Color ? customH2Color.value : '#2c3e50';
     const savedH3 = customH3Color ? customH3Color.value : '#2c3e50';
     const savedText = customTextColor ? customTextColor.value : '#4a4a4a';
     const savedBg1 = customBg1Color ? customBg1Color.value : '#f5f7fa';
-    const savedBg2 = customBg2Color ? customBg2Color.value : '#c3cfe2';
-    const savedContainerBg = customContainerBgColor ? customContainerBgColor.value : '#ffffff';
+    const savedBg1Grad = customBg1GradColor ? customBg1GradColor.value : '#c3cfe2';
+    const savedBg2 = customBg2Color ? customBg2Color.value : '#ffffff';
 
     // Reset standard styles
     document.documentElement.style.removeProperty('--header-grad-1');
@@ -161,13 +165,14 @@ function applyTheme() {
     } else if (currentThemeMode === 'custom') {
         document.documentElement.style.setProperty('--header-grad-1', savedMain);
         document.documentElement.style.setProperty('--header-grad-2', savedAccent);
+        document.documentElement.style.setProperty('--header-title-color', savedHeaderTitle);
         document.documentElement.style.setProperty('--h1-color', savedH1);
         document.documentElement.style.setProperty('--h2-color', savedH2);
         document.documentElement.style.setProperty('--h3-color', savedH3);
         document.documentElement.style.setProperty('--text-color', savedText);
         document.documentElement.style.setProperty('--bg-grad-1', savedBg1);
-        document.documentElement.style.setProperty('--bg-grad-2', savedBg2);
-        document.documentElement.style.setProperty('--container-bg', savedContainerBg);
+        document.documentElement.style.setProperty('--bg-grad-2', savedBg1Grad);
+        document.documentElement.style.setProperty('--container-bg', savedBg2);
         ipcRenderer.send('theme-changed', false);
     }
 
@@ -219,36 +224,39 @@ const applyColorChange = () => { if (currentThemeMode === 'custom') applyTheme()
 
 if (customMainColor) customMainColor.addEventListener('input', (e) => { store.set('customMainColor', e.target.value); applyColorChange(); });
 if (customAccentColor) customAccentColor.addEventListener('input', (e) => { store.set('customAccentColor', e.target.value); applyColorChange(); });
+if (customHeaderTitleColor) customHeaderTitleColor.addEventListener('input', (e) => { store.set('customHeaderTitleColor', e.target.value); applyColorChange(); });
 if (customH1Color) customH1Color.addEventListener('input', (e) => { store.set('customH1Color', e.target.value); applyColorChange(); });
 if (customH2Color) customH2Color.addEventListener('input', (e) => { store.set('customH2Color', e.target.value); applyColorChange(); });
 if (customH3Color) customH3Color.addEventListener('input', (e) => { store.set('customH3Color', e.target.value); applyColorChange(); });
 if (customTextColor) customTextColor.addEventListener('input', (e) => { store.set('customTextColor', e.target.value); applyColorChange(); });
 if (customBg1Color) customBg1Color.addEventListener('input', (e) => { store.set('customBg1Color', e.target.value); applyColorChange(); });
+if (customBg1GradColor) customBg1GradColor.addEventListener('input', (e) => { store.set('customBg1GradColor', e.target.value); applyColorChange(); });
 if (customBg2Color) customBg2Color.addEventListener('input', (e) => { store.set('customBg2Color', e.target.value); applyColorChange(); });
-if (customContainerBgColor) customContainerBgColor.addEventListener('input', (e) => { store.set('customContainerBgColor', e.target.value); applyColorChange(); });
 
 if (resetThemeColorsBtn) {
     resetThemeColorsBtn.addEventListener('click', () => {
         if (confirm('Are you sure you want to revert back to the default custom colors?')) {
             store.delete('customMainColor');
             store.delete('customAccentColor');
+            store.delete('customHeaderTitleColor');
             store.delete('customH1Color');
             store.delete('customH2Color');
             store.delete('customH3Color');
             store.delete('customTextColor');
             store.delete('customBg1Color');
+            store.delete('customBg1GradColor');
             store.delete('customBg2Color');
-            store.delete('customContainerBgColor');
+
             if (customMainColor) customMainColor.value = '#6a11cb';
             if (customAccentColor) customAccentColor.value = '#2575fc';
-            if (customHeaderTextColor) customHeaderTextColor.value = '#ffffff';
+            if (customHeaderTitleColor) customHeaderTitleColor.value = '#ffffff';
             if (customH1Color) customH1Color.value = '#2c3e50';
             if (customH2Color) customH2Color.value = '#2c3e50';
             if (customH3Color) customH3Color.value = '#2c3e50';
             if (customTextColor) customTextColor.value = '#4a4a4a';
             if (customBg1Color) customBg1Color.value = '#f5f7fa';
-            if (customBg2Color) customBg2Color.value = '#c3cfe2';
-            if (customContainerBgColor) customContainerBgColor.value = '#ffffff';
+            if (customBg1GradColor) customBg1GradColor.value = '#c3cfe2';
+            if (customBg2Color) customBg2Color.value = '#ffffff';
             applyColorChange();
         }
     });
