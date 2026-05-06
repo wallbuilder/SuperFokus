@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:;">
     <meta charset="UTF-8">
     <title>SuperFokus Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,7 +16,10 @@
       @property --container-bg { syntax: '<color>'; initial-value: rgba(255, 255, 255, 0.9); inherits: true; }
       @property --text-color { syntax: '<color>'; initial-value: #4a4a4a; inherits: true; }
       @property --heading-color { syntax: '<color>'; initial-value: #2c3e50; inherits: true; }
-      @property --border-color { syntax: '<color>'; initial-value: #eee; inherits: true; }
+      @property --h1-color { syntax: '<color>'; initial-value: #2c3e50; inherits: true; }
+      @property --h2-color { syntax: '<color>'; initial-value: #2c3e50; inherits: true; }
+      @property --h3-color { syntax: '<color>'; initial-value: #2c3e50; inherits: true; }
+      @property --border-color { syntax: '<color>'; initial-value: #ccc; inherits: true; }
       @property --input-border { syntax: '<color>'; initial-value: #dfe6e9; inherits: true; }
       @property --input-bg { syntax: '<color>'; initial-value: #fcfdfe; inherits: true; }
       @property --timer-bg { syntax: '<color>'; initial-value: #f8f9fa; inherits: true; }
@@ -58,6 +62,9 @@
         --header-grad-2: #e94560;
         --container-bg: transparent;
         --heading-color: #f1f2f6;
+        --h1-color: #f1f2f6;
+        --h2-color: #f1f2f6;
+        --h3-color: #f1f2f6;
         --border-color: #2c3e50;
         --input-border: #34495e;
         --input-bg: #0f3460;
@@ -241,8 +248,10 @@
           grid-column: span 4;
         }
       }
-      h2, h3 { color: var(--heading-color); font-weight: 500; }
-      h2 { margin-top: 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; }
+      .container h1 { color: var(--h1-color, var(--text-color)); }
+      h2, h3 { font-weight: 500; }
+      h2 { color: var(--h2-color, var(--heading-color)); margin-top: 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; }
+      h3 { color: var(--h3-color, var(--heading-color)); }
       .form-group { margin-bottom: 1.5rem; }
       label { display: block; margin-bottom: 0.6rem; font-weight: 500; font-size: 0.95rem; }
       .inline-label { display: inline-block; margin-right: 1.2rem; font-weight: normal; }
@@ -538,7 +547,7 @@
     <div id="startup-screen">
       <div class="startup-content">
         <h1>SuperFokus</h1>
-        <div id="startup-version">v1.0.0 Alpha</div>
+        <div id="startup-version">v1.0.0 Beta-2</div>
       </div>
       <div id="startup-loading-text" style="position: absolute; bottom: 65px; left: 0; right: 0; margin: 0 auto; width: 500px; text-align: center; font-size: 0.85rem; color: rgba(255,255,255,0.8); opacity: 0; animation: slideUpFade 1.2s ease-out forwards 0.3s; letter-spacing: 0.5px;">Initializing...</div>
       <div id="startup-loading-bar-container" style="position: absolute; bottom: 50px; left: 0; right: 0; margin: 0 auto; width: 500px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; opacity: 0; animation: slideUpFade 1.2s ease-out forwards 0.3s;">
@@ -605,28 +614,125 @@
 
             <!-- Themes Tab -->
             <div id="tab-themes" class="tab-content active" style="display: block;">
-                <div class="form-group">
-                    <label>Theme Preference:</label>
-                    <button class="action-btn" id="theme-toggle-modal" style="background: var(--header-grad-1); margin-top: 0.5rem;">Toggle Dark Mode</button>
-                </div>
-                <div class="form-group">
-                    <label class="toggle-switch">
-                      <input type="checkbox" id="toggle-header-dark-mode" checked>
-                      <span class="slider"></span>
-                    </label> Show Dark Mode Toggle in Header
-                </div>
-                <div class="form-group">
-                    <label>Custom Theme Colors:</label>
-                    <div style="display: flex; gap: 15px; align-items: center; margin-top: 10px;">
-                        <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
-                            <label style="font-size: 0.85rem; color: var(--timer-subtext);">Main Color</label>
-                            <input type="color" id="custom-main-color" value="#6a11cb" style="width: 100%; height: 40px; border: none; border-radius: 8px; cursor: pointer; padding: 0; background: none;">
+                <div style="font-size: 1.1rem; margin-bottom: 15px; font-weight: 500;">Select current Theme:</div>
+                
+                <div style="display: flex; gap: 20px;">
+                    <!-- Left Column -->
+                    <div style="flex: 1; border-right: 1px solid var(--border-color); padding-right: 20px;">
+                        <h3 style="margin-top: 0; font-size: 1rem; color: var(--timer-subtext); margin-bottom: 15px;">Standard Themes</h3>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="radio" name="theme-selection" value="light" id="theme-radio-light" style="width: auto; margin: 0;">
+                                <span>Light Mode (default)</span>
+                            </label>
+                            
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="radio" name="theme-selection" value="dark" id="theme-radio-dark" style="width: auto; margin: 0;">
+                                <span>Dark Mode</span>
+                            </label>
+                            
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="radio" name="theme-selection" value="custom" id="theme-radio-custom" style="width: auto; margin: 0;">
+                                <span>@ Custom (create below)</span>
+                            </label>
                         </div>
-                        <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
-                            <label style="font-size: 0.85rem; color: var(--timer-subtext);">Accent Color</label>
-                            <input type="color" id="custom-accent-color" value="#2575fc" style="width: 100%; height: 40px; border: none; border-radius: 8px; cursor: pointer; padding: 0; background: none;">
+                    </div>
+                    
+                    <!-- Right Column -->
+                    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0.6;">
+                        <h3 style="margin-top: 0; font-size: 1rem; color: var(--timer-subtext); width: 100%; text-align: center; margin-bottom: 20px;">Premium Themes</h3>
+                        <div style="font-size: 4rem; margin: 10px 0; color: var(--timer-subtext);">🔒</div>
+                        <div style="font-weight: 500; font-size: 1.1rem; letter-spacing: 1px; color: var(--timer-subtext);">Coming soon</div>
+                    </div>
+                </div>
+
+                <div id="custom-theme-options" style="margin-top: 25px; padding-top: 20px; border-top: 2px solid var(--border-color); opacity: 0.5; pointer-events: none; transition: opacity 0.3s;">
+                    <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--timer-subtext); margin-bottom: 15px;">Custom Theme Creator</h3>
+                    <div style="display: flex; gap: 15px; align-items: flex-start; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">MAIN<br>color</label>
+                            <input type="color" id="custom-main-color" value="#6a11cb" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
                         </div>
-                        <button class="action-btn" id="reset-theme-colors-btn" style="flex: 1; margin-top: auto; padding: 0.75rem; background: var(--timer-bg); color: var(--text-color); border: 1px solid var(--border-color);">Reset</button>
+                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">ACCENT<br>color</label>
+                            <input type="color" id="custom-accent-color" value="#2575fc" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
+                        </div>
+                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">HEADING 1<br>color</label>
+                            <input type="color" id="custom-h1-color" value="#2c3e50" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
+                        </div>
+                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">HEADING 2<br>color</label>
+                            <input type="color" id="custom-h2-color" value="#2c3e50" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
+                        </div>
+                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">HEADING 3<br>color</label>
+                            <input type="color" id="custom-h3-color" value="#2c3e50" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
+                        </div>
+                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">NORMAL<br>text</label>
+                            <input type="color" id="custom-text-color" value="#4a4a4a" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
+                        </div>
+                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">BG 1<br>color</label>
+                            <input type="color" id="custom-bg1-color" value="#f5f7fa" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
+                        </div>
+                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">BG 2<br>color</label>
+                            <input type="color" id="custom-bg2-color" value="#c3cfe2" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
+                        </div>
+                    </div>
+                    <button class="action-btn" id="reset-theme-colors-btn" style="width: 100%; margin-top: 15px; padding: 0.6rem; background: var(--timer-bg); color: var(--text-color); border: 1px solid var(--border-color); font-size: 0.85rem;">Reset Custom Colors</button>
+                </div>
+
+                <div style="margin-top: 25px; border-top: 2px solid var(--border-color); padding-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <div style="font-weight: 500; font-size: 1.1rem;">Toggle settings</div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label class="toggle-switch" style="transform: scale(0.8);">
+                                <input type="checkbox" id="toggle-header-dark-mode-switch" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <span style="font-size: 0.9rem; color: var(--timer-subtext);">Show header toggle</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 15px; align-items: center;">
+                        <div style="position: relative; flex: 1;">
+                            <button id="toggle-option-1" class="action-btn" style="margin-top: 0; background: var(--timer-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 20px; padding: 0.6rem 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Light Mode</button>
+                            <div id="dropdown-option-1" style="display: none; position: absolute; bottom: calc(100% + 10px); left: 0; background: var(--container-bg); border: 2px solid var(--border-color); border-radius: 12px; padding: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 100; width: 180px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <span style="font-size: 0.9rem; font-weight: 500;">Select below ⤵</span>
+                                    <span id="close-dropdown-1" style="cursor: pointer; font-size: 0.8rem; background: var(--timer-bg); border-radius: 5px; padding: 2px 6px; border: 1px solid var(--border-color);">✕</span>
+                                </div>
+                                <select id="toggle-select-1" style="width: 100%; padding: 8px; font-size: 0.9rem; border-radius: 6px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-color);">
+                                    <option value="light">Light Mode</option>
+                                    <option value="dark">Dark Mode</option>
+                                    <option value="custom">Custom Theme</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div style="font-size: 1.5rem; color: var(--timer-subtext);">➔</div>
+                        
+                        <div style="position: relative; flex: 1;">
+                            <button id="toggle-option-2" class="action-btn" style="margin-top: 0; background: var(--timer-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 20px; padding: 0.6rem 1rem; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Dark Mode</button>
+                            <div id="dropdown-option-2" style="display: none; position: absolute; bottom: calc(100% + 10px); left: 0; background: var(--container-bg); border: 2px solid var(--border-color); border-radius: 12px; padding: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 100; width: 180px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <span style="font-size: 0.9rem; font-weight: 500;">Select below ⤵</span>
+                                    <span id="close-dropdown-2" style="cursor: pointer; font-size: 0.8rem; background: var(--timer-bg); border-radius: 5px; padding: 2px 6px; border: 1px solid var(--border-color);">✕</span>
+                                </div>
+                                <select id="toggle-select-2" style="width: 100%; padding: 8px; font-size: 0.9rem; border-radius: 6px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-color);">
+                                    <option value="light">Light Mode</option>
+                                    <option value="dark" selected>Dark Mode</option>
+                                    <option value="custom">Custom Theme</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div style="flex: 1; display: flex; justify-content: flex-end;">
+                            <button id="save-toggle-settings-btn" class="action-btn" style="margin-top: 0; padding: 0.6rem 1.5rem; background: #27ae60; color: white; border-radius: 20px; border: none; width: 100%;">Save</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -769,8 +875,8 @@
             <h2>Select Another Mode</h2>
             <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;" id="extra-mode-buttons">
                 <button class="action-btn extra-mode-btn" data-switch-mode="repeating-reminders" style="margin-top: 0; background: var(--header-grad-1);">Repeating Reminders</button>
-                <button class="action-btn extra-mode-btn" data-switch-mode="pomo-style" style="margin-top: 0; background: var(--header-grad-1);">Pmo Style</button>
-                <button class="action-btn exttra-mode-btn" data-switch-mode="micro-sprint" style="margin-top: 0; background: var(--header-grad-1);">Micro-Task Sprint</button>
+                <button class="action-btn extra-mode-btn" data-switch-mode="pomo-style" style="margin-top: 0; background: var(--header-grad-1);">Pomo Style</button>
+                <button class="action-btn extra-mode-btn" data-switch-mode="micro-sprint" style="margin-top: 0; background: var(--header-grad-1);">Micro-Task Sprint</button>
                 <button class="action-btn extra-mode-btn" data-switch-mode="flow-state" style="margin-top: 0; background: var(--header-grad-1);">Flow State Stopwatch</button>
                 <button class="action-btn extra-mode-btn" data-switch-mode="workflows" style="margin-top: 0; background: var(--header-grad-1);">Workflows</button>
             </div>
@@ -931,7 +1037,7 @@
               <option value="quick-study">Quick Study - 25/5</option>
               <option value="homework">Homework - 45/15</option>
             </select>
-            <button class="action-btn" id="delete-pomo-preset-btn" style="magin-top: 0; width: auto; padding: 0.85rem; background: #e74c3c; display: none;">Delete</button>
+            <button class="action-btn" id="delete-pomo-preset-btn" style="margin-top: 0; width: auto; padding: 0.85rem; background: #e74c3c; display: none;">Delete</button>
             <button class="action-btn" id="save-pomo-preset-btn" style="margin-top: 0; width: auto; padding: 0.85rem; background: var(--header-grad-1);">Save Preset</button>
           </div>
           <div id="save-preset-container" style="display: none; gap: 10px; margin-top: 10px;">
@@ -1136,7 +1242,7 @@
     <div style="position: fixed; bottom: 15px; left: 20px; font-size: 0.85rem; color: #95a5a6; font-weight: 500; z-index: 1000;">
       <a href="https://github.com/wallbuilder/SuperFokus" target="_blank" style="color: inherit; text-decoration: none;">GitHub Page</a>
     </div>
-    <div id="version">SuperFokus v1.0.0-beta-w </div>
+    <div id="version">SuperFokus v1.0.0-beta-2 </div>
 
     <!-- Audio for chimes -->
     <audio id="chime-audio" src="chime.mp3" preload="auto"></audio>

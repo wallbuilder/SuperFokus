@@ -6,6 +6,9 @@ export const store = {
     },
     set: (key, value) => {
         ipcRenderer.store.set(key, value);
+    },
+    delete: (key) => {
+        ipcRenderer.store.delete(key);
     }
 };
 

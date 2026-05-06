@@ -7,7 +7,10 @@ Before each commit, the contents of this file should be mostly discarded of, EXC
 Each new edit to the file that documents new changes should also list the date and time of implementation.
 [DO NOT DELETE THIS TEXT] >
 
-[Delete this line and add in your documentation here.]
+{5/5/2026 at 5:45 PM}
+    **Fixed Theme Application and Settings**
+    - Fixed an issue where the "Reset Custom Colors" button threw an error due to a missing storage deletion method. Added the required IPC method to `storage.js`, `preload.js`, and `main.js`.
+    - Fixed an issue where setting custom background colors (`--bg-grad-1` and `--bg-grad-2`) would permanently override the standard background colors when switching back to Dark Mode by updating the cleanup logic in `theme.js`.
 
 < [DO NOT DELETE THIS TEXT]
 (Example chunk of documentation: 

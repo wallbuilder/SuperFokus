@@ -5,7 +5,7 @@ const http = require('http');
 const net = require('net');
 const util = require('util');
 const sudo = require('sudo-prompt');
-const { normalizeHost } = require('./utils');
+const { normalizeHost } = require('../renderer/utils/utils.js');
 
 // Polyfills for sudo-prompt which expects these to exist on the util module
 if (typeof util.isObject !== 'function') {
@@ -21,13 +21,28 @@ let store;
     store = new Store();
 })();
 
+function isOriginSafe(event) {
+    try {
+        return new URL(event.senderFrame.url).protocol === 'file:';
+    } catch (e) {
+        return false;
+    }
+}
+
 // IPC Handlers for settings (electron-store)
 ipcMain.on('store-set', (event, key, value) => {
+    if (!isOriginSafe(event)) return;
     if (store) store.set(key, value);
 });
 
 ipcMain.handle('store-get', async (event, key, defaultValue) => {
+    if (!isOriginSafe(event)) return defaultValue;
     return store ? store.get(key, defaultValue) : defaultValue;
+});
+
+ipcMain.on('store-delete', (event, key) => {
+    if (!isOriginSafe(event)) return;
+    if (store) store.delete(key);
 });
 
 
@@ -204,11 +219,22 @@ function createWindow() {
        const useExternal = store ? store.get('githubExternalBrowser', true) : true;
        if (useExternal) {
            require('electron').shell.openExternal(url);
-           return { action: 'deny' };
+       } else {
+           // Safe internal opening is unsupported right now without a custom BrowserWindow. Force external.
+           require('electron').shell.openExternal(url);
        }
-       return { action: 'allow' };
+       return { action: 'deny' };
     }
-    return { action: 'allow' };
+    require('electron').shell.openExternal(url);
+    return { action: 'deny' };
+  });
+
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+      const parsedUrl = new URL(url);
+      if (parsedUrl.protocol !== 'file:') {
+          event.preventDefault();
+          require('electron').shell.openExternal(url);
+      }
   });
 
   mainWindow.on('close', (event) => {
@@ -656,7 +682,7 @@ function createFullscreenWindow(data) {
                 // WORKAROUND: Prevent premature window.close() calls from the broken internal timeout.
                 // Check exact remaining time. If it's less than 1 second, allow closing to prevent getting stuck due to tick desyncs.
                 const breakOrPomoRunning = Object.entries(timers).some(([id, t]) => {
-                    if (!t.timeout || (!id.includes('break') && !id.includes('pomo'))) return false;
+                    if (!t.isRunning || (!id.includes('break') && !id.includes('pomo'))) return false;
                     return (t.endTime - Date.now()) > 1000;
                 });
                 
@@ -784,6 +810,7 @@ function startTimerService() {
 // --- IPC Listeners ---
 
 ipcMain.on('start-timer', (event, data) => {
+    if (!isOriginSafe(event)) return;
     const { id, seconds } = data;
     const durationMs = seconds * 1000;
     const endTime = Date.now() + durationMs;
@@ -1005,7 +1032,7 @@ function runElevated(args, callback) {
     // For apply-file, ensure the path is a valid string and doesn't contain suspicious characters
     if (commandPart === 'apply-file') {
         const filePath = args.substring(commandPart.length).trim().replace(/^"|"$/g, '');
-        if (!filePath || filePath.includes(';') || filePath.includes('&') || filePath.includes('|')) {
+        if (!filePath || filePath.includes(';') || filePath.includes('&') || filePath.includes('|') || filePath.includes('$') || filePath.includes('>') || filePath.includes('<')) {
             console.error('[Security] Blocked suspicious file path in elevated command:', filePath);
             if (callback) callback(new Error('Invalid file path'));
             return;

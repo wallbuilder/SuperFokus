@@ -78,11 +78,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     store: {
         get: (key, defaultValue) => ipcRenderer.invoke('store-get', key, defaultValue),
-        set: (key, value) => ipcRenderer.send('store-set', key, value)
+        set: (key, value) => ipcRenderer.send('store-set', key, value),
+        delete: (key) => ipcRenderer.send('store-delete', key)
     },
     normalizeHost: (val) => {
         // Simple bridge for host normalization
-        const { normalizeHost } = require('./utils');
+        const { normalizeHost } = require('../renderer/utils/utils.js');
         return normalizeHost(val);
     },
     platform: process.platform
