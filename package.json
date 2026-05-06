@@ -6,7 +6,8 @@
   "scripts": {
     "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dist": "electron-builder --win"
+    "dist": "electron-builder --win",
+    "dist:mac": "electron-builder --mac"
   },
   "build": {
     "appId": "com.superfokus.app",
@@ -17,6 +18,12 @@
     "win": {
       "target": [
         "nsis"
+      ],
+      "icon": "assets/fokusicon.png"
+    },
+    "mac": {
+      "target": [
+        "dmg"
       ],
       "icon": "assets/fokusicon.png"
     },
