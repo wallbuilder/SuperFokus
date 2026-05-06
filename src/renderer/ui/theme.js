@@ -217,23 +217,27 @@ if (customBg2Color) customBg2Color.addEventListener('input', (e) => { store.set(
 
 if (resetThemeColorsBtn) {
     resetThemeColorsBtn.addEventListener('click', () => {
-        store.delete('customMainColor');
-        store.delete('customAccentColor');
-        store.delete('customH1Color');
-        store.delete('customH2Color');
-        store.delete('customH3Color');
-        store.delete('customTextColor');
-        store.delete('customBg1Color');
-        store.delete('customBg2Color');
-        if (customMainColor) customMainColor.value = '#6a11cb';
-        if (customAccentColor) customAccentColor.value = '#2575fc';
-        if (customH1Color) customH1Color.value = '#2c3e50';
-        if (customH2Color) customH2Color.value = '#2c3e50';
-        if (customH3Color) customH3Color.value = '#2c3e50';
-        if (customTextColor) customTextColor.value = '#4a4a4a';
-        if (customBg1Color) customBg1Color.value = '#f5f7fa';
-        if (customBg2Color) customBg2Color.value = '#c3cfe2';
-        applyColorChange();
+        if (confirm('Are you sure you want to revert back to the default custom colors?')) {
+            store.delete('customMainColor');
+            store.delete('customAccentColor');
+            store.delete('customH1Color');
+            store.delete('customH2Color');
+            store.delete('customH3Color');
+            store.delete('customTextColor');
+            store.delete('customBg1Color');
+            store.delete('customBg2Color');
+            store.delete('customContainerBgColor');
+            if (customMainColor) customMainColor.value = '#6a11cb';
+            if (customAccentColor) customAccentColor.value = '#2575fc';
+            if (customH1Color) customH1Color.value = '#2c3e50';
+            if (customH2Color) customH2Color.value = '#2c3e50';
+            if (customH3Color) customH3Color.value = '#2c3e50';
+            if (customTextColor) customTextColor.value = '#4a4a4a';
+            if (customBg1Color) customBg1Color.value = '#f5f7fa';
+            if (customBg2Color) customBg2Color.value = '#c3cfe2';
+            if (customContainerBgColor) customContainerBgColor.value = '#ffffff';
+            applyColorChange();
+        }
     });
 }
 
