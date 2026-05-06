@@ -13,9 +13,10 @@ Each new edit to the file that documents new changes should also list the date a
     - Fixed an issue where setting custom background colors (`--bg-grad-1` and `--bg-grad-2`) would permanently override the standard background colors when switching back to Dark Mode by updating the cleanup logic in `theme.js`.
 
 {5/5/2026 at 6:00 PM}
-    **UI Customization Adjustments**
+    **UI Customization Adjustments & Bug Fix**
     - Renamed "BG 2 COLOR" to "BG 1 GRADIENT" in the Custom Theme creator.
     - Added a new color picker for the main application "pad" labeled "BG 2 COLOR", which controls the `--container-bg` variable.
+    - Fixed an issue where the new pad color was not applying due to a race condition in file writing by sequentially patching `theme.js` logic.
     - Updated the reset colors button to prompt a confirmation alert before reverting to default custom colors.
     - Updated the main header title to respect the "Heading 1" custom color when a Custom Theme is active.
 

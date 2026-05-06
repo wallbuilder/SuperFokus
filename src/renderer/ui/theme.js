@@ -20,6 +20,7 @@ const customH3Color = document.getElementById('custom-h3-color');
 const customTextColor = document.getElementById('custom-text-color');
 const customBg1Color = document.getElementById('custom-bg1-color');
 const customBg2Color = document.getElementById('custom-bg2-color');
+const customContainerBgColor = document.getElementById('custom-container-bg-color');
 const resetThemeColorsBtn = document.getElementById('reset-theme-colors-btn');
 
 // Settings Dropdown Elements
@@ -79,6 +80,9 @@ export async function initTheme() {
     const savedH2 = await store.get('customH2Color', null);
     const savedH3 = await store.get('customH3Color', null);
     const savedText = await store.get('customTextColor', null);
+    const savedBg1 = await store.get('customBg1Color', null);
+    const savedBg2 = await store.get('customBg2Color', null);
+    const savedContainerBg = await store.get('customContainerBgColor', null);
     
     if (savedMain && customMainColor) customMainColor.value = savedMain;
     if (savedAccent && customAccentColor) customAccentColor.value = savedAccent;
@@ -86,6 +90,9 @@ export async function initTheme() {
     if (savedH2 && customH2Color) customH2Color.value = savedH2;
     if (savedH3 && customH3Color) customH3Color.value = savedH3;
     if (savedText && customTextColor) customTextColor.value = savedText;
+    if (savedBg1 && customBg1Color) customBg1Color.value = savedBg1;
+    if (savedBg2 && customBg2Color) customBg2Color.value = savedBg2;
+    if (savedContainerBg && customContainerBgColor) customContainerBgColor.value = savedContainerBg;
 
     if (toggleSelect1) toggleSelect1.value = toggleState1;
     if (toggleSelect2) toggleSelect2.value = toggleState2;
@@ -120,6 +127,7 @@ function applyTheme() {
     const savedText = customTextColor ? customTextColor.value : '#4a4a4a';
     const savedBg1 = customBg1Color ? customBg1Color.value : '#f5f7fa';
     const savedBg2 = customBg2Color ? customBg2Color.value : '#c3cfe2';
+    const savedContainerBg = customContainerBgColor ? customContainerBgColor.value : '#ffffff';
 
     // Reset standard styles
     document.documentElement.style.removeProperty('--header-grad-1');
@@ -130,6 +138,7 @@ function applyTheme() {
     document.documentElement.style.removeProperty('--text-color');
     document.documentElement.style.removeProperty('--bg-grad-1');
     document.documentElement.style.removeProperty('--bg-grad-2');
+    document.documentElement.style.removeProperty('--container-bg');
     document.body.classList.remove('dark-mode');
 
     // UI state for Custom section
@@ -157,6 +166,7 @@ function applyTheme() {
         document.documentElement.style.setProperty('--text-color', savedText);
         document.documentElement.style.setProperty('--bg-grad-1', savedBg1);
         document.documentElement.style.setProperty('--bg-grad-2', savedBg2);
+        document.documentElement.style.setProperty('--container-bg', savedContainerBg);
         ipcRenderer.send('theme-changed', false);
     }
 
@@ -214,6 +224,7 @@ if (customH3Color) customH3Color.addEventListener('input', (e) => { store.set('c
 if (customTextColor) customTextColor.addEventListener('input', (e) => { store.set('customTextColor', e.target.value); applyColorChange(); });
 if (customBg1Color) customBg1Color.addEventListener('input', (e) => { store.set('customBg1Color', e.target.value); applyColorChange(); });
 if (customBg2Color) customBg2Color.addEventListener('input', (e) => { store.set('customBg2Color', e.target.value); applyColorChange(); });
+if (customContainerBgColor) customContainerBgColor.addEventListener('input', (e) => { store.set('customContainerBgColor', e.target.value); applyColorChange(); });
 
 if (resetThemeColorsBtn) {
     resetThemeColorsBtn.addEventListener('click', () => {
