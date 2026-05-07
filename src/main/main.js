@@ -45,6 +45,21 @@ ipcMain.on('store-delete', (event, key) => {
     if (store) store.delete(key);
 });
 
+// Prevent multiple instances
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+    app.quit();
+    return;
+}
+
+app.on('second-instance', () => {
+    // Someone tried to run a second instance - focus our window instead
+    if (mainWindow) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.focus();
+    }
+});
 
 app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
 app.commandLine.appendSwitch('disable-http-cache');
