@@ -4,46 +4,269 @@ import { store } from './storage.js';
 const chimeAudio = document.getElementById('chime-audio');
 let audioCtx = null;
 
-function playFallbackBeep() {
-    try {
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+// Ambient Noise Generator
+let ambientAudio = new Audio();
+ambientAudio.loop = true;
+
+const soundPacks = {
+    classic: {
+        notifs: [
+            { id: 'classic-notif-1', label: 'Classic Notification 1' },
+            { id: 'classic-notif-2', label: 'Classic Notification 2' },
+            { id: 'classic-notif-3', label: 'Classic Notification 3' },
+            { id: 'classic-notif-4', label: 'Chime (Old)' }
+        ],
+        ambient: [
+            { id: 'classic-bg-1', label: 'Classic Ambient 1' },
+            { id: 'classic-bg-2', label: 'Classic Ambient 2' },
+            { id: 'classic-bg-3', label: 'Classic Ambient 3' }
+        ]
+    },
+    nature: {
+        notifs: [
+            { id: 'nature-notif-1', label: 'Nature Notification 1' },
+            { id: 'nature-notif-2', label: 'Nature Notification 2' },
+            { id: 'nature-notif-3', label: 'Nature Notification 3' }
+        ],
+        ambient: [
+            { id: 'nature-bg-1', label: 'Nature Ambient 1' },
+            { id: 'nature-bg-2', label: 'Nature Ambient 2' },
+            { id: 'nature-bg-3', label: 'Nature Ambient 3' }
+        ]
+    },
+    mechanical: {
+        notifs: [
+            { id: 'mech-notif-1', label: 'Mech Notification 1' },
+            { id: 'mech-notif-2', label: 'Mech Notification 2' },
+            { id: 'mech-notif-3', label: 'Mech Notification 3' }
+        ],
+        ambient: [
+            { id: 'mech-bg-1', label: 'Mech Ambient 1' },
+            { id: 'mech-bg-2', label: 'Mech Ambient 2' },
+            { id: 'mech-bg-3', label: 'Mech Ambient 3' }
+        ]
+    }
+};
+
+let customNotifs = [];
+let customAmbientData = null;
+
+function updateSoundSelectors() {
+    const packSelector = document.getElementById('sound-pack-selector');
+    const pack = packSelector ? packSelector.value : 'classic';
+    const notifSelector = document.getElementById('notification-sound-selector');
+    const ambientSelector = document.getElementById('ambient-noise-selector');
+
+    if (notifSelector && ambientSelector) {
+        // Save current selections
+        const currentNotif = notifSelector.value;
+        const currentAmbient = ambientSelector.value;
+
+        // Update Notifs
+        notifSelector.innerHTML = '';
+        soundPacks[pack].notifs.forEach(n => {
+            const opt = document.createElement('option');
+            opt.value = n.id;
+            opt.innerText = n.label;
+            notifSelector.appendChild(opt);
+        });
+
+        // Add Custom Notifs
+        customNotifs.forEach((n, idx) => {
+            const opt = document.createElement('option');
+            opt.value = `custom-notif-${idx}`;
+            opt.innerText = `Custom Notification ${idx + 1}`;
+            notifSelector.appendChild(opt);
+        });
+
+        // Update Ambient
+        ambientSelector.innerHTML = '<option value="none">None</option>';
+        soundPacks[pack].ambient.forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = a.id;
+            opt.innerText = a.label;
+            ambientSelector.appendChild(opt);
+        });
+
+        if (customAmbientData) {
+            const opt = document.createElement('option');
+            opt.value = 'custom-ambient';
+            opt.innerText = 'Custom Background Noise';
+            ambientSelector.appendChild(opt);
         }
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
-        oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.1);
-        
-        const vol = chimeVolumeInput ? parseFloat(chimeVolumeInput.value) : 1;
-        gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        
-        oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.5);
-    } catch(e) { console.error('Beep failed:', e); }
+
+        // Restore selections if still valid, else default to first
+        if (Array.from(notifSelector.options).some(o => o.value === currentNotif)) {
+            notifSelector.value = currentNotif;
+        }
+        if (Array.from(ambientSelector.options).some(o => o.value === currentAmbient)) {
+            ambientSelector.value = currentAmbient;
+        } else {
+            ambientSelector.value = 'none';
+        }
+    }
 }
 
-function playChime() {
-    if (chimeAudio && chimeAudio.src) {
+function updateCustomNotifsUI() {
+    const container = document.getElementById('custom-notifs-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    customNotifs.forEach((n, idx) => {
+        const div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.gap = '10px';
+        div.style.alignItems = 'center';
+        div.style.padding = '5px 10px';
+        div.style.border = '1px solid var(--border-color)';
+        div.style.borderRadius = '4px';
+
+        const label = document.createElement('span');
+        label.style.flex = '1';
+        label.style.fontSize = '0.9rem';
+        label.innerText = `Custom Notification ${idx + 1}`;
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'action-btn';
+        delBtn.style.margin = '0';
+        delBtn.style.padding = '5px 10px';
+        delBtn.style.background = '#e74c3c';
+        delBtn.style.width = 'auto';
+        delBtn.innerText = 'Delete';
+        delBtn.onclick = () => {
+            customNotifs.splice(idx, 1);
+            store.set('customNotifsData', customNotifs);
+            updateCustomNotifsUI();
+            updateSoundSelectors();
+        };
+
+        div.appendChild(label);
+        div.appendChild(delBtn);
+        container.appendChild(div);
+    });
+
+    const uploadBtn = document.getElementById('upload-chime-btn');
+    if (uploadBtn) {
+        if (customNotifs.length >= 3) {
+            uploadBtn.style.display = 'none';
+        } else {
+            uploadBtn.style.display = 'block';
+        }
+    }
+}
+
+function updateCustomAmbientUI() {
+    const container = document.getElementById('custom-ambient-container');
+    if (!container) return;
+
+    if (customAmbientData) {
+        container.style.display = 'flex';
+    } else {
+        container.style.display = 'none';
+    }
+}
+
+function toggleAmbientNoise() {
+    const ambientSelector = document.getElementById('ambient-noise-selector');
+    if (!ambientSelector) return;
+    const type = ambientSelector.value;
+    const volInput = document.getElementById('ambient-volume');
+    const vol = volInput ? parseFloat(volInput.value) : 0.5;
+    
+    ambientAudio.pause();
+    
+    if (type === 'none') {
+        return;
+    }
+
+    if (type === 'custom-ambient' && customAmbientData) {
+        ambientAudio.src = customAmbientData;
+    } else {
+        ambientAudio.src = `assets/sounds/${type}.mp3`;
+    }
+    
+    ambientAudio.volume = vol;
+    ambientAudio.play().catch(e => console.log('Ambient play failed:', e));
+}
+
+function playSynthChime(pack, type) {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    
+    let freq = 880;
+    if (type === 'session-start') freq = 440;
+    if (type === 'break-start') freq = 660;
+    if (type === 'session-complete') freq = 880;
+    
+    oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    
+    if (pack === 'nature') {
+        oscillator.type = 'sine';
+        oscillator.frequency.exponentialRampToValueAtTime(freq * 1.5, audioCtx.currentTime + 0.5);
+    } else if (pack === 'mechanical') {
+        oscillator.type = 'square';
+    } else {
+        oscillator.type = 'triangle';
+        oscillator.frequency.exponentialRampToValueAtTime(freq / 2, audioCtx.currentTime + 0.1);
+    }
+    
+    const chimeVolumeInput = document.getElementById('chime-volume');
+    const vol = chimeVolumeInput ? parseFloat(chimeVolumeInput.value) : 1;
+    gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + 0.5);
+}
+
+function playChime(eventType = 'test') {
+    const packSelector = document.getElementById('sound-pack-selector');
+    const pack = packSelector ? packSelector.value : 'classic';
+    const notifSelector = document.getElementById('notification-sound-selector');
+    
+    if (eventType === 'session-start' && document.getElementById('alert-session-start') && !document.getElementById('alert-session-start').checked) return;
+    if (eventType === 'break-start' && document.getElementById('alert-break-start') && !document.getElementById('alert-break-start').checked) return;
+    if (eventType === 'session-complete' && document.getElementById('alert-session-complete') && !document.getElementById('alert-session-complete').checked) return;
+    
+    const selectedNotif = notifSelector ? notifSelector.value : `${pack}-notif-1`;
+
+    if (chimeAudio) {
+        if (selectedNotif.startsWith('custom-notif-')) {
+            const idx = parseInt(selectedNotif.split('-').pop(), 10);
+            if (customNotifs[idx]) {
+                chimeAudio.src = customNotifs[idx];
+            } else {
+                playSynthChime(pack, eventType);
+                return;
+            }
+        } else {
+            chimeAudio.src = `assets/sounds/${selectedNotif}.mp3`;
+        }
+
         chimeAudio.currentTime = 0;
         chimeAudio.play().catch(e => {
-            console.log('Audio play failed:', e);
-            playFallbackBeep();
+            playSynthChime(pack, eventType);
         });
     } else {
-        playFallbackBeep();
+        playSynthChime(pack, eventType);
     }
+}
+
+function playFallbackBeep() {
+    playSynthChime('classic', 'test');
 }
 
 const testChimeBtn = document.getElementById('test-chime-btn');
 if (testChimeBtn) {
-    testChimeBtn.addEventListener('click', playChime);
+    testChimeBtn.addEventListener('click', () => playChime('test'));
 }
 
 const chimeVolumeInput = document.getElementById('chime-volume');
@@ -55,21 +278,34 @@ if (chimeVolumeInput) {
     });
 }
 
-const chimeSelector = document.getElementById('chime-selector');
+const soundPackSelector = document.getElementById('sound-pack-selector');
+if (soundPackSelector) {
+    soundPackSelector.addEventListener('change', () => {
+        updateSoundSelectors();
+        toggleAmbientNoise();
+    });
+}
+
+const ambientNoiseSelector = document.getElementById('ambient-noise-selector');
+if (ambientNoiseSelector) {
+    ambientNoiseSelector.addEventListener('change', toggleAmbientNoise);
+}
+
+const ambientVolumeInput = document.getElementById('ambient-volume');
+if (ambientVolumeInput) {
+    ambientVolumeInput.addEventListener('input', (e) => {
+        ambientAudio.volume = parseFloat(e.target.value);
+    });
+}
+
 const chimeFileInput = document.getElementById('chime-file-input');
 const uploadChimeBtn = document.getElementById('upload-chime-btn');
 
-export async function initAudio() {
-    const savedCustomChime = await store.get('customChimeData', null);
-    if (savedCustomChime && chimeSelector) {
-        chimeAudio.src = savedCustomChime;
-        chimeSelector.value = 'custom';
-    }
-}
-
 if (uploadChimeBtn && chimeFileInput) {
     uploadChimeBtn.addEventListener('click', () => {
-        chimeFileInput.click();
+        if (customNotifs.length < 3) {
+            chimeFileInput.click();
+        }
     });
 
     chimeFileInput.addEventListener('change', (e) => {
@@ -78,24 +314,78 @@ if (uploadChimeBtn && chimeFileInput) {
             const reader = new FileReader();
             reader.onload = (ev) => {
                 const dataUrl = ev.target.result;
-                store.set('customChimeData', dataUrl);
-                chimeAudio.src = dataUrl;
-                if (chimeSelector) chimeSelector.value = 'custom';
+                customNotifs.push(dataUrl);
+                store.set('customNotifsData', customNotifs);
+                updateCustomNotifsUI();
+                updateSoundSelectors();
+                
+                const notifSelector = document.getElementById('notification-sound-selector');
+                if (notifSelector) {
+                    notifSelector.value = `custom-notif-${customNotifs.length - 1}`;
+                }
             };
             reader.readAsDataURL(file);
         }
+        e.target.value = '';
     });
 }
 
-if (chimeSelector) {
-    chimeSelector.addEventListener('change', async (e) => {
-        const customData = await store.get('customChimeData');
-        if (e.target.value === 'custom' && customData) {
-            chimeAudio.src = customData;
-        } else {
-            chimeAudio.src = e.target.value;
+const ambientFileInput = document.getElementById('ambient-file-input');
+const uploadAmbientBtn = document.getElementById('upload-ambient-btn');
+const deleteAmbientBtn = document.getElementById('delete-custom-ambient-btn');
+
+if (uploadAmbientBtn && ambientFileInput) {
+    uploadAmbientBtn.addEventListener('click', () => {
+        ambientFileInput.click();
+    });
+
+    ambientFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const dataUrl = ev.target.result;
+                customAmbientData = dataUrl;
+                store.set('customAmbientData', dataUrl);
+                updateCustomAmbientUI();
+                updateSoundSelectors();
+                
+                const ambientSelector = document.getElementById('ambient-noise-selector');
+                if (ambientSelector) {
+                    ambientSelector.value = 'custom-ambient';
+                    toggleAmbientNoise();
+                }
+            };
+            reader.readAsDataURL(file);
         }
+        e.target.value = '';
     });
 }
 
-export { playChime, playFallbackBeep };
+if (deleteAmbientBtn) {
+    deleteAmbientBtn.addEventListener('click', () => {
+        customAmbientData = null;
+        store.delete('customAmbientData');
+        updateCustomAmbientUI();
+        updateSoundSelectors();
+        toggleAmbientNoise();
+    });
+}
+
+export async function initAudio() {
+    const savedCustomNotifs = await store.get('customNotifsData', []);
+    if (Array.isArray(savedCustomNotifs)) {
+        customNotifs = savedCustomNotifs;
+    }
+    
+    const savedCustomAmbient = await store.get('customAmbientData', null);
+    if (savedCustomAmbient) {
+        customAmbientData = savedCustomAmbient;
+    }
+
+    updateCustomNotifsUI();
+    updateCustomAmbientUI();
+    updateSoundSelectors();
+}
+
+export { playChime, playFallbackBeep, toggleAmbientNoise };

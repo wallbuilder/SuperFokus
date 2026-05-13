@@ -1047,7 +1047,7 @@ function runElevated(args, callback) {
     // For apply-file, ensure the path is a valid string and doesn't contain suspicious characters
     if (commandPart === 'apply-file') {
         const filePath = args.substring(commandPart.length).trim().replace(/^"|"$/g, '');
-        if (!filePath || filePath.includes(';') || filePath.includes('&') || filePath.includes('|') || filePath.includes('$') || filePath.includes('>') || filePath.includes('<')) {
+        if (!filePath || /[\r\n;&|$><\x00]/.test(filePath)) {
             console.error('[Security] Blocked suspicious file path in elevated command:', filePath);
             if (callback) callback(new Error('Invalid file path'));
             return;
@@ -1055,10 +1055,12 @@ function runElevated(args, callback) {
     }
 
     const nodePath = process.execPath;
-    // On Windows, we use ELECTRON_RUN_AS_NODE to execute a script with the Electron binary
-    const command = app.isPackaged 
-        ? `set ELECTRON_RUN_AS_NODE=1 && "${nodePath}" "${helperPath}" ${args}`
-        : `node "${helperPath}" ${args}`;
+    let command;
+    if (process.platform === 'win32') {
+        command = `set ELECTRON_RUN_AS_NODE=1 && "${nodePath}" "${helperPath}" ${args}`;
+    } else {
+        command = `ELECTRON_RUN_AS_NODE=1 "${nodePath}" "${helperPath}" ${args}`;
+    }
     
     sudo.exec(command, { name: 'SuperFokus' }, (error, stdout, stderr) => {
         if (callback) callback(error, stdout, stderr);

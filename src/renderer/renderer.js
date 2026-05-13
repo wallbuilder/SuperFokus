@@ -210,6 +210,7 @@ const configSections = {
   'pomo-style': document.getElementById('config-pomo-style'),
   'micro-sprint': document.getElementById('config-micro-sprint'),
   'flow-state': document.getElementById('config-flow-state'),
+  'health-mode': document.getElementById('config-health-mode'),
   'workflows': document.getElementById('config-workflows')
 };
 
@@ -224,8 +225,8 @@ document.querySelectorAll('.home-btn').forEach(btn => {
     if (configSections[mode]) {
       configSections[mode].classList.add('active');
       const titleText = btn.innerText.replace(/[\n\r]+|[\s]{2,}/g, ' ').trim();
-      // Remove any leading icon characters like ⟳ ✓ ☑ ⏱ ⚙
-      dashboardTitle.innerText = titleText.replace(/^[⟳✓☑⏱⚙]\s*/, '');
+      // Remove any leading icon characters like ⟳ ✓ ☑ ⏱ ⚙ ❤️
+      dashboardTitle.innerText = titleText.replace(/^[⟳✓☑⏱⚙❤️]\s*/, '');
     }
 
     const dashboardSubtitle = document.getElementById('dashboard-subtitle');

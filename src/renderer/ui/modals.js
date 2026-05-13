@@ -54,16 +54,7 @@ function closeSidebar() {
 
 menuToggleBtn.addEventListener('click', toggleSidebar);
 
-// Sidebar click-outside-to-close logic
-window.addEventListener('click', (e) => {
-    const sidebarOpen = sideMenu.classList.contains('open');
-    if (!sidebarOpen) return;
-    const isSidebar = sideMenu.contains(e.target);
-    const isToggle = menuToggleBtn.contains(e.target);
-    if (!isSidebar && !isToggle) {
-        closeSidebar();
-    }
-});
+// Sidebar click-outside-to-close logic removed so sidebar stays open.
 
 // Modal Logic
 const modalOverlays = document.querySelectorAll('.modal-overlay');

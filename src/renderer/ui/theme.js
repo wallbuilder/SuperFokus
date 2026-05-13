@@ -22,6 +22,7 @@ const customTextColor = document.getElementById('custom-text-color');
 const customBg1Color = document.getElementById('custom-bg1-color');
 const customBg1GradColor = document.getElementById('custom-bg1-grad-color');
 const customBg2Color = document.getElementById('custom-bg2-color');
+const customDrawerBg = document.getElementById('custom-drawer-bg');
 const resetThemeColorsBtn = document.getElementById('reset-theme-colors-btn');
 
 // Settings Dropdown Elements
@@ -85,7 +86,8 @@ export async function initTheme() {
     const savedBg1 = await store.get('customBg1Color', null);
     const savedBg1Grad = await store.get('customBg1GradColor', null);
     const savedBg2 = await store.get('customBg2Color', null);
-    
+    const savedDrawerBg = await store.get('customDrawerBg', null);
+
     if (savedMain && customMainColor) customMainColor.value = savedMain;
     if (savedAccent && customAccentColor) customAccentColor.value = savedAccent;
     if (savedHeaderTitle && customHeaderTitleColor) customHeaderTitleColor.value = savedHeaderTitle;
@@ -96,7 +98,7 @@ export async function initTheme() {
     if (savedBg1 && customBg1Color) customBg1Color.value = savedBg1;
     if (savedBg1Grad && customBg1GradColor) customBg1GradColor.value = savedBg1Grad;
     if (savedBg2 && customBg2Color) customBg2Color.value = savedBg2;
-
+    if (savedDrawerBg && customDrawerBg) customDrawerBg.value = savedDrawerBg;
     if (toggleSelect1) toggleSelect1.value = toggleState1;
     if (toggleSelect2) toggleSelect2.value = toggleState2;
     if (toggleHeaderDarkModeSwitch) toggleHeaderDarkModeSwitch.checked = showHeaderDarkModeToggle;
@@ -132,6 +134,7 @@ function applyTheme() {
     const savedBg1 = customBg1Color ? customBg1Color.value : '#f5f7fa';
     const savedBg1Grad = customBg1GradColor ? customBg1GradColor.value : '#c3cfe2';
     const savedBg2 = customBg2Color ? customBg2Color.value : '#ffffff';
+    const savedDrawerBg = customDrawerBg ? customDrawerBg.value : '#ffffff';
 
     // Reset standard styles
     document.documentElement.style.removeProperty('--header-grad-1');
@@ -144,6 +147,7 @@ function applyTheme() {
     document.documentElement.style.removeProperty('--bg-grad-1');
     document.documentElement.style.removeProperty('--bg-grad-2');
     document.documentElement.style.removeProperty('--container-bg');
+    document.documentElement.style.removeProperty('--drawer-bg');
     document.body.classList.remove('dark-mode');
 
     // UI state for Custom section
@@ -173,6 +177,7 @@ function applyTheme() {
         document.documentElement.style.setProperty('--bg-grad-1', savedBg1);
         document.documentElement.style.setProperty('--bg-grad-2', savedBg1Grad);
         document.documentElement.style.setProperty('--container-bg', savedBg2);
+        document.documentElement.style.setProperty('--drawer-bg', savedDrawerBg);
         ipcRenderer.send('theme-changed', false);
     }
 
@@ -232,6 +237,7 @@ if (customTextColor) customTextColor.addEventListener('input', (e) => { store.se
 if (customBg1Color) customBg1Color.addEventListener('input', (e) => { store.set('customBg1Color', e.target.value); applyColorChange(); });
 if (customBg1GradColor) customBg1GradColor.addEventListener('input', (e) => { store.set('customBg1GradColor', e.target.value); applyColorChange(); });
 if (customBg2Color) customBg2Color.addEventListener('input', (e) => { store.set('customBg2Color', e.target.value); applyColorChange(); });
+if (customDrawerBg) customDrawerBg.addEventListener('input', (e) => { store.set('customDrawerBg', e.target.value); applyColorChange(); });
 
 if (resetThemeColorsBtn) {
     resetThemeColorsBtn.addEventListener('click', () => {
@@ -246,6 +252,7 @@ if (resetThemeColorsBtn) {
             store.delete('customBg1Color');
             store.delete('customBg1GradColor');
             store.delete('customBg2Color');
+            store.delete('customDrawerBg');
 
             if (customMainColor) customMainColor.value = '#6a11cb';
             if (customAccentColor) customAccentColor.value = '#2575fc';
@@ -257,6 +264,7 @@ if (resetThemeColorsBtn) {
             if (customBg1Color) customBg1Color.value = '#f5f7fa';
             if (customBg1GradColor) customBg1GradColor.value = '#c3cfe2';
             if (customBg2Color) customBg2Color.value = '#ffffff';
+            if (customDrawerBg) customDrawerBg.value = '#ffffff';
             applyColorChange();
         }
     });

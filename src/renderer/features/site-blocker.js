@@ -19,14 +19,7 @@ const urlListInput = document.getElementById('url-list');
 const siteBlockerEnabled = document.getElementById('site-blocker-enabled');
 const siteBlockerAlwaysRun = document.getElementById('site-blocker-always-run');
 
-// Visually disable and mark the Specific URLs box as a Work in Progress
-if (urlListInput) {
-    urlListInput.disabled = true;
-    urlListInput.placeholder = "Work in Progress ❌\nSpecific URL blocking is currently unavailable.";
-    urlListInput.value = "";
-    urlListInput.style.cursor = "not-allowed";
-    urlListInput.style.opacity = "0.6";
-}
+// Removed work in progress block
 
 // Show/hide mode messages based on selection
 siteBlockerMode.addEventListener('change', () => {

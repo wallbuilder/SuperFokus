@@ -20,6 +20,23 @@ Each new edit to the file that documents new changes should also list the date a
     - Updated the reset colors button to prompt a confirmation alert before reverting to default custom colors.
     - Added a dedicated "HEADER TEXT" color picker for the main 'SuperFokus' title, decoupling it from the "Heading 1" color.
 
+{5/10/2026}
+    **SuperFokus v1.0.0 Release Implementation**
+    - **Technical Setup & Versioning:** Bumped version to `v1.0.0` in `package.json`, `package-lock.json`, and UI headers (`index.html`).
+    - **Site Blocker Implementation & Bug Fixes:** Fixed the "Save and apply Blocker" button visually sticking without fully processing. Removed "coming soon" placeholders and the "work in progress" overlay for specific URLs, fully wiring up the specific URL blocking option.
+    - **Audio & Sensory (Sound Tab):**
+        - Added Sound Libraries (Classic, Nature, Mechanical) to the UI.
+        - Users can place their own .mp3 files into the `assets/sounds/` folder to populate the packs. The expected file names are:
+            - **Classic Pack:** `classic-notif-1.mp3`, `classic-notif-2.mp3`, `classic-notif-3.mp3`, `classic-bg-1.mp3`, `classic-bg-2.mp3`, `classic-bg-3.mp3`
+            - **Nature Pack:** `nature-notif-1.mp3`, `nature-notif-2.mp3`, `nature-notif-3.mp3`, `nature-bg-1.mp3`, `nature-bg-2.mp3`, `nature-bg-3.mp3`
+            - **Mechanical Pack:** `mech-notif-1.mp3`, `mech-notif-2.mp3`, `mech-notif-3.mp3`, `mech-bg-1.mp3`, `mech-bg-2.mp3`, `mech-bg-3.mp3`
+        - Added ability to upload and persist up to 3 custom notification sounds.
+        - Added ability to upload a custom ambient background noise that loops repeatedly.
+        - Added Event Alerts settings for session start, break start, and completion.
+        - Updated timer logic across `pomo-timer.js`, `flow-state.js`, `repeating.js`, etc. to trigger proper sound events based on the new logic.
+    - **Quality of Life (QOL) & UI Fixes:** Fixed sidebar bug where it closed on interactions outside by removing the click-to-close logic in `modals.js`. Integrated Health Mode into the main dashboard and removed its separate modal implementation. Added sidebar color (`customDrawerBg`) selection tool to the customization menu.
+    - **Security:** Patched a command injection vulnerability in `runElevated` inside `main.js` that allowed unauthorized command execution through newlines. Fixed platform handling for setting `ELECTRON_RUN_AS_NODE`.
+
 < [DO NOT DELETE THIS TEXT]
 (Example chunk of documentation: 
 {1/1/2025 at 12:00 PM}

@@ -352,10 +352,12 @@ function startPomoPhase() {
 }
 
 function handlePhaseEnd() {
-    playChime();
     const finishedPhase = pomoState.activePomoSequence[pomoState.currentPhaseIndex];
     if (finishedPhase.type === 'work') {
+        playChime('break-start');
         recordFocusSession(Math.round(finishedPhase.totalSeconds / 60), 'Pomo Work');
+    } else {
+        playChime('session-start');
     }
     
     ipcRenderer.send('close-popup');
@@ -364,6 +366,7 @@ function handlePhaseEnd() {
     pomoState.currentPhaseIndex++;
     
     if (pomoState.currentPhaseIndex >= pomoState.activePomoSequence.length && (!pomoInfiniteCheckbox || !pomoInfiniteCheckbox.checked) && pomoState.currentRepeatCount + 1 >= pomoState.totalRepeatsPlanned) {
+        playChime('session-complete');
         stopPomoStyle();
         if (sharedState.isWorkflowRunning) {
             setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
