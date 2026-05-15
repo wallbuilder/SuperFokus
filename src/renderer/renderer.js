@@ -3,118 +3,172 @@ import { store, migrateStore } from './utils/storage.js';
 
 // Migrate data before initializing modules
 (async () => {
-    await migrateStore();
+    try {
+        console.log('[Startup] Starting migration...');
+        await migrateStore();
+        console.log('[Startup] Migration complete. Loading modules...');
 
-    const { customAlert, closeSidebar, toggleSidebar } = await import('./ui/modals.js');
-    const { initTheme, toggleTheme, applyTheme, applyHeaderToggleVisibility } = await import('./ui/theme.js');
-    const { initStats, updateStatsUI, renderChart } = await import('./utils/stats.js');
-    const { initAudio } = await import('./utils/audio.js');
-    const { initWorkflows, setupWorkflowEventListeners, setupWorkflowPresetsEventListeners, workflowState } = await import('./features/workflows.js');
-    const { initPomo, pomoState, stopPomoStyle } = await import('./features/pomo-timer.js');
-    const { initRepeating, repeatingState, stopRepeatingReminders, initializeRepeatingButtonListeners } = await import('./features/repeating.js');
-    const { initSprint, sprintState, stopSprintMode } = await import('./features/micro-sprint.js');
-    const { initFlow, flowState, stopFlowState } = await import('./features/flow-state.js');
-    const { blockerState } = await import('./features/site-blocker.js');
+        // Parallelize all module imports for faster startup
+        const [
+            modals,
+            theme,
+            stats,
+            audio,
+            workflows,
+            pomo,
+            repeating,
+            sprint,
+            flow,
+            blocker,
+            health
+        ] = await Promise.all([
+            import('./ui/modals.js'),
+            import('./ui/theme.js'),
+            import('./utils/stats.js'),
+            import('./utils/audio.js'),
+            import('./features/workflows.js'),
+            import('./features/pomo-timer.js'),
+            import('./features/repeating.js'),
+            import('./features/micro-sprint.js'),
+            import('./features/flow-state.js'),
+            import('./features/site-blocker.js'),
+            import('./features/health-mode.js')
+        ]);
 
-    // Import modules that attach event listeners on load
-    await import('./features/site-blocker.js');
-    await import('./features/health-mode.js');
+        const { customAlert, closeSidebar, toggleSidebar } = modals;
+        const { initTheme, applyTheme, applyHeaderToggleVisibility } = theme;
+        const { initStats, updateStatsUI, renderChart } = stats;
+        const { initAudio, playChime, playFallbackBeep, toggleAmbientNoise, loadFileAsDataURL, saveCustomSoundPack, deleteCustomSoundPack, updateCustomPackUI, updateSoundSelectors, updateCustomNotifsUI, updateCustomAmbientUI } = audio;
+        const { initWorkflows, setupWorkflowEventListeners, setupWorkflowPresetsEventListeners, workflowState } = workflows;
+        const { initPomo, pomoState, stopPomoStyle } = pomo;
+        const { initRepeating, repeatingState, stopRepeatingReminders, initializeRepeatingButtonListeners } = repeating;
+        const { initSprint, sprintState, stopSprintMode } = sprint;
+        const { initFlow, flowState, stopFlowState } = flow;
+        const { blockerState } = blocker;
 
-    // Startup Animation Logic
-    const initApp = async () => {
-      try {
-        const startupScreen = document.getElementById('startup-screen');
-        const loadingBar = document.getElementById('startup-loading-bar');
-        const loadingText = document.getElementById('startup-loading-text');
-        
-        if (!startupScreen) {
-          console.error('Startup screen element not found!');
-          // Even if screen is missing, we must initialize the app logic
-          initializeDomElements(setupWorkflowEventListeners, setupWorkflowPresetsEventListeners);
-          await runInitializationSteps();
-          return;
-        }
-        
-        const steps = [
-          { progress: 15, text: 'Loading core modules...' },
-          { progress: 35, text: 'Initializing UI components...' },
-          { progress: 65, text: 'Loading user presets...' },
-          { progress: 85, text: 'Binding event listeners...' },
-          { progress: 100, text: 'Starting SuperFokus...' }
-        ];
-
-        let currentStep = 0;
-
-        const executeNextStep = async () => {
-          if (currentStep < steps.length) {
-            const step = steps[currentStep];
-            if (loadingBar) loadingBar.style.width = step.progress + '%';
-            if (loadingText) loadingText.innerText = step.text;
+        // Startup Animation Logic
+        const initApp = async () => {
+          console.log('[Startup] Initializing App UI...');
+          try {
+            const startupScreen = document.getElementById('startup-screen');
+            const loadingBar = document.getElementById('startup-loading-bar');
+            const loadingText = document.getElementById('startup-loading-text');
             
-            // Execute actual initialization at specific steps to synchronize progress
-            try {
-                if (currentStep === 1) {
-                    initializeDomElements(setupWorkflowEventListeners, setupWorkflowPresetsEventListeners);
-                } else if (currentStep === 2) {
-                    await initTheme();
-                    await initStats();
-                    await initAudio();
-                    await initWorkflows();
-                    await initPomo();
-                    await initRepeating();
-                    await initSprint();
-                    await initFlow();
-                } else if (currentStep === 3) {
-                    initializeButtonListeners(initializeRepeatingButtonListeners);
-                    await updateStatsUI();
-                    renderChart();
-                }
-            } catch (err) {
-                console.error(`[Startup] Error at step ${currentStep}:`, err);
+            if (!startupScreen) {
+              console.error('[Startup] Startup screen element not found!');
+              await runInitializationSteps();
+              return;
             }
+            
+            const steps = [
+              { progress: 20, text: 'Core modules loaded.' },
+              { progress: 50, text: 'Initializing UI & Features...' },
+              { progress: 80, text: 'Finalizing setup...' },
+              { progress: 100, text: 'Starting SuperFokus...' }
+            ];
 
-            currentStep++;
-            setTimeout(executeNextStep, 300); // 300ms per step
-          } else {
-            // Wait briefly at 100% then fade out
-            setTimeout(() => {
-              startupScreen.style.opacity = '0';
+            let currentStep = 0;
+
+            const executeStepsSequentially = async () => {
+              while (currentStep < steps.length) {
+                const step = steps[currentStep];
+                console.log(`[Startup] Step ${currentStep}: ${step.text}`);
+                
+                if (loadingBar) loadingBar.style.width = step.progress + '%';
+                if (loadingText) loadingText.innerText = step.text;
+                
+                try {
+                    if (currentStep === 1) {
+                        // Parallelize DOM initialization and basic module setup
+                        initializeDomElements(setupWorkflowEventListeners, setupWorkflowPresetsEventListeners);
+                        
+                        console.log('[Startup] Initializing modules in parallel...');
+                        await Promise.all([
+                            initTheme(),
+                            initStats(),
+                            initAudio(),
+                            initWorkflows(),
+                            initPomo(),
+                            initRepeating(),
+                            initSprint(),
+                            initFlow()
+                        ]);
+                        console.log('[Startup] Modules initialized.');
+                    } else if (currentStep === 2) {
+                        initializeButtonListeners(initializeRepeatingButtonListeners);
+                        try {
+                            initializeCustomSoundpackListeners(
+                                updateCustomNotifsUI, updateCustomAmbientUI, updateCustomPackUI, 
+                                updateSoundSelectors, loadFileAsDataURL, saveCustomSoundPack, deleteCustomSoundPack
+                            );
+                        } catch (error) {
+                            console.error('[Startup] Error in secondary listeners:', error);
+                        }
+                        
+                        // Update UI components that depend on initialized data
+                        await updateStatsUI();
+                        renderChart();
+                    }
+                } catch (err) {
+                    console.error(`[Startup] Error at step ${currentStep}:`, err);
+                }
+
+                currentStep++;
+                // Reduced delay for a snappier feel
+                await new Promise(r => setTimeout(r, 50));
+              }
+
+              console.log('[Startup] Initialization complete.');
               setTimeout(() => {
-                startupScreen.style.display = 'none';
-              }, 1000); // matches the 1s CSS transition
-            }, 300);
+                startupScreen.style.opacity = '0';
+                setTimeout(() => {
+                  startupScreen.style.display = 'none';
+                }, 800);
+              }, 150);
+            };
+
+            executeStepsSequentially();
+
+          } catch (error) {
+            console.error('[Startup] Critical error during initApp:', error);
           }
         };
 
-        // Start loading sequence
-        setTimeout(executeNextStep, 200);
+        const runInitializationSteps = async () => {
+            await Promise.all([
+                initTheme(),
+                initStats(),
+                initAudio(),
+                initWorkflows(),
+                initPomo(),
+                initRepeating(),
+                initSprint(),
+                initFlow()
+            ]);
+            initializeDomElements(setupWorkflowEventListeners, setupWorkflowPresetsEventListeners);
+            initializeButtonListeners(initializeRepeatingButtonListeners);
+            initializeCustomSoundpackListeners(
+                updateCustomNotifsUI, updateCustomAmbientUI, updateCustomPackUI, 
+                updateSoundSelectors, loadFileAsDataURL, saveCustomSoundPack, deleteCustomSoundPack
+            );
+            await updateStatsUI();
+            renderChart();
+        };
 
-      } catch (error) {
-        console.error('[Startup] Critical error during initialization:', error);
-      }
-    };
-
-    // Helper for fallback initialization if startup screen fails
-    const runInitializationSteps = async () => {
-        await initTheme();
-        await initStats();
-        await initAudio();
-        await initWorkflows();
-        await initPomo();
-        await initRepeating();
-        await initSprint();
-        await initFlow();
-        initializeButtonListeners(initializeRepeatingButtonListeners);
-        await updateStatsUI();
-        renderChart();
-    };
-
-    if (document.readyState === 'loading') {
-        window.addEventListener('DOMContentLoaded', initApp);
-    } else {
-        initApp();
+        if (document.readyState === 'loading') {
+            window.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
+    } catch (criticalError) {
+        console.error('[Startup] FATAL ERROR:', criticalError);
+        // Attempt to remove loading screen even on fatal error so user isn't stuck forever
+        const startupScreen = document.getElementById('startup-screen');
+        if (startupScreen) {
+            startupScreen.style.display = 'none';
+        }
+        alert('SuperFokus encountered a problem during startup: ' + criticalError.message + '\n\nSome features may be unavailable.');
     }
-
 })();
 
 function initializeDomElements(setupWorkflowEventListeners, setupWorkflowPresetsEventListeners) {
@@ -166,6 +220,164 @@ function initializeButtonListeners(initializeRepeatingButtonListeners) {
   }
 }
 
+function initializeCustomSoundpackListeners(
+    updateCustomNotifsUI, updateCustomAmbientUI, updateCustomPackUI, 
+    updateSoundSelectors, loadFileAsDataURL, saveCustomSoundPack, deleteCustomSoundPack
+) {
+    let tempCustomNotifFiles = [];
+    let tempCustomAmbientFiles = [];
+
+    const customNotifUploadBtn = document.getElementById('custom-notif-upload-btn');
+    const customNotifUploadInput = document.getElementById('custom-notif-upload');
+    const customNotifPreview = document.getElementById('custom-notif-preview');
+
+    const customAmbientUploadBtn = document.getElementById('custom-ambient-upload-btn');
+    const customAmbientUploadInput = document.getElementById('custom-ambient-upload');
+    const customAmbientPreview = document.getElementById('custom-ambient-preview');
+
+    const saveCustomPackBtn = document.getElementById('save-custom-pack-btn');
+    const customPackNameInput = document.getElementById('custom-pack-name');
+    const customPacksSelector = document.getElementById('custom-packs-selector');
+    const deleteCustomPackBtn = document.getElementById('delete-custom-pack-btn');
+    
+    // Initial UI updates after elements are confirmed to exist
+    updateCustomNotifsUI();
+    updateCustomAmbientUI();
+    updateCustomPackUI();
+    updateSoundSelectors();
+    // Custom Notification Upload
+    if (customNotifUploadBtn && customNotifUploadInput && customNotifPreview) {
+        customNotifUploadBtn.addEventListener('click', () => customNotifUploadInput.click());
+        customNotifUploadInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            for (const file of files) {
+                const dataUrl = await loadFileAsDataURL(file);
+                tempCustomNotifFiles.push(dataUrl);
+            }
+            renderTempCustomSounds(tempCustomNotifFiles, customNotifPreview, 'notif');
+            e.target.value = ''; // Clear input
+        });
+    }
+
+    // Custom Ambient Upload
+    if (customAmbientUploadBtn && customAmbientUploadInput && customAmbientPreview) {
+        customAmbientUploadBtn.addEventListener('click', () => customAmbientUploadInput.click());
+        customAmbientUploadInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            for (const file of files) {
+                const dataUrl = await loadFileAsDataURL(file);
+                tempCustomAmbientFiles.push(dataUrl);
+            }
+            renderTempCustomSounds(tempCustomAmbientFiles, customAmbientPreview, 'ambient');
+            e.target.value = ''; // Clear input
+        });
+    }
+
+    // Save Custom Soundpack
+    if (saveCustomPackBtn && customPackNameInput) {
+        saveCustomPackBtn.addEventListener('click', async () => {
+            const packName = customPackNameInput.value.trim();
+            if (packName) {
+                await saveCustomSoundPack(packName, tempCustomNotifFiles, tempCustomAmbientFiles);
+                // Clear temporary files and UI after saving
+                tempCustomNotifFiles.length = 0;
+                tempCustomAmbientFiles.length = 0;
+                renderTempCustomSounds(tempCustomNotifFiles, customNotifPreview, 'notif');
+                renderTempCustomSounds(tempCustomAmbientFiles, customAmbientPreview, 'ambient');
+                customPackNameInput.value = '';
+            } else {
+                alert('Please enter a name for your custom soundpack.');
+            }
+        });
+    }
+
+    // Delete Custom Soundpack
+    if (deleteCustomPackBtn && customPacksSelector) {
+        deleteCustomPackBtn.addEventListener('click', async () => {
+            const packName = customPacksSelector.value;
+            await deleteCustomSoundPack(packName);
+        });
+    }
+
+    // Load Custom Soundpack into main selector
+    if (customPacksSelector) {
+        customPacksSelector.addEventListener('change', (e) => {
+            const packName = e.target.value;
+            if (packName && packName !== 'none') {
+                // When a custom pack is selected in its own creator dropdown,
+                // we want to load it into the main sound pack selector as well.
+                const mainSoundPackSelector = document.getElementById('sound-pack-selector');
+                if (mainSoundPackSelector) {
+                    mainSoundPackSelector.value = packName;
+                    mainSoundPackSelector.dispatchEvent(new Event('change')); // Trigger change event
+                }
+            }
+        });
+    }
+
+    function renderTempCustomSounds(files, previewContainer, type) {
+        previewContainer.innerHTML = '';
+        if (files.length === 0) {
+            const emptyMsg = document.createElement('small');
+            emptyMsg.style.color = 'var(--timer-subtext)';
+            emptyMsg.innerText = `No custom ${type} sounds added yet.`;
+            previewContainer.appendChild(emptyMsg);
+            return;
+        }
+
+        files.forEach((fileDataUrl, index) => {
+            const fileDiv = document.createElement('div');
+            fileDiv.style.display = 'flex';
+            fileDiv.style.alignItems = 'center';
+            fileDiv.style.gap = '8px';
+            fileDiv.style.background = 'var(--input-bg)';
+            fileDiv.style.padding = '5px 10px';
+            fileDiv.style.borderRadius = '5px';
+            fileDiv.style.border = '1px solid var(--border-color)';
+
+            const fileName = `Custom ${type === 'notif' ? 'Notification' : 'Ambient'} ${index + 1}`;
+            const fileNameSpan = document.createElement('span');
+            fileNameSpan.innerText = fileName;
+            fileNameSpan.style.flex = '1';
+            fileNameSpan.style.fontSize = '0.85rem';
+
+            const playBtn = document.createElement('button');
+            playBtn.className = 'action-btn';
+            playBtn.style.margin = '0';
+            playBtn.style.padding = '4px 8px';
+            playBtn.style.background = 'var(--header-grad-1)';
+            playBtn.style.width = 'auto';
+            playBtn.innerText = 'Play';
+            playBtn.onclick = () => {
+                const audio = new Audio(fileDataUrl);
+                audio.play().catch(e => console.error('Error playing custom sound:', e));
+            };
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'action-btn';
+            deleteBtn.style.margin = '0';
+            deleteBtn.style.padding = '4px 8px';
+            deleteBtn.style.background = '#e74c3c';
+            deleteBtn.style.width = 'auto';
+            deleteBtn.innerText = '✕';
+            deleteBtn.onclick = () => {
+                if (type === 'notif') {
+                    tempCustomNotifFiles.splice(index, 1);
+                    renderTempCustomSounds(tempCustomNotifFiles, customNotifPreview, 'notif');
+                } else {
+                    tempCustomAmbientFiles.splice(index, 1);
+                    renderTempCustomSounds(tempCustomAmbientFiles, customAmbientPreview, 'ambient');
+                }
+            };
+
+            fileDiv.appendChild(fileNameSpan);
+            fileDiv.appendChild(playBtn);
+            fileDiv.appendChild(deleteBtn);
+            previewContainer.appendChild(fileDiv);
+        });
+    }
+}
+
 const modalCloses = document.querySelectorAll('.modal-close');
 modalCloses.forEach(close => {
     close.addEventListener('click', () => {
@@ -201,9 +413,9 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // --- Mode Switching ---
-const homeMenu = document.getElementById('home-menu');
-const dashboardTitle = document.getElementById('dashboard-title');
-const headerTitle = document.getElementById('header-title');
+const homeMenu = document.getElementById('home-menu'); if (!homeMenu) console.warn('Missing home-menu element');
+const dashboardTitle = document.getElementById('dashboard-title'); if (!dashboardTitle) console.warn('Missing dashboard-title element');
+const headerTitle = document.getElementById('header-title'); if (!headerTitle) console.warn('Missing header-title element');
 
 const configSections = {
   'repeating-reminders': document.getElementById('config-repeating-reminders'),
@@ -214,20 +426,28 @@ const configSections = {
   'workflows': document.getElementById('config-workflows')
 };
 
+// Add warnings for missing config sections
+for (const key in configSections) {
+    if (Object.prototype.hasOwnProperty.call(configSections, key)) {
+        if (!configSections[key]) {
+            console.warn(`Missing config section element: ${key}`);
+        }
+    }
+}
+
 document.querySelectorAll('.home-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const mode = btn.getAttribute('data-mode');
     
-    homeMenu.style.display = 'none';
+    if (homeMenu) homeMenu.style.display = 'none';
     Object.values(configSections).forEach(section => {
       if (section) section.classList.remove('active');
     });
     if (configSections[mode]) {
       configSections[mode].classList.add('active');
       const titleText = btn.innerText.replace(/[\n\r]+|[\s]{2,}/g, ' ').trim();
-      // Remove any leading icon characters like ⟳ ✓ ☑ ⏱ ⚙ ❤️
-      dashboardTitle.innerText = titleText.replace(/^[⟳✓☑⏱⚙❤️]\s*/, '');
-    }
+      // Remove any leading icon characters like ⟳ ✓ ☑ ⏱ ⚙ ❤️ ♡
+      if (dashboardTitle) dashboardTitle.innerText = titleText.replace(/^[⟳✓☑⏱⚙❤️♡]\s*/, '');    }
 
     const dashboardSubtitle = document.getElementById('dashboard-subtitle');
     if (dashboardSubtitle) {

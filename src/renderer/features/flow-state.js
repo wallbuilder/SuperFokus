@@ -39,6 +39,7 @@ function formatFlowTime(elapsedSeconds) {
 }
 
 function updateFlowDisplay(elapsedSeconds) {
+    if (!flowTimeElapsed) return;
     const timeStr = formatFlowTime(elapsedSeconds);
     flowTimeElapsed.innerText = timeStr;
     ipcRenderer.send('update-flow-timer', {
@@ -48,15 +49,15 @@ function updateFlowDisplay(elapsedSeconds) {
 
 function startFlowState() {
     flowState.isFlowRunning = true;
-    startFlowBtn.style.display = 'none';
-    stopFlowBtn.style.display = 'block';
+    if (startFlowBtn) startFlowBtn.style.display = 'none';
+    if (stopFlowBtn) stopFlowBtn.style.display = 'block';
     setInputsLocked('config-flow-state', true);
-    flowTimerDisplay.classList.remove('hidden');
+    if (flowTimerDisplay) flowTimerDisplay.classList.remove('hidden');
     
     flowState.flowStartTime = Date.now();
     flowState.currentFlowElapsed = 0;
-    let chimeIntervalMinutes = parseInt(flowChimeIntervalInput.value, 10) || 0;
-    let chimeIntervalSeconds = parseInt(flowChimeIntervalSecondsInput.value, 10) || 0;
+    let chimeIntervalMinutes = (flowChimeIntervalInput ? parseInt(flowChimeIntervalInput.value, 10) : 0) || 0;
+    let chimeIntervalSeconds = (flowChimeIntervalSecondsInput ? parseInt(flowChimeIntervalSecondsInput.value, 10) : 0) || 0;
     flowState.totalChimeIntervalSeconds = (chimeIntervalMinutes * 60) + chimeIntervalSeconds;
     flowState.nextChimeSeconds = flowState.totalChimeIntervalSeconds > 0 ? flowState.totalChimeIntervalSeconds : 0;
     
@@ -69,10 +70,10 @@ function startFlowState() {
 function stopFlowState() {
     if (!flowState.isFlowRunning) return;
     flowState.isFlowRunning = false;
-    startFlowBtn.style.display = 'block';
-    stopFlowBtn.style.display = 'none';
+    if (startFlowBtn) startFlowBtn.style.display = 'block';
+    if (stopFlowBtn) stopFlowBtn.style.display = 'none';
     setInputsLocked('config-flow-state', false);
-    flowTimerDisplay.classList.add('hidden');
+    if (flowTimerDisplay) flowTimerDisplay.classList.add('hidden');
     
     ipcRenderer.send('stop-timer', 'flow');
     ipcRenderer.send('close-flow-timer');
@@ -88,8 +89,8 @@ export async function initFlow() {
     // but follows the initialization pattern of other modules.
 }
 
-startFlowBtn.addEventListener('click', startFlowState);
-stopFlowBtn.addEventListener('click', stopFlowState);
+if (startFlowBtn) startFlowBtn.addEventListener('click', startFlowState);
+if (stopFlowBtn) stopFlowBtn.addEventListener('click', stopFlowState);
 
 ipcRenderer.on('flow-popup-closed', () => {
     if (flowState.isFlowRunning) {

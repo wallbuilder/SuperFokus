@@ -98,6 +98,16 @@
       }
 
       /* Startup Screen */
+
+      /* Dropdown active state */
+      .dropdown-option {
+          display: none;
+      }
+
+      .dropdown-option.active {
+          display: block !important;
+      }
+
       #startup-screen {
         position: fixed;
         top: 0; left: 0; width: 100%; height: 100%;
@@ -712,7 +722,7 @@
                     <div style="display: flex; gap: 15px; align-items: center;">
                         <div style="position: relative; flex: 1;">
                             <button id="toggle-option-1" class="action-btn" style="margin-top: 0; background: var(--timer-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 20px; padding: 0.6rem 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Light Mode</button>
-                            <div id="dropdown-option-1" style="display: none; position: absolute; bottom: calc(100% + 10px); left: 0; background: var(--container-bg); border: 2px solid var(--border-color); border-radius: 12px; padding: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 100; width: 180px;">
+                            <div id="dropdown-option-1" class="dropdown-option" style="position: absolute; bottom: calc(100% + 10px); left: 0; background: var(--container-bg); border: 2px solid var(--border-color); border-radius: 12px; padding: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 100; width: 180px;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                     <span style="font-size: 0.9rem; font-weight: 500;">Select below ⤵</span>
                                     <span id="close-dropdown-1" style="cursor: pointer; font-size: 0.8rem; background: var(--timer-bg); border-radius: 5px; padding: 2px 6px; border: 1px solid var(--border-color);">✕</span>
@@ -729,7 +739,7 @@
                         
                         <div style="position: relative; flex: 1;">
                             <button id="toggle-option-2" class="action-btn" style="margin-top: 0; background: var(--timer-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 20px; padding: 0.6rem 1rem; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Dark Mode</button>
-                            <div id="dropdown-option-2" style="display: none; position: absolute; bottom: calc(100% + 10px); left: 0; background: var(--container-bg); border: 2px solid var(--border-color); border-radius: 12px; padding: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 100; width: 180px;">
+                            <div id="dropdown-option-2" class="dropdown-option" style="position: absolute; bottom: calc(100% + 10px); left: 0; background: var(--container-bg); border: 2px solid var(--border-color); border-radius: 12px; padding: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 100; width: 180px;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                     <span style="font-size: 0.9rem; font-weight: 500;">Select below ⤵</span>
                                     <span id="close-dropdown-2" style="cursor: pointer; font-size: 0.8rem; background: var(--timer-bg); border-radius: 5px; padding: 2px 6px; border: 1px solid var(--border-color);">✕</span>
@@ -751,67 +761,109 @@
 
             <!-- Sounds Tab -->
             <div id="tab-sounds" class="tab-content" style="display: none;">
-                <div class="form-group" style="margin-bottom: 20px;">
+                
+                <div style="font-size: 1.1rem; margin-bottom: 15px; font-weight: 500;">Sound Settings</div>
+                
+                <div class="form-group" style="margin-bottom: 25px;">
                     <label>Sound Library Pack:</label>
-                    <select id="sound-pack-selector" style="width: 100%;">
+                    <select id="sound-pack-selector" style="width: 100%; margin-bottom: 5px;">
                         <option value="classic">Classic (Default)</option>
                         <option value="nature">Nature (Zen)</option>
                         <option value="mechanical">Mechanical</option>
                     </select>
-                    <small style="color: var(--timer-subtext);">Select a sound pack for notifications.</small>
+                    <small style="display: block; color: var(--timer-subtext);">The selected pack determines the available ambient and notification sounds below.</small>
                 </div>
-                
-                <div class="form-group" style="margin-bottom: 20px;">
-                    <label>Event Alerts (Unique Sounds):</label>
-                    <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
-                        <label style="display: flex; align-items: center; gap: 10px;">
-                            <input type="checkbox" id="alert-session-start" checked> Session Start
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px;">
-                            <input type="checkbox" id="alert-break-start" checked> Break Start
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px;">
-                            <input type="checkbox" id="alert-session-complete" checked> Session Complete
-                        </label>
+
+                <div style="background: var(--timer-bg); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <h3 style="margin-top: 0; font-size: 1rem; color: var(--timer-subtext); margin-bottom: 20px;">Pack Specific Sounds</h3>
+                    
+                    <div class="form-group" style="margin-bottom: 25px;">
+                        <label>Notification Sound:</label>
+                        <select id="notification-sound-selector" style="width: 100%; margin-bottom: 10px;">
+                            <option value="notif-1">Notification Sound 1</option>
+                            <option value="notif-2">Notification Sound 2</option>
+                            <option value="notif-3">Notification Sound 3</option>
+                        </select>
+                        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+                            <label style="margin: 0;">Volume:</label>
+                            <input type="range" id="chime-volume" min="0" max="1" step="0.1" value="1" style="flex: 1;">
+                            <button class="action-btn" id="test-chime-btn" style="margin-top: 0; width: auto; padding: 0.5rem 1rem; background: var(--header-grad-1);">Test</button>
+                        </div>
+                        <div>
+                            <input type="file" id="chime-file-input" accept="audio/*" style="display: none;">
+                            <button class="action-btn" id="upload-chime-btn" style="margin-top: 0; width: 100%; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color);">Upload Custom Notification</button>
+                        </div>
+                        <div id="custom-notifs-container" style="display: flex; flex-direction: column; gap: 5px; margin-top: 10px;"></div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 25px;">
+                        <label>Alert Triggers:</label>
+                        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                            <label style="display: flex; align-items: center; gap: 10px; font-weight: normal; margin: 0;">
+                                <input type="checkbox" id="alert-session-start" checked> Session Start
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 10px; font-weight: normal; margin: 0;">
+                                <input type="checkbox" id="alert-break-start" checked> Break Start
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 10px; font-weight: normal; margin: 0;">
+                                <input type="checkbox" id="alert-session-complete" checked> Session Complete
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                        <label>Ambient Background Noise:</label>
+                        <select id="ambient-noise-selector" style="width: 100%; margin-top: 5px;">
+                            <option value="none">None</option>
+                        </select>
+                        <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px; margin-bottom: 10px;">
+                            <label style="margin: 0;">Volume:</label>
+                            <input type="range" id="ambient-volume" min="0" max="1" step="0.1" value="0.5" style="flex: 1;">
+                        </div>
+                        <div>
+                            <input type="file" id="ambient-file-input" accept="audio/*" style="display: none;">
+                            <button class="action-btn" id="upload-ambient-btn" style="margin-top: 0; width: 100%; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color);">Upload Custom Background Noise</button>
+                        </div>
+                        <div id="custom-ambient-container" style="display:none; align-items: center; gap: 10px; margin-top: 10px; padding: 10px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px;">
+                            <span style="flex: 1; font-size: 0.9rem;" id="custom-ambient-label">Custom BG Active</span>
+                            <button class="action-btn" id="delete-custom-ambient-btn" style="margin-top: 0; background: #e74c3c; width: auto; padding: 5px 10px;">Delete</button>
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-group" style="margin-bottom: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
-                    <label>Ambient Background Noise:</label>
-                    <select id="ambient-noise-selector" style="width: 100%; margin-top: 5px;">
-                        <option value="none">None</option>
-                    </select>
-                    <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
-                        <label style="margin: 0;">Volume:</label>
-                        <input type="range" id="ambient-volume" min="0" max="1" step="0.1" value="0.5" style="flex: 1;">
+                <div style="margin-top: 25px; padding-top: 20px; border-top: 2px solid var(--border-color);">
+                    <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--timer-subtext); margin-bottom: 15px;">Custom Soundpack Creator</h3>
+                    
+                    <div class="form-group">
+                        <label for="custom-pack-name">Soundpack Name:</label>
+                        <input type="text" id="custom-pack-name" placeholder="e.g. My Custom Pack" style="width: 100%;">
                     </div>
-                    <div style="margin-top: 10px;">
-                        <input type="file" id="ambient-file-input" accept="audio/*" style="display: none;">
-                        <button class="action-btn" id="upload-ambient-btn" style="margin-top: 0; width: 100%; background: var(--timer-bg); color: var(--text-color); border: 1px solid var(--border-color);">Upload Custom Background Noise</button>
-                    </div>
-                    <div id="custom-ambient-container" style="display:none; align-items: center; gap: 10px; margin-top: 10px; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px;">
-                        <span style="flex: 1; font-size: 0.9rem;" id="custom-ambient-label">Custom BG Active</span>
-                        <button class="action-btn" id="delete-custom-ambient-btn" style="margin-top: 0; background: #e74c3c; width: auto; padding: 5px 10px;">Delete</button>
-                    </div>
-                </div>
 
-                <div class="form-group" style="border-top: 1px solid var(--border-color); padding-top: 15px;">
-                    <label>Notification Sound Selection & Volume:</label>
-                    <select id="notification-sound-selector" style="width: 100%; margin-top: 5px; margin-bottom: 10px;">
-                        <option value="notif-1">Notification Sound 1</option>
-                        <option value="notif-2">Notification Sound 2</option>
-                        <option value="notif-3">Notification Sound 3</option>
-                    </select>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <label style="margin: 0;">Volume:</label>
-                        <input type="range" id="chime-volume" min="0" max="1" step="0.1" value="1" style="flex: 1;">
-                        <button class="action-btn" id="test-chime-btn" style="margin-top: 0; width: auto; padding: 0.5rem 1rem; background: var(--header-grad-1);">Test</button>
+                    <div class="form-group">
+                        <label for="custom-notif-upload">Upload Custom Notifications:</label>
+                        <input type="file" id="custom-notif-upload" accept="audio/*" multiple style="display: none;">
+                        <button class="action-btn" id="custom-notif-upload-btn" style="margin-top: 0; width: 100%; background: var(--header-grad-1);">Add Notification Sound(s)</button>
+                        <div id="custom-notif-preview" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 10px;"></div>
                     </div>
-                    <div style="margin-top: 10px;">
-                        <input type="file" id="chime-file-input" accept="audio/*" style="display: none;">
-                        <button class="action-btn" id="upload-chime-btn" style="margin-top: 0; width: 100%; background: var(--header-grad-1);">Upload Custom Notification Sound</button>
+
+                    <div class="form-group">
+                        <label for="custom-ambient-upload">Upload Custom Ambient Sounds:</label>
+                        <input type="file" id="custom-ambient-upload" accept="audio/*" multiple style="display: none;">
+                        <button class="action-btn" id="custom-ambient-upload-btn" style="margin-top: 0; width: 100%; background: var(--header-grad-1);">Add Ambient Sound(s)</button>
+                        <div id="custom-ambient-preview" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 10px;"></div>
                     </div>
-                    <div id="custom-notifs-container" style="display: flex; flex-direction: column; gap: 5px; margin-top: 10px;"></div>
+                    
+                    <button class="action-btn" id="save-custom-pack-btn" style="background: #27ae60;">Save Custom Soundpack</button>
+
+                    <div class="form-group" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                        <label for="custom-packs-selector">My Custom Soundpacks:</label>
+                        <div style="display: flex; gap: 10px;">
+                            <select id="custom-packs-selector" style="flex: 1;">
+                                <option value="none">No Custom Packs</option>
+                            </select>
+                            <button class="action-btn" id="delete-custom-pack-btn" style="margin-top: 0; width: auto; padding: 0.85rem; background: #e74c3c;">Delete Selected</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -959,17 +1011,11 @@
           <span class="icon">⏱</span> Flow State Stopwatch
         </button>
         <button class="home-btn" data-mode="health-mode">
-          <span class="icon">❤️</span> Health Mode
+          <span class="icon">♡</span> Health Mode
         </button>
-        <div class="workflow-container" style="grid-column: span 2; display: flex; flex-direction: column;">
-           <button class="home-btn workflow-btn" data-mode="workflows">
-             <span class="icon" style="font-size: 1.5rem; margin-bottom: 5px;">⚙</span> Workflows
-           </button>
-           <div class="coming-soon-btns">
-              <button class="small-btn">Coming soon</button>
-              <button class="small-btn">Coming soon</button>
-           </div>
-        </div>
+        <button class="home-btn workflow-btn" data-mode="workflows" style="grid-column: span 2;">
+          <span class="icon" style="font-size: 1.5rem; margin-bottom: 5px;">⚙</span> Workflows
+        </button>
       </div>
 
       <!-- Flow State Config -->
@@ -1306,7 +1352,7 @@
     <div id="version">SuperFokus v1.0.0</div>
 
     <!-- Audio for chimes -->
-    <audio id="chime-audio" src="chime.mp3" preload="auto"></audio>
+    <audio id="chime-audio" src="./assets/sounds/nature-notif-1.mp3" preload="auto"></audio>
 
     <!-- Custom Alert Modal for JS alert() replacement -->
     <div id="custom-alert-modal" class="modal-overlay" tabindex="-1">
@@ -1316,6 +1362,21 @@
       </div>
     </div>
 
+    <script>
+      window.onerror = function(message, source, lineno, colno, error) {
+        console.error('GLOBAL ERROR:', message, 'at', source, lineno, colno, error);
+        // If it's a startup error, we might want to alert it with more detail
+        if (message.includes('Script error') && source === '') {
+           // Ignore cross-origin script errors
+        } else {
+           // alert('Debug Error: ' + message + '\nLine: ' + lineno + '\nSource: ' + source);
+        }
+      };
+      window.onunhandledrejection = function(event) {
+        console.error('UNHANDLED REJECTION:', event.reason);
+        // alert('Debug Rejection: ' + event.reason);
+      };
+    </script>
     <script src="node_modules/chart.js/dist/chart.umd.js"></script>
     <script type="module" src="./src/renderer/renderer.js"></script>
   </body>

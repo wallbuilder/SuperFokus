@@ -33,3 +33,13 @@ export function formatTime(seconds) {
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
+
+export function escapeHtml(unsafe) {
+    if (!unsafe || typeof unsafe !== 'string') return unsafe;
+    return unsafe
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}

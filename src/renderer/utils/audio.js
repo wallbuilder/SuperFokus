@@ -1,20 +1,24 @@
 import { store } from './storage.js';
 
 // --- Audio ---
-const chimeAudio = document.getElementById('chime-audio');
+let chimeAudio = null;
+const chimeAudioElement = document.getElementById('chime-audio');
+if (chimeAudioElement) {
+    chimeAudio = chimeAudioElement;
+}
 let audioCtx = null;
 
 // Ambient Noise Generator
-let ambientAudio = new Audio();
+let ambientAudio = new Audio(); // This can be initialized directly as it doesn't rely on a DOM element initially
 ambientAudio.loop = true;
 
-const soundPacks = {
+let soundPacks = {
     classic: {
         notifs: [
             { id: 'classic-notif-1', label: 'Classic Notification 1' },
             { id: 'classic-notif-2', label: 'Classic Notification 2' },
             { id: 'classic-notif-3', label: 'Classic Notification 3' },
-            { id: 'classic-notif-4', label: 'Chime (Old)' }
+            { id: 'nature-notif-1', label: 'Chime (Old)' }
         ],
         ambient: [
             { id: 'classic-bg-1', label: 'Classic Ambient 1' },
@@ -48,62 +52,134 @@ const soundPacks = {
     }
 };
 
+let customSoundPacks = {};
+
 let customNotifs = [];
-let customAmbientData = null;
+let customAmbientData = null; // Only one custom ambient can be active for built-in single custom ambient upload
+
+async function loadFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => resolve(event.target.result);
+        reader.onerror = (error) => reject(error);
+        reader.readAsDataURL(file);
+    });
+}
 
 function updateSoundSelectors() {
-    const packSelector = document.getElementById('sound-pack-selector');
-    const pack = packSelector ? packSelector.value : 'classic';
-    const notifSelector = document.getElementById('notification-sound-selector');
-    const ambientSelector = document.getElementById('ambient-noise-selector');
+    try {
+        const packSelector = document.getElementById('sound-pack-selector');
+        const customPacksSelector = document.getElementById('custom-packs-selector'); // This might be null if not ready
 
-    if (notifSelector && ambientSelector) {
         // Save current selections
-        const currentNotif = notifSelector.value;
-        const currentAmbient = ambientSelector.value;
+        const currentPack = packSelector ? packSelector.value : 'classic';
+        let currentNotif = '';
+        let currentAmbient = '';
 
-        // Update Notifs
-        notifSelector.innerHTML = '';
-        soundPacks[pack].notifs.forEach(n => {
-            const opt = document.createElement('option');
-            opt.value = n.id;
-            opt.innerText = n.label;
-            notifSelector.appendChild(opt);
-        });
+        const notifSelector = document.getElementById('notification-sound-selector');
+        const ambientSelector = document.getElementById('ambient-noise-selector');
 
-        // Add Custom Notifs
-        customNotifs.forEach((n, idx) => {
-            const opt = document.createElement('option');
-            opt.value = `custom-notif-${idx}`;
-            opt.innerText = `Custom Notification ${idx + 1}`;
-            notifSelector.appendChild(opt);
-        });
+        if (notifSelector) currentNotif = notifSelector.value;
+        if (ambientSelector) currentAmbient = ambientSelector.value;
 
-        // Update Ambient
-        ambientSelector.innerHTML = '<option value="none">None</option>';
-        soundPacks[pack].ambient.forEach(a => {
-            const opt = document.createElement('option');
-            opt.value = a.id;
-            opt.innerText = a.label;
-            ambientSelector.appendChild(opt);
-        });
-
-        if (customAmbientData) {
-            const opt = document.createElement('option');
-            opt.value = 'custom-ambient';
-            opt.innerText = 'Custom Background Noise';
-            ambientSelector.appendChild(opt);
+        // Clear existing options from main pack selector and custom pack selector
+        if (packSelector) {
+            packSelector.innerHTML = '';
+            // Add default packs
+            Object.keys(soundPacks).filter(key => !customSoundPacks.hasOwnProperty(key)).forEach(packId => {
+                const opt = document.createElement('option');
+                opt.value = packId;
+                opt.innerText = soundPacks[packId].label || packId; // Use label if available, else id
+                packSelector.appendChild(opt);
+            });
+            // Add custom packs
+            Object.keys(customSoundPacks).forEach(packId => {
+                const opt = document.createElement('option');
+                opt.value = packId;
+                opt.innerText = customSoundPacks[packId].label || packId;
+                packSelector.appendChild(opt);
+            });
         }
 
-        // Restore selections if still valid, else default to first
-        if (Array.from(notifSelector.options).some(o => o.value === currentNotif)) {
-            notifSelector.value = currentNotif;
-        }
-        if (Array.from(ambientSelector.options).some(o => o.value === currentAmbient)) {
-            ambientSelector.value = currentAmbient;
+        if (customPacksSelector) { // Ensure customPacksSelector exists before manipulating
+            customPacksSelector.innerHTML = '<option value="none">No Custom Packs</option>';
+            Object.keys(customSoundPacks).forEach(packId => {
+                const opt = document.createElement('option');
+                opt.value = packId;
+                opt.innerText = customSoundPacks[packId].label || packId;
+                customPacksSelector.appendChild(opt);
+            });
+            customPacksSelector.value = 'none'; // Reset to none after updating list
         } else {
-            ambientSelector.value = 'none';
+            console.warn("customPacksSelector not found during updateSoundSelectors, skipping custom pack UI update.");
         }
+
+        // Restore selected pack or default to 'classic'
+        if (packSelector) {
+            if (soundPacks[currentPack]) {
+                packSelector.value = currentPack;
+            } else {
+                packSelector.value = 'classic';
+            }
+        }
+
+        const pack = packSelector ? packSelector.value : 'classic';
+
+        if (notifSelector && ambientSelector) {
+            // Update Notifs
+            notifSelector.innerHTML = '';
+            if (soundPacks[pack]) { // Check if the pack exists
+                soundPacks[pack].notifs.forEach(n => {
+                    const opt = document.createElement('option');
+                    opt.value = n.id;
+                    opt.innerText = n.label;
+                    notifSelector.appendChild(opt);
+                });
+            }
+            
+            // Add Custom Notifs (from built-in single custom notif upload)
+            customNotifs.forEach((n, idx) => {
+                const opt = document.createElement('option');
+                opt.value = `custom-notif-${idx}`;
+                opt.innerText = `Custom Notification ${idx + 1}`;
+                notifSelector.appendChild(opt);
+            });
+
+            // Update Ambient
+            ambientSelector.innerHTML = '<option value="none">None</option>';
+            if (soundPacks[pack]) { // Check if the pack exists
+                soundPacks[pack].ambient.forEach(a => {
+                    const opt = document.createElement('option');
+                    opt.value = a.id;
+                    opt.innerText = a.label;
+                    ambientSelector.appendChild(opt);
+                });
+            }
+
+            if (customAmbientData) {
+                const opt = document.createElement('option');
+                opt.value = 'custom-ambient';
+                opt.innerText = 'Custom Background Noise';
+                ambientSelector.appendChild(opt);
+            }
+
+            // Restore selections if still valid, else default to first
+            if (Array.from(notifSelector.options).some(o => o.value === currentNotif)) {
+                notifSelector.value = currentNotif;
+            } else {
+                // If currentNotif is from a previously selected custom pack that's now deselected, it might not be in the list.
+                // Default to the first available notification if the old one isn't there.
+                notifSelector.value = notifSelector.options[0] ? notifSelector.options[0].value : '';
+            }
+
+            if (Array.from(ambientSelector.options).some(o => o.value === currentAmbient)) {
+                ambientSelector.value = currentAmbient;
+            } else {
+                ambientSelector.value = 'none';
+            }
+        }
+    } catch (error) {
+        console.error('Error in updateSoundSelectors:', error);
     }
 }
 
@@ -383,9 +459,104 @@ export async function initAudio() {
         customAmbientData = savedCustomAmbient;
     }
 
-    updateCustomNotifsUI();
-    updateCustomAmbientUI();
-    updateSoundSelectors();
+    const savedCustomSoundPacks = await store.get('customSoundPacks', {});
+    if (savedCustomSoundPacks) {
+        customSoundPacks = savedCustomSoundPacks;
+    }
 }
 
-export { playChime, playFallbackBeep, toggleAmbientNoise };
+function updateCustomPackUI() {
+    const customPacksSelector = document.getElementById('custom-packs-selector');
+    if (customPacksSelector) {
+        customPacksSelector.innerHTML = '<option value="none">No Custom Packs</option>';
+        Object.keys(customSoundPacks).forEach(packId => {
+            const opt = document.createElement('option');
+            opt.value = packId;
+            opt.innerText = customSoundPacks[packId].label || packId;
+            customPacksSelector.appendChild(opt);
+        });
+        customPacksSelector.value = 'none'; // Reset to none after updating list
+    }
+}
+
+async function saveCustomSoundPack(packName, notifs, ambient) {
+    if (!packName) {
+        alert('Please enter a name for your custom soundpack.');
+        return;
+    }
+    if (soundPacks[packName]) {
+        alert(`A soundpack with the name "${packName}" already exists. Please choose a different name.`);
+        return;
+    }
+
+    const formattedNotifs = notifs.map((dataUrl, idx) => ({ id: `${packName}-notif-${idx}`, label: `Notification ${idx + 1}`, src: dataUrl }));
+    const formattedAmbient = ambient.map((dataUrl, idx) => ({ id: `${packName}-ambient-${idx}`, label: `Ambient ${idx + 1}`, src: dataUrl }));
+
+    customSoundPacks[packName] = {
+        label: packName,
+        notifs: formattedNotifs,
+        ambient: formattedAmbient
+    };
+
+    // Add to the main soundPacks object as well so it's selectable immediately
+    soundPacks[packName] = customSoundPacks[packName];
+
+    await store.set('customSoundPacks', customSoundPacks);
+    updateSoundSelectors(); // Re-populate all selectors
+    updateCustomPackUI(); // Update the custom pack dropdown
+
+    // Select the newly created pack
+    const packSelector = document.getElementById('sound-pack-selector');
+    if (packSelector) {
+        packSelector.value = packName;
+        toggleAmbientNoise(); // Apply new ambient if any
+    }
+    alert(`Custom soundpack "${packName}" saved successfully!`);
+}
+
+async function deleteCustomSoundPack(packName) {
+    if (!packName || packName === 'none') {
+        alert('Please select a custom soundpack to delete.');
+        return;
+    }
+    if (!customSoundPacks[packName]) {
+        alert('Selected soundpack not found in custom soundpacks.');
+        return;
+    }
+
+    if (confirm(`Are you sure you want to delete the custom soundpack "${packName}"?`)) {
+        // Remove from main soundPacks object
+        delete soundPacks[packName];
+        // Remove from customSoundPacks
+        delete customSoundPacks[packName];
+        await store.set('customSoundPacks', customSoundPacks);
+        updateSoundSelectors(); // Re-populate all selectors
+        updateCustomPackUI(); // Update the custom pack dropdown
+        alert(`Custom soundpack "${packName}" deleted.`);
+    }
+}
+
+// Function to load a selected custom pack into the main soundpack selector
+function loadCustomPack(packName) {
+    if (customSoundPacks[packName]) {
+        const packSelector = document.getElementById('sound-pack-selector');
+        if (packSelector) {
+            packSelector.value = packName;
+            updateSoundSelectors();
+            toggleAmbientNoise();
+        }
+    }
+}
+
+export { 
+    playChime, 
+    playFallbackBeep, 
+    toggleAmbientNoise, 
+    loadFileAsDataURL, 
+    saveCustomSoundPack, 
+    deleteCustomSoundPack, 
+    updateCustomPackUI,
+    updateSoundSelectors,
+    updateCustomNotifsUI,
+    updateCustomAmbientUI
+};

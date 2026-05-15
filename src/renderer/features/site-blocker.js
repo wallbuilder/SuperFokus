@@ -22,30 +22,23 @@ const siteBlockerAlwaysRun = document.getElementById('site-blocker-always-run');
 // Removed work in progress block
 
 // Show/hide mode messages based on selection
-siteBlockerMode.addEventListener('change', () => {
-    const proxyMsg = document.getElementById('proxy-message');
-    const blockMsg = document.getElementById('block-message');
-    if (siteBlockerMode.value === 'allow') {
-        proxyMsg.style.display = 'block';
-        blockMsg.style.display = 'none';
-    } else {
-        proxyMsg.style.display = 'none';
-        blockMsg.style.display = 'block';
-    }
-    // Trigger change on load too
-    window.addEventListener('load', () => {
-        const currentMode = siteBlockerMode.value;
-        if (currentMode === 'allow') {
-            proxyMsg.style.display = 'block';
-            blockMsg.style.display = 'none';
+if (siteBlockerMode) {
+    siteBlockerMode.addEventListener('change', () => {
+        const proxyMsg = document.getElementById('proxy-message');
+        const blockMsg = document.getElementById('block-message');
+        if (siteBlockerMode.value === 'allow') {
+            if (proxyMsg) proxyMsg.style.display = 'block';
+            if (blockMsg) blockMsg.style.display = 'none';
         } else {
-            proxyMsg.style.display = 'none';
-            blockMsg.style.display = 'block';
+            if (proxyMsg) proxyMsg.style.display = 'none';
+            if (blockMsg) blockMsg.style.display = 'block';
         }
     });
-});
+}
 
 function updateBlocker() {
+    if (!siteBlockerMode || !domainListInput || !siteBlockerEnabled || !siteBlockerAlwaysRun) return;
+
     blockerState.blockerMode = siteBlockerMode.value;
     const rawDomains = domainListInput.value.split('\n').map(s => s.trim()).filter(Boolean);
     const rawUrls = urlListInput ? urlListInput.value.split('\n').map(s => s.trim()).filter(Boolean) : [];
@@ -98,15 +91,17 @@ function updateBlocker() {
 }
 
 
-saveBlockerBtn.addEventListener('click', () => {
-    updateBlocker();
-    saveBlockerBtn.innerText = 'Saved!';
-    saveBlockerBtn.style.background = '#2ecc71';
-    setTimeout(() => {
-        saveBlockerBtn.innerText = 'Save & Apply Blocker';
-        saveBlockerBtn.style.background = '#3498db';
-    }, 2000);
-});
+if (saveBlockerBtn) {
+    saveBlockerBtn.addEventListener('click', () => {
+        updateBlocker();
+        saveBlockerBtn.innerText = 'Saved!';
+        saveBlockerBtn.style.background = '#2ecc71';
+        setTimeout(() => {
+            saveBlockerBtn.innerText = 'Save & Apply Blocker';
+            saveBlockerBtn.style.background = '#3498db';
+        }, 2000);
+    });
+}
 
 function handleClearBlocks(btn) {
     if (confirm('Are you sure you want to clear all SuperFokus block entries from your system hosts file?')) {
@@ -131,5 +126,5 @@ if (clearBlockerModalBtn) {
 }
 
 // Sync blocker state to main if it should always run
-siteBlockerEnabled.addEventListener('change', updateBlocker);
-siteBlockerAlwaysRun.addEventListener('change', updateBlocker);
+if (siteBlockerEnabled) siteBlockerEnabled.addEventListener('change', updateBlocker);
+if (siteBlockerAlwaysRun) siteBlockerAlwaysRun.addEventListener('change', updateBlocker);

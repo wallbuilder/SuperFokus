@@ -2,8 +2,8 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
 const os = require('os');
-const { exec } = require('child_process');
-const { normalizeHost, DOMAIN_REGEX, IP_REGEX } = require('../renderer/utils/utils.js');
+const { exec, execFile, spawn } = require('child_process');
+const { DOMAIN_REGEX, IP_REGEX } = require('../renderer/utils/utils.js');
 
 // Determine hosts file path based on platform
 const HOSTS_FILE = process.platform === 'darwin'
@@ -25,24 +25,27 @@ function validateDomain(domain) {
 function flushDnsCache() {
     return new Promise((resolve) => {
         const platform = process.platform;
-        let cmd;
 
         if (platform === 'darwin') {
-            cmd = 'dscacheutil -flushcache; killall -HUP mDNSResponder';
+            execFile('dscacheutil', ['-flushcache'], (err) => {
+                if (err) console.warn('dscacheutil flush failed:', err.message);
+                execFile('killall', ['-HUP', 'mDNSResponder'], (err2) => {
+                    if (err2) console.warn('mDNSResponder killall failed:', err2.message);
+                    resolve();
+                });
+            });
         } else if (platform === 'win32') {
-            cmd = 'ipconfig /flushdns';
+            execFile('ipconfig', ['/flushdns'], (err) => {
+                if (err) console.warn('ipconfig flushdns failed:', err.message);
+                resolve();
+            });
         } else {
-            cmd = 'systemd-resolve --flush-caches || resolvectl flush-caches || service nscd restart || true';
+            // For Linux, try common options
+            exec('systemd-resolve --flush-caches || resolvectl flush-caches || service nscd restart || true', (err) => {
+                if (err) console.warn('Linux DNS flush failed:', err.message);
+                resolve();
+            });
         }
-
-        exec(cmd, (err) => {
-            if (err) {
-                console.warn('DNS flush failed:', err.message);
-            } else {
-                console.log('DNS cache flushed successfully:', cmd);
-            }
-            resolve();
-        });
     });
 }
 
@@ -102,11 +105,12 @@ async function applyBlocksAsync(domains, retries = 3) {
 
         for (const raw of domains) {
             if (!raw || typeof raw !== 'string') continue;
-            const host = normalizeHost(raw);
-            if (!host) {
-                throw new Error(`Invalid domain format: "${raw}".`);
+            // The renderer process is responsible for normalizing and validating domains before sending them.
+            // Here, we just ensure it's a string and then validate its format.
+            if (!validateDomain(raw)) {
+                throw new Error(`Invalid domain format after normalization: "${raw}".`);
             }
-            addHost(host);
+            addHost(raw);
         }
 
         const validatedDomains = Array.from(domainSet).filter(host => validateDomain(host));

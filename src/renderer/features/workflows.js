@@ -6,8 +6,7 @@ import { playChime } from '../utils/audio.js';
 import { startPomoPhase, stopPomoStyle, startPomoStyle, pomoState } from './pomo-timer.js';
 import { startRepeatingReminders, stopRepeatingReminders, repeatingState } from './repeating.js';
 import { startNextSprintTask, stopSprintMode, startSprintMode, sprintState } from './micro-sprint.js';
-import { setInputsLocked, toggleStartStopButton, formatTime } from '../utils/ui-helpers.js';
-import { recordFocusSession } from '../utils/stats.js';
+import { setInputsLocked, toggleStartStopButton, formatTime, escapeHtml } from '../utils/ui-helpers.js';
 
 // Centralized Workflow State
 export const workflowState = {
@@ -347,7 +346,7 @@ function updateWorkflowPresetOptions() {
     Object.keys(workflowPresets).forEach(key => {
         const option = document.createElement('option');
         option.value = `custom-preset-${key}`;
-        option.textContent = `Custom: ${key}`;
+        option.textContent = `Custom: ${escapeHtml(key)}`;
         workflowPresetsSelect.appendChild(option);
     });
 }
@@ -361,7 +360,7 @@ function updateWorkflowCurrentPresetDisplay() {
         presetDisplay.innerText = 'Custom';
     } else if (val.startsWith('custom-preset-')) {
         const key = val.replace('custom-preset-', '');
-        presetDisplay.innerText = key;
+        presetDisplay.innerText = escapeHtml(key);
     } else {
         presetDisplay.innerText = 'Custom';
     }
@@ -422,7 +421,7 @@ async function getPresetDetails(type, presetKey) {
             const key = presetKey.replace('custom-preset-', '');
             if (customPresets[key]) {
                 seq = customPresets[key];
-                details.displayName = `Custom: ${key}`;
+                details.displayName = `Custom: ${escapeHtml(key)}`;
             }
         }
         if (seq) {
@@ -439,7 +438,7 @@ async function getPresetDetails(type, presetKey) {
         } else if (presetKey && presetKey.startsWith('custom-preset-')) {
             const key = presetKey.replace('custom-preset-', '');
             if (sprintPresets[key]) {
-                details.displayName = `Custom: ${key}`;
+                details.displayName = `Custom: ${escapeHtml(key)}`;
                 const val = sprintPresets[key].durationVal;
                 details.duration = val === 'custom' ? (sprintPresets[key].customMins || 20) : (parseInt(val, 10) || 15);
             }
@@ -458,19 +457,18 @@ async function getPresetDetails(type, presetKey) {
             details.rounds = rounds;
             details.duration = Math.round(((intervalMins * 60 + intervalSecs) * rounds) / 60);
         } else if (presetKey && presetKey.startsWith('custom-preset-')) {
-            const key = presetKey.replace('custom-preset-', '');
-            if (repeatingPresets[key]) {
-                details.displayName = `Custom: ${key}`;
-                details.interval = { 
-                    mins: repeatingPresets[key].intervalMins || 0, 
-                    secs: repeatingPresets[key].intervalSecs || 0 
-                };
-                details.rounds = repeatingPresets[key].rounds || 1;
-                const minsTotal = details.interval.mins;
-                const secsTotal = details.interval.secs;
-                details.duration = Math.round(((minsTotal * 60 + secsTotal) * details.rounds) / 60);
-            }
-        }
+        const key = presetKey.replace('custom-preset-', '');
+        if (repeatingPresets[key]) {
+            details.displayName = `Custom: ${escapeHtml(key)}`;
+            details.interval = { 
+                mins: repeatingPresets[key].intervalMins || 0, 
+                secs: repeatingPresets[key].intervalSecs || 0 
+            };
+            details.rounds = repeatingPresets[key].rounds || 1;
+            const minsTotal = details.interval.mins;
+            const secsTotal = details.interval.secs;
+            details.duration = Math.round(((minsTotal * 60 + secsTotal) * details.rounds) / 60);
+        }        }
     }
 
     return details;
@@ -635,7 +633,7 @@ async function renderWorkflowStack() {
                 let presetSelectHtml = '<select class="block-preset-input" data-index="' + index + '" style="flex: 1; padding: 6px; border: 1px solid var(--input-border); border-radius: 4px; background: var(--input-bg); color: var(--text-color); font-size: 0.9rem;">';
                 availablePresets.forEach(preset => {
                     const selected = preset.key === block.presetKey ? 'selected' : '';
-                    presetSelectHtml += '<option value="' + preset.key + '" ' + selected + '>' + preset.label + '</option>';
+                    presetSelectHtml += '<option value="' + escapeHtml(preset.key) + '" ' + selected + '>' + escapeHtml(preset.label) + '</option>';
                 });
                 presetSelectHtml += '</select>';
 

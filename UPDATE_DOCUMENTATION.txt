@@ -37,6 +37,25 @@ Each new edit to the file that documents new changes should also list the date a
     - **Quality of Life (QOL) & UI Fixes:** Fixed sidebar bug where it closed on interactions outside by removing the click-to-close logic in `modals.js`. Integrated Health Mode into the main dashboard and removed its separate modal implementation. Added sidebar color (`customDrawerBg`) selection tool to the customization menu.
     - **Security:** Patched a command injection vulnerability in `runElevated` inside `main.js` that allowed unauthorized command execution through newlines. Fixed platform handling for setting `ELECTRON_RUN_AS_NODE`.
 
+{5/14/2026}
+    **Codebase Refactoring & Simplification**
+    - Completed major refactoring of the main process (`main.js`) into a modular service-oriented architecture.
+    - Created `src/main/services/WindowManager.js`, `BlockerService.js`, `TimerService.js`, `HealthService.js`, and `IpcMainHandlers.js`.
+    - Simplified `main.js` to serve as a clean entry point for service initialization and app lifecycle management.
+    - Improved code maintainability, security, and scalability through clear separation of concerns.
+
+    **Feature Completion & Bug Fixes**
+    - **Health Fokus Mode:** Fully integrated "Health Mode" into the main dashboard as a standard Fokus Mode. Refactored UI elements to remove "Coming soon" placeholders and removed redundant modal logic.
+    - **Audio Fix:** Resolved `ERR_FILE_NOT_FOUND` for `chime.mp3` by providing a default sound asset in `assets/sounds/`.
+    - **Sidebar Improvements:** Implemented smart sidebar closing logic that respects open modal menus. The sidebar now stays open when customization or stats menus are active and closes when clicking outside the sidebar while no menus are open.
+    - **Version Verification:** Confirmed application versioning is set to `v1.0.0` across all relevant configuration and display files.
+    - **Customization:** Verified Sidebar Color picker functionality and persistence in the Custom Theme Creator.
+
+    **Startup Stability & Debugging Improvements**
+    - **Fixed Startup Crash:** Resolved an issue where zombie Electron processes holding the single instance lock prevented the application from launching.
+    - **Fixed Duplicate Export Error:** Eliminated a "Duplicate export of 'initAudio'" error in `src/renderer/utils/audio.js` that caused a fatal startup failure.
+    - **Enhanced Error Reporting:** Integrated a global error handler in `index.html` and updated the startup error alert in `renderer.js` to display specific error messages, significantly improving troubleshooting for future issues.
+
 < [DO NOT DELETE THIS TEXT]
 (Example chunk of documentation: 
 {1/1/2025 at 12:00 PM}
