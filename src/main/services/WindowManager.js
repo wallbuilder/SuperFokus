@@ -5,9 +5,7 @@ class WindowManager {
     constructor() {
         this.mainWindow = null;
         this.popupWindow = null;
-        this.pomoTimerWindow = null;
-        this.microSprintTimerWindow = null;
-        this.flowTimerWindow = null;
+        this.timerWindow = null;
         this.fullscreenWindow = null;
         this.isQuitting = false;
         this.currentThemeIsDark = false;
@@ -252,7 +250,6 @@ class WindowManager {
 
             this.popupWindow.on('blur', () => {
                 // This will be handled by the blocker service if macBlockActive is needed
-                // For now, we keep it simple or pass the state.
             });
         }
         
@@ -267,22 +264,23 @@ class WindowManager {
         }
     }
 
-    createPomoTimerWindow() {
+    _createTimerWindow(type) {
         const { width: screenWidth, height: screenHeight, x: screenX, y: screenY } = screen.getPrimaryDisplay().workArea;
         const windowWidth = 400;
         const windowHeight = 250;
         const x = screenX;
         const y = screenY + screenHeight - windowHeight;
 
-        if (this.pomoTimerWindow && !this.pomoTimerWindow.isDestroyed()) {
-            this.pomoTimerWindow.setPosition(x, y);
-            this.pomoTimerWindow.setSize(windowWidth, windowHeight);
-            this.pomoTimerWindow.show();
-            this.pomoTimerWindow.webContents.send('set-theme', this.currentThemeIsDark);
-            return;
+        if (this.timerWindow && !this.timerWindow.isDestroyed()) {
+            this.timerWindow.setPosition(x, y);
+            this.timerWindow.setSize(windowWidth, windowHeight);
+            this.timerWindow.show();
+            this.timerWindow.webContents.send('set-theme', this.currentThemeIsDark);
+            this.timerWindow.webContents.send('init-timer', type);
+            return this.timerWindow;
         }
 
-        this.pomoTimerWindow = new BrowserWindow({
+        this.timerWindow = new BrowserWindow({
             width: windowWidth,
             height: windowHeight,
             x: x,
@@ -297,146 +295,39 @@ class WindowManager {
             },
         });
 
-        this.setupNavigationHandlers(this.pomoTimerWindow);
+        this.setupNavigationHandlers(this.timerWindow);
 
         try {
-            this.pomoTimerWindow.setAlwaysOnTop(true, 'floating');
-            this.pomoTimerWindow.setVisibleOnAllWorkspaces(true);
-            this.pomoTimerWindow.setFullScreenable(false);
+            this.timerWindow.setAlwaysOnTop(true, 'floating');
+            this.timerWindow.setVisibleOnAllWorkspaces(true);
+            this.timerWindow.setFullScreenable(false);
         } catch (e) {
-            console.warn('Pomo timer window tuning failed', e);
+            console.warn('Timer window tuning failed', e);
         }
 
-        this.pomoTimerWindow.loadFile(path.join(__dirname, '../../renderer/features/pomo-timer.html'));
+        this.timerWindow.loadFile(path.join(__dirname, '../../renderer/ui/timer-window.html'));
 
-        this.pomoTimerWindow.webContents.on('did-finish-load', () => {
-            this.pomoTimerWindow.webContents.send('set-theme', this.currentThemeIsDark);
+        this.timerWindow.webContents.on('did-finish-load', () => {
+            this.timerWindow.webContents.send('set-theme', this.currentThemeIsDark);
+            this.timerWindow.webContents.send('init-timer', type);
         });
 
-        this.pomoTimerWindow.on('close', (e) => {
+        this.timerWindow.on('close', (e) => {
             if (!this.isQuitting) {
                 e.preventDefault();
-                this.pomoTimerWindow.hide();
+                this.timerWindow.hide();
                 if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-                    this.mainWindow.webContents.send('pomo-popup-closed');
+                    this.mainWindow.webContents.send('timer-popup-closed');
                 }
             }
         });
+
+        return this.timerWindow;
     }
 
-    createMicroSprintTimerWindow() {
-        const { width: screenWidth, height: screenHeight, x: screenX, y: screenY } = screen.getPrimaryDisplay().workArea;
-        const windowWidth = 400;
-        const windowHeight = 250;
-        const x = screenX;
-        const y = screenY + screenHeight - windowHeight;
-
-        if (this.microSprintTimerWindow && !this.microSprintTimerWindow.isDestroyed()) {
-            this.microSprintTimerWindow.setPosition(x, y);
-            this.microSprintTimerWindow.setSize(windowWidth, windowHeight);
-            this.microSprintTimerWindow.show();
-            this.microSprintTimerWindow.webContents.send('set-theme', this.currentThemeIsDark);
-            return;
-        }
-
-        this.microSprintTimerWindow = new BrowserWindow({
-            width: windowWidth,
-            height: windowHeight,
-            x: x,
-            y: y,
-            alwaysOnTop: true,
-            frame: true,
-            resizable: true,
-            webPreferences: {
-                nodeIntegration: false,
-                contextIsolation: true,
-                preload: path.join(__dirname, '../preload.js')
-            },
-        });
-
-        this.setupNavigationHandlers(this.microSprintTimerWindow);
-
-        try {
-            this.microSprintTimerWindow.setAlwaysOnTop(true, 'floating');
-            this.microSprintTimerWindow.setVisibleOnAllWorkspaces(true);
-            this.microSprintTimerWindow.setFullScreenable(false);
-        } catch (e) {
-            console.warn('Micro sprint timer window tuning failed', e);
-        }
-
-        this.microSprintTimerWindow.loadFile(path.join(__dirname, '../../renderer/features/micro-sprint-timer.html'));
-
-        this.microSprintTimerWindow.webContents.on('did-finish-load', () => {
-            this.microSprintTimerWindow.webContents.send('set-theme', this.currentThemeIsDark);
-        });
-
-        this.microSprintTimerWindow.on('close', (e) => {
-            if (!this.isQuitting) {
-                e.preventDefault();
-                this.microSprintTimerWindow.hide();
-                if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-                    this.mainWindow.webContents.send('micro-sprint-popup-closed');
-                }
-            }
-        });
-    }
-
-    createFlowTimerWindow() {
-        const { width: screenWidth, height: screenHeight, x: screenX, y: screenY } = screen.getPrimaryDisplay().workArea;
-        const windowWidth = 400;
-        const windowHeight = 250;
-        const x = screenX;
-        const y = screenY + screenHeight - windowHeight;
-
-        if (this.flowTimerWindow && !this.flowTimerWindow.isDestroyed()) {
-            this.flowTimerWindow.setPosition(x, y);
-            this.flowTimerWindow.setSize(windowWidth, windowHeight);
-            this.flowTimerWindow.show();
-            this.flowTimerWindow.webContents.send('set-theme', this.currentThemeIsDark);
-            return;
-        }
-
-        this.flowTimerWindow = new BrowserWindow({
-            width: windowWidth,
-            height: windowHeight,
-            x: x,
-            y: y,
-            alwaysOnTop: true,
-            frame: true,
-            resizable: true,
-            webPreferences: {
-                nodeIntegration: false,
-                contextIsolation: true,
-                preload: path.join(__dirname, '../preload.js')
-            },
-        });
-
-        this.setupNavigationHandlers(this.flowTimerWindow);
-
-        try {
-            this.flowTimerWindow.setAlwaysOnTop(true, 'floating');
-            this.flowTimerWindow.setVisibleOnAllWorkspaces(true);
-            this.flowTimerWindow.setFullScreenable(false);
-        } catch (e) {
-            console.warn('Flow timer window tuning failed', e);
-        }
-
-        this.flowTimerWindow.loadFile(path.join(__dirname, '../../renderer/features/flow-timer.html'));
-
-        this.flowTimerWindow.webContents.on('did-finish-load', () => {
-            this.flowTimerWindow.webContents.send('set-theme', this.currentThemeIsDark);
-        });
-
-        this.flowTimerWindow.on('close', (e) => {
-            if (!this.isQuitting) {
-                e.preventDefault();
-                this.flowTimerWindow.hide();
-                if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-                    this.mainWindow.webContents.send('flow-popup-closed');
-                }
-            }
-        });
-    }
+    createPomoTimerWindow() { return this._createTimerWindow('pomo'); }
+    createMicroSprintTimerWindow() { return this._createTimerWindow('sprint'); }
+    createFlowTimerWindow() { return this._createTimerWindow('flow'); }
 
     createFullscreenWindow(data) {
         if (this.fullscreenWindow && !this.fullscreenWindow.isDestroyed()) {
@@ -572,9 +463,7 @@ class WindowManager {
     broadcastToWindows(channel, ...args) {
         const windows = [
             this.mainWindow,
-            this.pomoTimerWindow,
-            this.microSprintTimerWindow,
-            this.flowTimerWindow,
+            this.timerWindow,
             this.fullscreenWindow,
             this.popupWindow
         ];
@@ -583,11 +472,11 @@ class WindowManager {
 
         windows.forEach(win => {
             if (win && !win.isDestroyed()) {
-                if (targetTimerId) {
-                    if (targetTimerId === 'pomo' && win !== this.pomoTimerWindow && win !== this.mainWindow && win !== this.fullscreenWindow) return;
-                    if (targetTimerId === 'sprint' && win !== this.microSprintTimerWindow && win !== this.mainWindow) return;
-                    if (targetTimerId === 'flow' && win !== this.flowTimerWindow && win !== this.mainWindow) return;
-                    if (targetTimerId.includes('break') && win !== this.fullscreenWindow && win !== this.popupWindow && win !== this.mainWindow && win !== this.pomoTimerWindow) return;
+                if (targetTimerId && win === this.timerWindow) {
+                    // Filter events for the consolidated timer window
+                    // We only want to send events that match the current type of the timer window
+                    // This is a bit tricky since we don't track the type here directly.
+                    // But we can just send everything and let the timer-window.js filter it.
                 }
                 win.webContents.send(channel, ...args);
             }

@@ -115,7 +115,7 @@ import { store, migrateStore } from './utils/storage.js';
 
                 currentStep++;
                 // Reduced delay for a snappier feel
-                await new Promise(r => setTimeout(r, 50));
+                await new Promise(r => setTimeout(r, 0));
               }
 
               console.log('[Startup] Initialization complete.');
@@ -123,8 +123,8 @@ import { store, migrateStore } from './utils/storage.js';
                 startupScreen.style.opacity = '0';
                 setTimeout(() => {
                   startupScreen.style.display = 'none';
-                }, 800);
-              }, 150);
+                }, 400); // Faster fade out
+              }, 0);
             };
 
             executeStepsSequentially();

@@ -551,12 +551,22 @@ async function renderWorkflowStack() {
         }
 
         if (window.workflowStackPlaceholder) window.workflowStackPlaceholder.style.display = 'none';
-        let totalDuration = 0;
 
         const fragment = document.createDocumentFragment();
 
-        for (const [index, block] of workflowBlocks.entries()) {
-            const dur = await calculateBlockDuration(block);
+        // Fetch all necessary data in parallel
+        const blockData = await Promise.all(workflowBlocks.map(async (block, index) => {
+            const [dur, availablePresets, presetDetails] = await Promise.all([
+                calculateBlockDuration(block),
+                getAvailablePresetsForType(block.type),
+                getPresetDetails(block.type, block.presetKey)
+            ]);
+            return { block, index, dur, availablePresets, presetDetails };
+        }));
+
+        let totalDuration = 0;
+
+        for (const { block, index, dur, availablePresets, presetDetails } of blockData) {
             totalDuration += dur;
 
             const blockEl = document.createElement('div');
@@ -589,9 +599,6 @@ async function renderWorkflowStack() {
                 typeIcon = '⛾';
                 typeColor = '#f1c40f';
             }
-
-            const availablePresets = await getAvailablePresetsForType(block.type);
-            const presetDetails = await getPresetDetails(block.type, block.presetKey);
 
             // Create preset details static content
             let presetDetailsHtml = '';

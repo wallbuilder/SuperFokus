@@ -329,7 +329,13 @@ function playChime(eventType = 'test') {
 
         chimeAudio.currentTime = 0;
         chimeAudio.play().catch(e => {
-            playSynthChime(pack, eventType);
+            console.warn(`[Audio] Failed to play ${selectedNotif}, using fallback.`, e);
+            if (selectedNotif !== 'nature-notif-1') {
+                chimeAudio.src = 'assets/sounds/nature-notif-1.mp3';
+                chimeAudio.play().catch(() => playSynthChime(pack, eventType));
+            } else {
+                playSynthChime(pack, eventType);
+            }
         });
     } else {
         playSynthChime(pack, eventType);

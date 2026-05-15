@@ -53,14 +53,14 @@ function init() {
     });
 
     ipcMain.on('update-pomo-timer', (event, data) => {
-        if (windowManager.pomoTimerWindow && !windowManager.pomoTimerWindow.isDestroyed()) {
-            windowManager.pomoTimerWindow.webContents.send('update-display', data);
+        if (windowManager.timerWindow && !windowManager.timerWindow.isDestroyed()) {
+            windowManager.timerWindow.webContents.send('update-display', data);
         }
     });
 
     ipcMain.on('close-pomo-timer', () => {
-        if (windowManager.pomoTimerWindow && !windowManager.pomoTimerWindow.isDestroyed()) {
-            windowManager.pomoTimerWindow.close();
+        if (windowManager.timerWindow && !windowManager.timerWindow.isDestroyed()) {
+            windowManager.timerWindow.close();
         }
     });
 
@@ -69,14 +69,14 @@ function init() {
     });
 
     ipcMain.on('update-micro-sprint-timer', (event, data) => {
-        if (windowManager.microSprintTimerWindow && !windowManager.microSprintTimerWindow.isDestroyed()) {
-            windowManager.microSprintTimerWindow.webContents.send('update-display', data);
+        if (windowManager.timerWindow && !windowManager.timerWindow.isDestroyed()) {
+            windowManager.timerWindow.webContents.send('update-display', data);
         }
     });
 
     ipcMain.on('close-micro-sprint-timer', () => {
-        if (windowManager.microSprintTimerWindow && !windowManager.microSprintTimerWindow.isDestroyed()) {
-            windowManager.microSprintTimerWindow.close();
+        if (windowManager.timerWindow && !windowManager.timerWindow.isDestroyed()) {
+            windowManager.timerWindow.close();
         }
     });
 
@@ -85,14 +85,14 @@ function init() {
     });
 
     ipcMain.on('update-flow-timer', (event, data) => {
-        if (windowManager.flowTimerWindow && !windowManager.flowTimerWindow.isDestroyed()) {
-            windowManager.flowTimerWindow.webContents.send('update-display', data);
+        if (windowManager.timerWindow && !windowManager.timerWindow.isDestroyed()) {
+            windowManager.timerWindow.webContents.send('update-display', data);
         }
     });
 
     ipcMain.on('close-flow-timer', () => {
-        if (windowManager.flowTimerWindow && !windowManager.flowTimerWindow.isDestroyed()) {
-            windowManager.flowTimerWindow.close();
+        if (windowManager.timerWindow && !windowManager.timerWindow.isDestroyed()) {
+            windowManager.timerWindow.close();
         }
     });
 

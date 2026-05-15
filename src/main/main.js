@@ -32,8 +32,8 @@ if (!gotTheLock) {
     });
 }
 
-app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
-app.commandLine.appendSwitch('disable-http-cache');
+// app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
+// app.commandLine.appendSwitch('disable-http-cache');
 
 app.whenReady().then(() => {
     // Initialize Services
