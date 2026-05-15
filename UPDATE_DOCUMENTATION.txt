@@ -7,54 +7,11 @@ Before each commit, the contents of this file should be mostly discarded of, EXC
 Each new edit to the file that documents new changes should also list the date and time of implementation.
 [DO NOT DELETE THIS TEXT] >
 
-{5/5/2026 at 5:45 PM}
-    **Fixed Theme Application and Settings**
-    - Fixed an issue where the "Reset Custom Colors" button threw an error due to a missing storage deletion method. Added the required IPC method to `storage.js`, `preload.js`, and `main.js`.
-    - Fixed an issue where setting custom background colors (`--bg-grad-1` and `--bg-grad-2`) would permanently override the standard background colors when switching back to Dark Mode by updating the cleanup logic in `theme.js`.
 
-{5/5/2026 at 6:00 PM}
-    **UI Customization Adjustments & Bug Fix**
-    - Renamed "BG 2 COLOR" to "BG 1 GRADIENT" in the Custom Theme creator.
-    - Added a new color picker for the main application "pad" labeled "BG 2 COLOR", which controls the `--container-bg` variable.
-    - Fixed an issue where the new pad color was not applying due to a race condition in file writing by sequentially patching `theme.js` logic.
-    - Updated the reset colors button to prompt a confirmation alert before reverting to default custom colors.
-    - Added a dedicated "HEADER TEXT" color picker for the main 'SuperFokus' title, decoupling it from the "Heading 1" color.
 
-{5/10/2026}
-    **SuperFokus v1.0.0 Release Implementation**
-    - **Technical Setup & Versioning:** Bumped version to `v1.0.0` in `package.json`, `package-lock.json`, and UI headers (`index.html`).
-    - **Site Blocker Implementation & Bug Fixes:** Fixed the "Save and apply Blocker" button visually sticking without fully processing. Removed "coming soon" placeholders and the "work in progress" overlay for specific URLs, fully wiring up the specific URL blocking option.
-    - **Audio & Sensory (Sound Tab):**
-        - Added Sound Libraries (Classic, Nature, Mechanical) to the UI.
-        - Users can place their own .mp3 files into the `assets/sounds/` folder to populate the packs. The expected file names are:
-            - **Classic Pack:** `classic-notif-1.mp3`, `classic-notif-2.mp3`, `classic-notif-3.mp3`, `classic-bg-1.mp3`, `classic-bg-2.mp3`, `classic-bg-3.mp3`
-            - **Nature Pack:** `nature-notif-1.mp3`, `nature-notif-2.mp3`, `nature-notif-3.mp3`, `nature-bg-1.mp3`, `nature-bg-2.mp3`, `nature-bg-3.mp3`
-            - **Mechanical Pack:** `mech-notif-1.mp3`, `mech-notif-2.mp3`, `mech-notif-3.mp3`, `mech-bg-1.mp3`, `mech-bg-2.mp3`, `mech-bg-3.mp3`
-        - Added ability to upload and persist up to 3 custom notification sounds.
-        - Added ability to upload a custom ambient background noise that loops repeatedly.
-        - Added Event Alerts settings for session start, break start, and completion.
-        - Updated timer logic across `pomo-timer.js`, `flow-state.js`, `repeating.js`, etc. to trigger proper sound events based on the new logic.
-    - **Quality of Life (QOL) & UI Fixes:** Fixed sidebar bug where it closed on interactions outside by removing the click-to-close logic in `modals.js`. Integrated Health Mode into the main dashboard and removed its separate modal implementation. Added sidebar color (`customDrawerBg`) selection tool to the customization menu.
-    - **Security:** Patched a command injection vulnerability in `runElevated` inside `main.js` that allowed unauthorized command execution through newlines. Fixed platform handling for setting `ELECTRON_RUN_AS_NODE`.
 
-{5/14/2026}
-    **Codebase Refactoring & Simplification**
-    - Completed major refactoring of the main process (`main.js`) into a modular service-oriented architecture.
-    - Created `src/main/services/WindowManager.js`, `BlockerService.js`, `TimerService.js`, `HealthService.js`, and `IpcMainHandlers.js`.
-    - Simplified `main.js` to serve as a clean entry point for service initialization and app lifecycle management.
-    - Improved code maintainability, security, and scalability through clear separation of concerns.
 
-    **Feature Completion & Bug Fixes**
-    - **Health Fokus Mode:** Fully integrated "Health Mode" into the main dashboard as a standard Fokus Mode. Refactored UI elements to remove "Coming soon" placeholders and removed redundant modal logic.
-    - **Audio Fix:** Resolved `ERR_FILE_NOT_FOUND` for `chime.mp3` by providing a default sound asset in `assets/sounds/`.
-    - **Sidebar Improvements:** Implemented smart sidebar closing logic that respects open modal menus. The sidebar now stays open when customization or stats menus are active and closes when clicking outside the sidebar while no menus are open.
-    - **Version Verification:** Confirmed application versioning is set to `v1.0.0` across all relevant configuration and display files.
-    - **Customization:** Verified Sidebar Color picker functionality and persistence in the Custom Theme Creator.
 
-    **Startup Stability & Debugging Improvements**
-    - **Fixed Startup Crash:** Resolved an issue where zombie Electron processes holding the single instance lock prevented the application from launching.
-    - **Fixed Duplicate Export Error:** Eliminated a "Duplicate export of 'initAudio'" error in `src/renderer/utils/audio.js` that caused a fatal startup failure.
-    - **Enhanced Error Reporting:** Integrated a global error handler in `index.html` and updated the startup error alert in `renderer.js` to display specific error messages, significantly improving troubleshooting for future issues.
 
 < [DO NOT DELETE THIS TEXT]
 (Example chunk of documentation: 
