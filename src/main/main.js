@@ -76,6 +76,15 @@ app.whenReady().then(() => {
             windowManager.mainWindow.show();
         }
     });
+
+    // Handle signals for graceful shutdown (useful for VS Code debugging)
+    const handleSignal = (signal) => {
+        console.log(`[Main Process] Received ${signal}, initiating cleanup...`);
+        app.quit();
+    };
+    process.on('SIGINT', () => handleSignal('SIGINT'));
+    process.on('SIGTERM', () => handleSignal('SIGTERM'));
+
 }).catch(err => {
     console.error('CRITICAL STARTUP ERROR:', err);
 });
