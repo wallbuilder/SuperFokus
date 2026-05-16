@@ -18,8 +18,9 @@ let soundPacks = {
             { id: 'classic-notif-1', label: 'Classic Notification 1' },
             { id: 'classic-notif-2', label: 'Classic Notification 2' },
             { id: 'classic-notif-3', label: 'Classic Notification 3' },
-            { id: 'nature-notif-1', label: 'Chime (Old)' }
+            { id: 'nature-notif-1', label: 'Chime (Legacy)' }
         ],
+
         ambient: [
             { id: 'classic-bg-1', label: 'Classic Ambient 1' },
             { id: 'classic-bg-2', label: 'Classic Ambient 2' },
@@ -274,20 +275,62 @@ function playSynthChime(pack, type) {
     const oscillator = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
     
+    const notifSelector = document.getElementById('notification-sound-selector');
+    const selectedNotif = notifSelector ? notifSelector.value : 'classic-notif-1';
+
     let freq = 880;
     if (type === 'session-start') freq = 440;
     if (type === 'break-start') freq = 660;
     if (type === 'session-complete') freq = 880;
-    
-    oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
-    
-    if (pack === 'nature') {
+
+    // Trap for the Legacy Chime specifically (using exact old code values)
+    if (selectedNotif === 'nature-notif-1') {
         oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+        oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.1);
+        
+        const chimeVolumeInput = document.getElementById('chime-volume');
+        const vol = chimeVolumeInput ? parseFloat(chimeVolumeInput.value) : 1;
+        gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.5);
+        return;
+    }
+
+    // Classic Notification Variations
+    if (pack === 'classic') {
+        if (selectedNotif === 'classic-notif-1') {
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(freq / 2, audioCtx.currentTime + 0.1);
+        } else if (selectedNotif === 'classic-notif-2') {
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(freq * 1.2, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(freq * 0.8, audioCtx.currentTime + 0.2);
+        } else if (selectedNotif === 'classic-notif-3') {
+            oscillator.type = 'square';
+            oscillator.frequency.setValueAtTime(freq * 0.5, audioCtx.currentTime);
+            oscillator.frequency.linearRampToValueAtTime(freq * 1.5, audioCtx.currentTime + 0.3);
+        } else {
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(freq / 2, audioCtx.currentTime + 0.1);
+        }
+    } else if (pack === 'nature') {
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
         oscillator.frequency.exponentialRampToValueAtTime(freq * 1.5, audioCtx.currentTime + 0.5);
     } else if (pack === 'mechanical') {
         oscillator.type = 'square';
+        oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
     } else {
         oscillator.type = 'triangle';
+        oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
         oscillator.frequency.exponentialRampToValueAtTime(freq / 2, audioCtx.currentTime + 0.1);
     }
     
@@ -314,8 +357,8 @@ function playChime(eventType = 'test') {
     
     const selectedNotif = notifSelector ? notifSelector.value : `${pack}-notif-1`;
 
-    // Force computer-generated sounds for 'classic' pack
-    if (pack === 'classic') {
+    // Force computer-generated sounds for 'classic' pack OR for the Legacy Chime ID
+    if (pack === 'classic' || selectedNotif === 'nature-notif-1') {
         playSynthChime(pack, eventType);
         return;
     }

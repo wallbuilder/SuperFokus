@@ -3,15 +3,29 @@ const fsSync = require('fs');
 const path = require('path');
 const os = require('os');
 const { exec, execFile, spawn } = require('child_process');
-const { DOMAIN_REGEX, IP_REGEX } = require('../renderer/utils/utils.js');
+
+// Inline regexes to avoid dependency on renderer utils which might not be unpacked in production
+const DOMAIN_REGEX = /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]$/;
+const IP_REGEX = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^((([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}:[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){5}:([0-9A-Fa-f]{1,4}:)?)[0-9A-Fa-f]{1,4}|(([0-9A-Fa-f]{1,4}:){4}:([0-9A-Fa-f]{1,4}:){0,2})[0-9A-Fa-f]{1,4}|(([0-9A-Fa-f]{1,4}:){3}:([0-9A-Fa-f]{1,4}:){0,3})[0-9A-Fa-f]{1,4}|(([0-9A-Fa-f]{1,4}:){2}:([0-9A-Fa-f]{1,4}:){0,4})[0-9A-Fa-f]{1,4}|(([0-9A-Fa-f]{1,4}:){1}:([0-9A-Fa-f]{1,4}:){0,5})[0-9A-Fa-f]{1,4}|(::([0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4})|(::[0-9A-Fa-f]{1,4})|([0-9A-Fa-f]{1,4}::)|(::))(\/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8]))?$/;
 
 // Determine hosts file path based on platform
-const HOSTS_FILE = process.platform === 'darwin'
-  ? '/etc/hosts'
-  : process.platform === 'win32'
-  ? 'C:\\Windows\\System32\\drivers\\etc\\hosts'
-  : '/etc/hosts'; // Default to Unix/Linux path
+function getHostsFilePath() {
+  if (process.platform === 'darwin') return '/etc/hosts';
+  if (process.platform === 'win32') {
+    // Standard path is %SystemRoot%\System32\drivers\etc\hosts
+    // On 64-bit Windows, 32-bit processes are redirected to SysWOW64.
+    // Using Sysnative helps bypass this redirection if it exists.
+    const sysRoot = process.env.SystemRoot || 'C:\\Windows';
+    const sysNative = path.join(sysRoot, 'Sysnative\\drivers\\etc\\hosts');
+    const system32 = path.join(sysRoot, 'System32\\drivers\\etc\\hosts');
+    
+    if (fsSync.existsSync(sysNative)) return sysNative;
+    return system32;
+  }
+  return '/etc/hosts';
+}
 
+const HOSTS_FILE = getHostsFilePath();
 const START_MARKER = '# --- SuperFokus Block Start ---';
 const END_MARKER = '# --- SuperFokus Block End ---';
 

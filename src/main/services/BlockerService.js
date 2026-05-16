@@ -41,7 +41,8 @@ function runElevated(command, commandArgs, callback) {
     const nodePath = process.execPath;
     let fullCommand;
     if (process.platform === 'win32') {
-        fullCommand = `set ELECTRON_RUN_AS_NODE=1 && "${nodePath}" "${helperPath}" ${command} ${escapedArgs}`;
+        // Use set "VAR=VAL" to avoid trailing spaces and ensure it works in cmd.exe
+        fullCommand = `set "ELECTRON_RUN_AS_NODE=1" && "${nodePath}" "${helperPath}" ${command} ${escapedArgs}`;
     } else {
         fullCommand = `ELECTRON_RUN_AS_NODE=1 "${nodePath}" "${helperPath}" ${command} ${escapedArgs}`;
     }
@@ -153,7 +154,7 @@ function init() {
         blockerRules = rules;
         const allHosts = new Set();
         const allUrls = new Set();
-        const { normalizeHost } = require('../renderer/utils/utils.js');
+        const { normalizeHost } = require('../../renderer/utils/utils.js');
 
         if (Array.isArray(rules.domains)) {
             rules.domains.forEach(domain => {
