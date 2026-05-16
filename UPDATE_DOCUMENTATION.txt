@@ -5,9 +5,15 @@ UPDATE DOCUMENTATION DESCRIPTION
 This file is strictly for the purpose of documenting/writing down changes to the SuperFokus codebase so they can later be summarized into a commit message.
 Before each commit, the contents of this file should be mostly discarded of, EXCLUDING this chunk of text.
 Each new edit to the file that documents new changes should also list the date and time of implementation.
-[DO NOT DELETE THIS TEXT] >
-
-< [DO NOT DELETE THIS TEXT]
+[DO NOT DELETE THIS TEXT, DELETE TEXT BELOW THIS LINE] >
+~
+~
+~
+{delete this line and insert text here}
+~
+~
+~
+< [DO NOT DELETE THIS TEXT, DELETE TEXT ABOVE THIS LINE]
 (Example chunk of documentation: 
 {1/1/2025 at 12:00 PM}
     **Fixed Bugs**
@@ -29,17 +35,3 @@ Each new edit to the file that documents new changes should also list the date a
 
 And so on, until all the update goals have been met)
 [DO NOT DELETE THIS TEXT] >
-
-{5/16/2026 at 10:00 AM}
-    **Fixed Bugs**
-     - Fixed Site Blocker on Windows by resolving module path errors in BlockerService.js.
-     - Fixed Windows-specific shell command issues in runElevated (UAC prompt).
-     - Resolved production dependency issues in fokus-sb-helper.js by inlining regexes.
-     - Improved hosts file path resolution for 64-bit Windows environments.
-
-    **Added New Features**
-     - Custom Notification Sounds: Implemented unique wave types and pitch variations for Classic Notifications 1, 2, and 3.
-     - Renamed "Chime (Old)" to "Chime (Legacy)" in the sound customization tab.   
-     - Enhanced playSynthChime to support per-notification audio profiles.        
-     - Integrated original SuperFokus synthetic audio logic for the "Chime (Legacy)" notification.
-
