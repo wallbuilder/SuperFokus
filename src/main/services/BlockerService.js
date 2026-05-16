@@ -42,9 +42,11 @@ function runElevated(command, commandArgs, callback) {
     let fullCommand;
     if (process.platform === 'win32') {
         // Use set "VAR=VAL" to avoid trailing spaces and ensure it works in cmd.exe
-        fullCommand = `set "ELECTRON_RUN_AS_NODE=1" && "${nodePath}" "${helperPath}" ${command} ${escapedArgs}`;
+        // We also clear NODE_OPTIONS to prevent VS Code's debugger from trying to attach to the helper script
+        // which can cause "Access is denied" errors and other conflicts during startup.
+        fullCommand = `set "ELECTRON_RUN_AS_NODE=1" && set "NODE_OPTIONS=" && "${nodePath}" "${helperPath}" ${command} ${escapedArgs}`;
     } else {
-        fullCommand = `ELECTRON_RUN_AS_NODE=1 "${nodePath}" "${helperPath}" ${command} ${escapedArgs}`;
+        fullCommand = `ELECTRON_RUN_AS_NODE=1 NODE_OPTIONS="" "${nodePath}" "${helperPath}" ${command} ${escapedArgs}`;
     }
     
     sudo.exec(fullCommand, { name: 'SuperFokus' }, (error, stdout, stderr) => {
