@@ -123,10 +123,16 @@ ipcRenderer.on('update-display', (data) => {
     if (data.tasksLeft !== undefined) extraInfoDisplay.innerText = `Remaining Tasks: ${data.tasksLeft}`;
 });
 
-ipcRenderer.on('set-theme', (isDark) => {
-    if (isDark) {
+ipcRenderer.on('set-theme', (themeData) => {
+    // Reset any previous custom styles
+    document.body.classList.remove('dark-mode');
+    document.documentElement.style.cssText = '';
+
+    if (themeData.mode === 'dark') {
         document.body.classList.add('dark-mode');
-    } else {
-        document.body.classList.remove('dark-mode');
+    } else if (themeData.mode === 'custom' && themeData.colors) {
+        for (const [variable, value] of Object.entries(themeData.colors)) {
+            document.documentElement.style.setProperty(variable, value);
+        }
     }
 });

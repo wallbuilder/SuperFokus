@@ -569,11 +569,15 @@
         <div class="modal-content">
             <span class="modal-close">✕</span>
             <h2>About SuperFokus</h2>
-            <p><strong>Introduction:</strong> SuperFokus is a versatile productivity tool designed to help you stay concentrated, manage your time, and minimize distractions. Built on core principles of focused work sessions, it provides three distinct "Fokus Modes" that you can configure to perfectly match your workflow and personal habits.</p>
-            <p><strong>Repeating Reminderrs:</strong> The "original" mode of Fokus. It involves a popup that continuously flashes on your screen after a set amount of minutes and seconds. You can configure custom messages and define the exact number of reminder rounds.</p>
-            <p><strong>Pomo Style:</strong> A structured time-management mode that functions similarly to Repeating Reminders, but incorporates scheduled breaks. You can configure dynamic work and break sequences, and either receive a gentle reminder or have the application comletely block your screen to enforce downtime.</p>
-            <p><strong>Site Blocker:</strong> A powerful tool to keep you away from digital distractions. You can create lists of specific domains or URLs to either block completely or exclusively allow, ensuring your browser remains a tool for work rather than procrastination.</p>
-            <p><strong>Sidebar Features:</strong>> The robust sidebar gives you access to real-time productivity statistics, a visual heatmap of your activity, comprehensive session history logs, and customization options to tailor themes and audio notifications to your liking.</p>
+            <p><strong>Introduction:</strong> SuperFokus is a versatile productivity tool designed to help you stay concentrated, manage your time, and minimize distractions. Built on core principles of focused work sessions, it provides several distinct "Fokus Modes" that you can configure to perfectly match your workflow and personal habits.</p>
+            <p><strong>Repeating Reminders:</strong> The classic mode of Fokus. It involves a popup that continuously appears on your screen after a set interval. You can configure custom messages and define the exact number of reminder rounds.</p>
+            <p><strong>Pomo Style:</strong> A structured time-management mode that balances work sessions with scheduled breaks. You can configure dynamic work/break sequences and choose to either receive a gentle reminder or have the application completely block your screen to enforce downtime.</p>
+            <p><strong>Micro-Task Sprints:</strong> Designed for high-velocity work. Break down large projects into rapid, timed intervals to maintain momentum and beat procrastination.</p>
+            <p><strong>Flow State:</strong> A simple stopwatch mode for open-ended work sessions. It can be configured to play a gentle chime at regular intervals to help you stay mindful of time passing without interrupting your flow.</p>
+            <p><strong>Multi-Mode Workflows:</strong> The ultimate builder for complex sessions. Use the drag-and-drop interface to stack different Fokus modes and breaks into a single, automated sequence.</p>
+            <p><strong>Site Blocker:</strong> A powerful tool to keep you away from digital distractions. You can create lists of specific domains or URLs to either block completely or exclusively allow, ensuring your browser remains a tool for work.</p>
+            <p><strong>Health Mode:</strong> Your personal "Body Guard." Enforce the 20-20-20 eye-saver rule and receive regular posture check reminders to stay healthy while you work.</p>
+            <p><strong>Sidebar Features:</strong> The robust sidebar gives you access to real-time productivity statistics, a visual heatmap of your activity, comprehensive session history logs, and deep customization options.</p>
             <p><strong>Conclusion:</strong> Together, these features make SuperFokus not just a simple timer, but a comprehensive environment for mastering your attention. Whether you are studying, coding, or just trying to get through the day's tasks, SuperFokus is here to keep you on track.</p>
         </div>
     </div>
@@ -644,7 +648,7 @@
                             
                             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
                                 <input type="radio" name="theme-selection" value="custom" id="theme-radio-custom" style="width: auto; margin: 0;">
-                                <span>@ Custom (create below)</span>
+                                <span>Custom Theme (create below)</span>
                             </label>
                         </div>
                     </div>
@@ -1012,6 +1016,9 @@
         </button>
         <button class="home-btn" data-mode="health-mode">
           <span class="icon">♡</span> Health Mode
+        </button>
+        <button class="home-btn" style="background: var(--timer-bg); color: var(--timer-subtext); cursor: not-allowed; opacity: 0.8; border: 1px solid var(--border-color); box-shadow: none;">
+          <span class="icon">❓</span> Coming Soon
         </button>
         <button class="home-btn workflow-btn" data-mode="workflows" style="grid-column: span 2;">
           <span class="icon" style="font-size: 1.5rem; margin-bottom: 5px;">⚙</span> Workflows

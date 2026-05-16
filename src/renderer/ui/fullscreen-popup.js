@@ -13,6 +13,20 @@ function formatTime(seconds) {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
+ipcRenderer.on('set-theme', (themeData) => {
+    // Reset any previous custom styles
+    document.body.classList.remove('dark-mode');
+    document.documentElement.style.cssText = '';
+
+    if (themeData.mode === 'dark') {
+        document.body.classList.add('dark-mode');
+    } else if (themeData.mode === 'custom' && themeData.colors) {
+        for (const [variable, value] of Object.entries(themeData.colors)) {
+            document.documentElement.style.setProperty(variable, value);
+        }
+    }
+});
+
 ipcRenderer.on('set-fullscreen-data', (data) => {
     document.getElementById('title').innerText = `${data.type} Time`;
     timerSeconds = data.duration;

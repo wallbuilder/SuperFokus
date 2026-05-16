@@ -30,8 +30,8 @@ function init() {
         if (store) store.delete(key);
     });
 
-    ipcMain.on('theme-changed', (event, isDark) => {
-        windowManager.setTheme(isDark);
+    ipcMain.on('theme-changed', (event, themeData) => {
+        windowManager.setTheme(themeData);
     });
 
     ipcMain.on('show-popup', (event, payload) => {

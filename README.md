@@ -26,6 +26,18 @@ Designed to break down larger tasks into rapid, high-speed intervals.
 - **Rapid Tasks:** Allocate a set amount of time to each task. (5 min., 10 min., 15 min., or a custom amount)
 - **Visual Velocity:** Dedicated countdown timer for specific tasks to maintain momentum.
 
+### 4. Flow State (Stopwatch)
+A simple, open-ended focus mode that tracks your time as you work.
+- **Stopwatch:** Tracks elapsed time from the moment you start.
+- **Interval Chimes:** Set a recurring chime to ring every few minutes or seconds to help you stay present and mindful of time passing.
+- **Visual Display:** Includes a dedicated timer window to keep your progress visible.
+
+### 5. Multi-Mode Workflows
+The ultimate productivity builder. Combine different Fokus modes into a custom sequence.
+- **Drag-and-Drop Builder:** Easily stack Pomo Style, Micro-Task Sprints, Repeating Reminders, and custom Break blocks.
+- **Automated Transitions:** SuperFokus automatically moves to the next block in your workflow, allowing for complex, pre-planned sessions.
+- **Flexible Cycles:** Run your entire workflow once or loop it multiple times.
+
 ## Sidebar Features & Tools
 
 The SuperFokus sidebar provides quick access to powerful tools and analytics without interrupting your active timers:

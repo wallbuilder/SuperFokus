@@ -7,11 +7,18 @@ Before each commit, the contents of this file should be mostly discarded of, EXC
 Each new edit to the file that documents new changes should also list the date and time of implementation.
 [DO NOT DELETE THIS TEXT] >
 
+{5/14/2026 at 2:00 PM}
+    **Fixed Bugs**
+     - Fixed Custom Theme Creator UI typo (removed '@' from label).
+     - Fixed lack of theme synchronization across application windows (Timer, Popups, Fullscreen).
+     - Fixed IPC flooding issue by separating color picker 'input' (preview) and 'change' (save) events.
+     - Fixed incomplete CSS variable coverage in custom themes (added --heading-color sync).
 
-
-
-
-
+    **Added New Features**
+     - Implemented full Cross-Window Theme Synchronization system.
+     - Refactored theme management logic in renderer for better maintainability and performance.
+     - Updated Main Process WindowManager to support persistent theme state broadcasting to new windows.
+     - Added 'Coming Soon' placeholder button next to Health Mode in the main dashboard.
 
 < [DO NOT DELETE THIS TEXT]
 (Example chunk of documentation: 

@@ -8,7 +8,7 @@ class WindowManager {
         this.timerWindow = null;
         this.fullscreenWindow = null;
         this.isQuitting = false;
-        this.currentThemeIsDark = false;
+        this.currentThemeData = { mode: 'light', isDark: false };
         this.currentPopupIsBlocking = false;
         this.isFocusLocked = false;
         this.canCloseFullscreen = () => true;
@@ -26,9 +26,9 @@ class WindowManager {
         this.isQuitting = val;
     }
 
-    setTheme(isDark) {
-        this.currentThemeIsDark = isDark;
-        this.broadcastToWindows('set-theme', isDark);
+    setTheme(themeData) {
+        this.currentThemeData = themeData;
+        this.broadcastToWindows('set-theme', themeData);
     }
 
     isOriginSafe(event) {
@@ -218,7 +218,7 @@ class WindowManager {
             this.popupWindow.loadFile(path.join(__dirname, '../../renderer/ui/popup.html'));
             
             this.popupWindow.webContents.on('did-finish-load', () => {
-                this.popupWindow.webContents.send('set-theme', this.currentThemeIsDark);
+                this.popupWindow.webContents.send('set-theme', this.currentThemeData);
                 if (process.platform === 'darwin') {
                     try {
                         this.popupWindow.setAlwaysOnTop(true, 'floating');
@@ -275,7 +275,7 @@ class WindowManager {
             this.timerWindow.setPosition(x, y);
             this.timerWindow.setSize(windowWidth, windowHeight);
             this.timerWindow.show();
-            this.timerWindow.webContents.send('set-theme', this.currentThemeIsDark);
+            this.timerWindow.webContents.send('set-theme', this.currentThemeData);
             this.timerWindow.webContents.send('init-timer', type);
             return this.timerWindow;
         }
@@ -308,7 +308,7 @@ class WindowManager {
         this.timerWindow.loadFile(path.join(__dirname, '../../renderer/ui/timer-window.html'));
 
         this.timerWindow.webContents.on('did-finish-load', () => {
-            this.timerWindow.webContents.send('set-theme', this.currentThemeIsDark);
+            this.timerWindow.webContents.send('set-theme', this.currentThemeData);
             this.timerWindow.webContents.send('init-timer', type);
         });
 
@@ -386,6 +386,7 @@ class WindowManager {
         this.fullscreenWindow.loadFile(path.join(__dirname, '../../renderer/ui/fullscreen-popup.html'));
 
         this.fullscreenWindow.webContents.on('did-finish-load', () => {
+            this.fullscreenWindow.webContents.send('set-theme', this.currentThemeData);
             this.fullscreenWindow.webContents.send('set-fullscreen-data', data);
         });
 
@@ -472,12 +473,6 @@ class WindowManager {
 
         windows.forEach(win => {
             if (win && !win.isDestroyed()) {
-                if (targetTimerId && win === this.timerWindow) {
-                    // Filter events for the consolidated timer window
-                    // We only want to send events that match the current type of the timer window
-                    // This is a bit tricky since we don't track the type here directly.
-                    // But we can just send everything and let the timer-window.js filter it.
-                }
                 win.webContents.send(channel, ...args);
             }
         });

@@ -11,30 +11,38 @@
             padding: 0;
             width: 100vw;
             height: 100vh;
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            background: linear-gradient(135deg, var(--header-grad-1, #6a11cb) 0%, var(--header-grad-2, #2575fc) 100%);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            color: white;
+            color: var(--header-title-color, white);
             font-family: 'Roboto', sans-serif;
             overflow: hidden;
+            transition: background 0.4s ease;
         }
-        h1 { font-size: 5rem; margin-bottom: 1rem; }
+        h1 { font-size: 5rem; margin-bottom: 1rem; color: var(--header-title-color, white); }
         .timer { font-size: 8rem; font-weight: bold; margin-bottom: 2rem; }
         .message { font-size: 1.5rem; opacity: 0.9; margin-bottom: 3rem; }
         .btn {
             padding: 1rem 3rem;
             font-size: 1.5rem;
-            background: white;
-            color: #2575fc;
+            background: var(--header-title-color, white);
+            color: var(--header-grad-2, #2575fc);
             border: none;
             border-radius: 50px;
             cursor: pointer;
             transition: transform 0.2s, background 0.2s;
             display: none; /* Hidden by default */
         }
-        .btn:hover { background: #f0f0f0; transform: scale(1.05); }
+        .btn:hover { opacity: 0.9; transform: scale(1.05); }
+
+        /* Dark mode fallback if needed */
+        body.dark-mode {
+            --header-grad-1: #0f3460;
+            --header-grad-2: #e94560;
+            --header-title-color: #f1f2f6;
+        }
     </style>
 </head>
 <body>
