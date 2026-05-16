@@ -20,6 +20,19 @@ Each new edit to the file that documents new changes should also list the date a
      - Updated Main Process WindowManager to support persistent theme state broadcasting to new windows.
      - Added 'Coming Soon' placeholder button next to Health Mode in the main dashboard.
 
+{5/16/2026 at 10:00 AM}
+    **Security Improvements**
+     - Enforced strict Content Security Policy (CSP) by removing 'unsafe-inline' for scripts in all HTML files.
+     - Enabled strict sandboxing and contextIsolation across all windows in the Main Process.
+     - Abstracted inline error handler scripts into separate JS modules.
+
+    **Performance Optimizations**
+     - Implemented CSS containment ('contain: layout paint') for timer displays to prevent expensive layout thrashing and boost rendering performance.
+
+    **Added New Features**
+     - Implemented custom OS Notifications for focus round start/end events with settings located in the Integration tab.
+     - Custom OS Notifications trigger silently, deferring audio cues to the pre-existing custom sound pack player.
+
 < [DO NOT DELETE THIS TEXT]
 (Example chunk of documentation: 
 {1/1/2025 at 12:00 PM}

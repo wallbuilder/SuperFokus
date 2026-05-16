@@ -20,7 +20,8 @@ import { store, migrateStore } from './utils/storage.js';
             sprint,
             flow,
             blocker,
-            health
+            health,
+            integration
         ] = await Promise.all([
             import('./ui/modals.js'),
             import('./ui/theme.js'),
@@ -32,7 +33,8 @@ import { store, migrateStore } from './utils/storage.js';
             import('./features/micro-sprint.js'),
             import('./features/flow-state.js'),
             import('./features/site-blocker.js'),
-            import('./features/health-mode.js')
+            import('./features/health-mode.js'),
+            import('./ui/integration.js')
         ]);
 
         const { customAlert, closeSidebar, toggleSidebar } = modals;
@@ -45,6 +47,7 @@ import { store, migrateStore } from './utils/storage.js';
         const { initSprint, sprintState, stopSprintMode } = sprint;
         const { initFlow, flowState, stopFlowState } = flow;
         const { blockerState } = blocker;
+        const { setupIntegrationUI } = integration;
 
         // Startup Animation Logic
         const initApp = async () => {

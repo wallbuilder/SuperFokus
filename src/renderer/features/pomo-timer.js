@@ -3,6 +3,7 @@ import { store } from '../utils/storage.js';
 import { sharedState } from '../utils/state.js';
 import { customAlert } from '../ui/modals.js';
 import { playChime } from '../utils/audio.js';
+import { showOSNotification } from '../utils/notifications.js';
 import { setInputsLocked, toggleStartStopButton } from '../utils/ui-helpers.js';
 import { recordFocusSession } from '../utils/stats.js';
 
@@ -355,9 +356,11 @@ function handlePhaseEnd() {
     const finishedPhase = pomoState.activePomoSequence[pomoState.currentPhaseIndex];
     if (finishedPhase.type === 'work') {
         playChime('break-start');
+        showOSNotification('end');
         recordFocusSession(Math.round(finishedPhase.totalSeconds / 60), 'Pomo Work');
     } else {
         playChime('session-start');
+        showOSNotification('start');
     }
     
     ipcRenderer.send('close-popup');
@@ -367,6 +370,7 @@ function handlePhaseEnd() {
     
     if (pomoState.currentPhaseIndex >= pomoState.activePomoSequence.length && (!pomoInfiniteCheckbox || !pomoInfiniteCheckbox.checked) && pomoState.currentRepeatCount + 1 >= pomoState.totalRepeatsPlanned) {
         playChime('session-complete');
+        showOSNotification('end');
         stopPomoStyle();
         if (sharedState.isWorkflowRunning) {
             setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);

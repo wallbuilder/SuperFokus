@@ -197,7 +197,8 @@ ipcRenderer.on('timer-stopped-sprint', () => {
 });
 
 ipcRenderer.on('timer-complete-sprint', () => {
-    playChime();
+    playChime('session-complete');
+    showOSNotification('end');
     recordFocusSession(Math.round(sprintState.sprintDurationSeconds / 60), 'Micro-Task Sprint');
     
     if (sprintAutostartCheckbox && sprintAutostartCheckbox.checked) {

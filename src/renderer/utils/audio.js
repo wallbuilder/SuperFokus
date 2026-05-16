@@ -314,6 +314,12 @@ function playChime(eventType = 'test') {
     
     const selectedNotif = notifSelector ? notifSelector.value : `${pack}-notif-1`;
 
+    // Force computer-generated sounds for 'classic' pack
+    if (pack === 'classic') {
+        playSynthChime(pack, eventType);
+        return;
+    }
+
     if (chimeAudio) {
         if (selectedNotif.startsWith('custom-notif-')) {
             const idx = parseInt(selectedNotif.split('-').pop(), 10);

@@ -2,6 +2,7 @@ import { ipcRenderer } from '../utils/ipc.js';
 import { playChime } from '../utils/audio.js';
 import { store } from '../utils/storage.js';
 import { sharedState } from '../utils/state.js';
+import { showOSNotification } from '../utils/notifications.js';
 import { customAlert } from '../ui/modals.js';
 import { recordFocusSession } from '../utils/stats.js';
 import { formatTime, setInputsLocked, toggleStartStopButton, escapeHtml } from '../utils/ui-helpers.js';
@@ -79,6 +80,7 @@ ipcRenderer.on('timer-stopped-repeating', () => {
 
 ipcRenderer.on('timer-complete-repeating', () => {
     playChime();
+    showOSNotification('end');
     const autocloseSecs = reminderAutocloseInput ? (parseInt(reminderAutocloseInput.value, 10) || 10) : 10;
     ipcRenderer.send('show-popup', {
         message: reminderMessageInput ? reminderMessageInput.value : '',

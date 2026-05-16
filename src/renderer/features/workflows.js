@@ -7,6 +7,7 @@ import { startPomoPhase, stopPomoStyle, startPomoStyle, pomoState } from './pomo
 import { startRepeatingReminders, stopRepeatingReminders, repeatingState } from './repeating.js';
 import { startNextSprintTask, stopSprintMode, startSprintMode, sprintState } from './micro-sprint.js';
 import { setInputsLocked, toggleStartStopButton, formatTime, escapeHtml } from '../utils/ui-helpers.js';
+import { showOSNotification } from '../utils/notifications.js';
 
 // Centralized Workflow State
 export const workflowState = {
@@ -853,7 +854,8 @@ if (stopWorkflowBtn) {
 }
 
 ipcRenderer.on('timer-complete-workflow-break', () => {
-    playChime();
+    playChime('session-start');
+    showOSNotification('start');
     ipcRenderer.send('close-popup');
     ipcRenderer.send('close-fullscreen');
     ipcRenderer.send('close-pomo-timer');
