@@ -1,4 +1,4 @@
-const { app } = require('electron');
+const { app, Notification, ipcMain } = require('electron');
 const path = require('path');
 const util = require('util');
 
@@ -35,7 +35,27 @@ if (!gotTheLock) {
 // app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
 // app.commandLine.appendSwitch('disable-http-cache');
 
+app.name = 'SuperFokus';
+
 app.whenReady().then(() => {
+    // Set AppUserModelId for native notifications (Windows only)
+    if (process.platform === 'win32') {
+        app.setAppUserModelId('com.superfokus.app');
+    }
+    
+    ipcMain.on('show-os-notification', (event, { title, body }) => {
+        if (Notification.isSupported()) {
+            const options = { title, body };
+            // Only apply icon and urgency to Windows; macOS can silently fail if the icon path is missing in Dev Mode.
+            if (process.platform === 'win32') {
+                options.icon = path.join(__dirname, '../../assets/fokusicon.png');
+                options.urgency = 'critical';
+            }
+            
+            new Notification(options).show();
+        }
+    });
+
     // Initialize Services
     windowManager.createWindow();
     windowManager.createApplicationMenu();

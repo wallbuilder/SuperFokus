@@ -1,4 +1,4 @@
-import { ipcRenderer, normalizeHost } from './utils/ipc.js';
+import { ipcRenderer } from './utils/ipc.js';
 import { store, migrateStore } from './utils/storage.js';
 
 // Migrate data before initializing modules
@@ -94,7 +94,8 @@ import { store, migrateStore } from './utils/storage.js';
                             initPomo(),
                             initRepeating(),
                             initSprint(),
-                            initFlow()
+                            initFlow(),
+                            setupIntegrationUI()
                         ]);
                         console.log('[Startup] Modules initialized.');
                     } else if (currentStep === 2) {
@@ -146,7 +147,8 @@ import { store, migrateStore } from './utils/storage.js';
                 initPomo(),
                 initRepeating(),
                 initSprint(),
-                initFlow()
+                initFlow(),
+                setupIntegrationUI()
             ]);
             initializeDomElements(setupWorkflowEventListeners, setupWorkflowPresetsEventListeners);
             initializeButtonListeners(initializeRepeatingButtonListeners);

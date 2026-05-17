@@ -156,12 +156,10 @@ function init() {
         blockerRules = rules;
         const allHosts = new Set();
         const allUrls = new Set();
-        const { normalizeHost } = require('../../renderer/utils/utils.js');
 
         if (Array.isArray(rules.domains)) {
             rules.domains.forEach(domain => {
-                const host = normalizeHost(domain);
-                if (host) allHosts.add(host);
+                if (domain) allHosts.add(domain);
             });
         }
 

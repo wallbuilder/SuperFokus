@@ -6,13 +6,21 @@ This file is strictly for the purpose of documenting/writing down changes to the
 Before each commit, the contents of this file should be mostly discarded of, EXCLUDING this chunk of text.
 Each new edit to the file that documents new changes should also list the date and time of implementation.
 [DO NOT DELETE THIS TEXT, DELETE TEXT BELOW THIS LINE] >
-~
-~
-~
-{delete this line and insert text here}
-~
-~
-~
+{3/22/2026 at 12:00 PM}
+    **Fixed Bugs**
+     - Removed syntax error from renderer.js that prevented initialization and caused the app to be stuck on the loading screen.
+     - Fixed macOS notifications not working by routing them through the main process's native Notification API.
+     - Fixed Integrations tab save button not responding by properly calling its initialization function during startup.
+     - Added OS-level notification permission request to the Integrations save button to ensure macOS delivers them.
+     - Added a dedicated "Test Notification" button to the Integrations tab.
+     - Configured notifications to dual-fire via both Main Process and Renderer Process HTML5 APIs to ensure delivery across Windows and macOS in dev mode.
+     - Removed silent flags from notifications and restricted AppUserModelId to Windows only so macOS displays alerts correctly instead of hiding them in the Notification Center.
+     - Removed icon and urgency flags from macOS main process notifications to prevent silent failures in Dev Mode, and added a permission check alert to the Test button.
+     - Fixed Site Blocker not prompting for admin access by removing a missing module require in BlockerService.js.
+     - Fixed Site Blocker button not responding by removing a broken normalizeHost import and implementing safe URL parsing locally, plus added failsafe for missing UI elements.
+
+    **Added New Features**
+     - Added 5-second visual feedback (red background and "Setting Saved" text) to the Integrations tab save button.
 < [DO NOT DELETE THIS TEXT, DELETE TEXT ABOVE THIS LINE]
 (Example chunk of documentation: 
 {1/1/2025 at 12:00 PM}

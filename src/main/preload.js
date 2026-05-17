@@ -29,7 +29,8 @@ const ALLOWED_SEND_CHANNELS = [
     'clear-all-blocks',
     'start-health-mode',
     'stop-health-mode',
-    'store-set'
+    'store-set',
+    'show-notification'
 ];
 
 // Whitelist of channels the renderer can LISTEN to from the main process

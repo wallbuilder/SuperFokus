@@ -1,4 +1,4 @@
-const { ipcMain, app } = require('electron');
+const { ipcMain, app, Notification } = require('electron');
 const windowManager = require('./WindowManager');
 
 let store = null;
@@ -32,6 +32,17 @@ function init() {
 
     ipcMain.on('theme-changed', (event, themeData) => {
         windowManager.setTheme(themeData);
+    });
+
+    ipcMain.on('show-notification', (event, payload) => {
+        if (!windowManager.isOriginSafe(event)) return;
+        if (Notification.isSupported()) {
+            new Notification({
+                title: payload.title,
+                body: payload.body,
+                silent: true
+            }).show();
+        }
     });
 
     ipcMain.on('show-popup', (event, payload) => {

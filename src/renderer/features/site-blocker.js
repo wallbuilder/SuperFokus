@@ -1,4 +1,4 @@
-import { ipcRenderer, normalizeHost } from '../utils/ipc.js';
+import { ipcRenderer } from '../utils/ipc.js';
 
 // --- Blocker State ---
 export const blockerState = {
@@ -21,6 +21,20 @@ const siteBlockerAlwaysRun = document.getElementById('site-blocker-always-run');
 
 // Removed work in progress block
 
+// Helper function to safely normalize URLs locally
+function safeNormalizeHost(urlStr) {
+    if (!urlStr) return '';
+    try {
+        let url = urlStr.trim();
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            url = 'https://' + url;
+        }
+        return new URL(url).hostname;
+    } catch (e) {
+        return urlStr.trim();
+    }
+}
+
 // Show/hide mode messages based on selection
 if (siteBlockerMode) {
     siteBlockerMode.addEventListener('change', () => {
@@ -37,13 +51,13 @@ if (siteBlockerMode) {
 }
 
 function updateBlocker() {
-    if (!siteBlockerMode || !domainListInput || !siteBlockerEnabled || !siteBlockerAlwaysRun) return;
+    if (!siteBlockerMode || !domainListInput || !siteBlockerEnabled) return;
 
     blockerState.blockerMode = siteBlockerMode.value;
     const rawDomains = domainListInput.value.split('\n').map(s => s.trim()).filter(Boolean);
     const rawUrls = urlListInput ? urlListInput.value.split('\n').map(s => s.trim()).filter(Boolean) : [];
     blockerState.isBlockerActive = siteBlockerEnabled.checked;
-    blockerState.alwaysRun = siteBlockerAlwaysRun.checked;
+    blockerState.alwaysRun = siteBlockerAlwaysRun ? siteBlockerAlwaysRun.checked : false;
     blockerState.urls = rawUrls;
 
     const domainSet = new Set();
@@ -61,12 +75,12 @@ function updateBlocker() {
     }
 
     rawDomains.forEach(d => {
-        const host = normalizeHost(d);
+        const host = safeNormalizeHost(d);
         if (host) addBlockingHost(host);
     });
 
     rawUrls.forEach(u => {
-        const host = normalizeHost(u);
+        const host = safeNormalizeHost(u);
         if (host) addBlockingHost(host);
     });
 
@@ -93,9 +107,10 @@ function updateBlocker() {
 
 if (saveBlockerBtn) {
     saveBlockerBtn.addEventListener('click', () => {
+        if (siteBlockerEnabled) siteBlockerEnabled.checked = true;
         updateBlocker();
-        saveBlockerBtn.innerText = 'Saved!';
-        saveBlockerBtn.style.background = '#2ecc71';
+        saveBlockerBtn.innerText = 'Saved and Applied';
+        saveBlockerBtn.style.background = '#e74c3c';
         setTimeout(() => {
             saveBlockerBtn.innerText = 'Save & Apply Blocker';
             saveBlockerBtn.style.background = '#3498db';
