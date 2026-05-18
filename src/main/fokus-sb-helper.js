@@ -119,8 +119,6 @@ async function applyBlocksAsync(domains, retries = 3) {
 
         for (const raw of domains) {
             if (!raw || typeof raw !== 'string') continue;
-            // The renderer process is responsible for normalizing and validating domains before sending them.
-            // Here, we just ensure it's a string and then validate its format.
             if (!validateDomain(raw)) {
                 throw new Error(`Invalid domain format after normalization: "${raw}".`);
             }
@@ -128,26 +126,34 @@ async function applyBlocksAsync(domains, retries = 3) {
         }
 
         const validatedDomains = Array.from(domainSet).filter(host => validateDomain(host));
-        await clearBlocksAsync(retries);
-
-        if (validatedDomains.length === 0) {
-            console.log('No valid domains to apply.');
-            return { success: true };
-        }
-
+        
         let attempts = 0;
         while (attempts < retries) {
             try {
-                const lines = [
-                    '',
-                    START_MARKER,
-                    ...validatedDomains.flatMap(d => [`0.0.0.0 ${d}`, `::1 ${d}`]),
-                    END_MARKER,
-                    ''
-                ];
+                let content = await fs.readFile(HOSTS_FILE, 'utf-8');
+                
+                // Clear existing blocks first in memory
+                const startIndex = content.indexOf(START_MARKER);
+                const endIndex = content.indexOf(END_MARKER);
+                if (startIndex !== -1 && endIndex !== -1) {
+                    content = content.substring(0, startIndex) + content.substring(endIndex + END_MARKER.length);
+                }
+                content = content.trimEnd();
 
-                await fs.appendFile(HOSTS_FILE, lines.join('\n'), 'utf-8');
-                console.log(`Successfully applied block(s) for ${validatedDomains.length} domain(s).`);
+                // Append new blocks if any
+                if (validatedDomains.length > 0) {
+                    const lines = [
+                        '',
+                        '',
+                        START_MARKER,
+                        ...validatedDomains.flatMap(d => [`0.0.0.0 ${d}`, `::1 ${d}`]),
+                        END_MARKER
+                    ];
+                    content += lines.join('\n');
+                }
+
+                await fs.writeFile(HOSTS_FILE, content, 'utf-8');
+                console.log(`Successfully updated hosts file with ${validatedDomains.length} domain(s).`);
                 await flushDnsCache();
                 return { success: true, count: validatedDomains.length };
             } catch (e) {

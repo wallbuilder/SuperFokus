@@ -3,41 +3,48 @@
 UPDATE DOCUMENTATION DESCRIPTION
 
 This file is strictly for the purpose of documenting/writing down changes to the SuperFokus codebase so they can later be summarized into a commit message.
-Before each commit, the contents of this file should be mostly discarded of, EXCLUDING this chunk of text.
+Before each commit, the contents of this file should be mostly discarded of, EXCLUDING this header and the footer at the bottom.
 Each new edit to the file that documents new changes should also list the date and time of implementation.
+(Note: You must list ALL changes, including small ones. No detail is too small).
 [DO NOT DELETE THIS TEXT, DELETE TEXT BELOW THIS LINE] >
-{3/22/2026 at 12:00 PM}
-    **Fixed Bugs**
-     - Removed syntax error from renderer.js that prevented initialization and caused the app to be stuck on the loading screen.
-     - Fixed macOS notifications not working by routing them through the main process's native Notification API.
-     - Fixed Integrations tab save button not responding by properly calling its initialization function during startup.
-     - Added OS-level notification permission request to the Integrations save button to ensure macOS delivers them.
-     - Added a dedicated "Test Notification" button to the Integrations tab.
-     - Configured notifications to dual-fire via both Main Process and Renderer Process HTML5 APIs to ensure delivery across Windows and macOS in dev mode.
-     - Removed silent flags from notifications and restricted AppUserModelId to Windows only so macOS displays alerts correctly instead of hiding them in the Notification Center.
-     - Removed icon and urgency flags from macOS main process notifications to prevent silent failures in Dev Mode, and added a permission check alert to the Test button.
-     - Fixed Site Blocker not prompting for admin access by removing a missing module require in BlockerService.js.
-     - Fixed Site Blocker button not responding by removing a broken normalizeHost import and implementing safe URL parsing locally, plus added failsafe for missing UI elements.
+~
 
-    **Added New Features**
-     - Added 5-second visual feedback (red background and "Setting Saved" text) to the Integrations tab save button.
+- Hardened IPC security by implementing `isOriginSafe` validation across all `ipcMain` handlers.
+- Enabled `sandbox: true` for `timerWindow` and `fullscreenWindow` to improve security posture.
+- Implemented the missing `blocker-expand-fullscreen` IPC handler to fix the site blocker's lock functionality.
+- Added a `blocker-status-display` element and listeners to provide real-time feedback on site blocking operations.
+- Fixed a build-breaking issue by providing a default `entitlements.mac.plist` for macOS packaging.
+- Optimized memory usage in `TimerService.js` by ensuring completed timers are properly deleted from the state.
+- Completed the storage migration process by clearing `localStorage` keys after they are moved to `electron-store`.
+- Added a warning for users regarding "DNS over HTTPS" (DoH) to prevent silent bypasses of the site blocker.
+
+- Created new "fokus-guidelines" folder in the specs/ directory (the files will be modified later)
+- Added specs/ directory to the .gitignore file to ensure it (and all its extra weight) no longer gets packaged with the rest of the SuperFokus files.
+
+- Optimized application startup by implementing lazy loading for `BlockerService`, `TimerService`, `HealthService`, and `IpcMainHandlers` in the main process.
+- Refactored `WindowManager.js` to use a centralized `_createWindow` helper, reducing code duplication and standardizing `BrowserWindow` configurations.
+- Optimized `fokus-sb-helper.js` to perform atomic updates to the system hosts file, reducing disk I/O by merging clearing and applying operations into a single read-write cycle.
+- Added null safety checks for services during the application shutdown sequence to prevent potential crashes if services were not fully initialized.
+- Reorganized the workspace by moving diagnostic and prototyping scripts (`test-app.js`, `test-proxy.js`, etc.) into `tests/manual/` and updated `.gitignore` accordingly.
+
+~
 < [DO NOT DELETE THIS TEXT, DELETE TEXT ABOVE THIS LINE]
-(Example chunk of documentation: 
+(Example chunk of documentation:
 {1/1/2025 at 12:00 PM}
-    **Fixed Bugs**
+    [Fixed Bugs]
      - Fixed critical bugs
      - Other Example text
 
-    **Added New Features**
+    [Added New Features]
      - Added new features
      - Other Example text
 
 {1/2/2025 at 12:00 PM}
-    **Fixed Bugs**
+    [Fixed Bugs]
      - Fixed critical bugs
      - Other example text
 
-    **Added New Features**
+    [Added New Features]
      - Added new features
      - Other example text
 

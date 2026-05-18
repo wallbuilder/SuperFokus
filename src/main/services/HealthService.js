@@ -14,6 +14,7 @@ let healthConfig = {
 
 function init() {
     ipcMain.on('start-health-mode', (event, data) => {
+        if (!windowManager.isOriginSafe(event)) return;
         if (healthIntervals.eye) clearInterval(healthIntervals.eye);
         if (healthIntervals.posture) clearInterval(healthIntervals.posture);
         
@@ -37,7 +38,8 @@ function init() {
         }
     });
 
-    ipcMain.on('stop-health-mode', () => {
+    ipcMain.on('stop-health-mode', (event) => {
+        if (!windowManager.isOriginSafe(event)) return;
         if (healthIntervals.eye) clearInterval(healthIntervals.eye);
         if (healthIntervals.posture) clearInterval(healthIntervals.posture);
         if (windowManager.popupWindow && !windowManager.popupWindow.isDestroyed()) windowManager.popupWindow.close();

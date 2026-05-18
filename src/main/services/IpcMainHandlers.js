@@ -31,6 +31,7 @@ function init() {
     });
 
     ipcMain.on('theme-changed', (event, themeData) => {
+        if (!windowManager.isOriginSafe(event)) return;
         windowManager.setTheme(themeData);
     });
 
@@ -46,6 +47,7 @@ function init() {
     });
 
     ipcMain.on('show-popup', (event, payload) => {
+        if (!windowManager.isOriginSafe(event)) return;
         if (typeof payload === 'object' && payload !== null) {
             windowManager.createPopupWindow(payload.message, payload.closeDelay || 10000, payload.healthType || null, true);
         } else {
@@ -53,64 +55,80 @@ function init() {
         }
     });
 
-    ipcMain.on('close-popup', () => {
+    ipcMain.on('close-popup', (event) => {
+        if (!windowManager.isOriginSafe(event)) return;
         if (windowManager.popupWindow && !windowManager.popupWindow.isDestroyed()) {
             windowManager.popupWindow.close();
         }
     });
 
-    ipcMain.on('open-pomo-timer', () => {
+    ipcMain.on('open-pomo-timer', (event) => {
+        if (!windowManager.isOriginSafe(event)) return;
         windowManager.createPomoTimerWindow();
     });
 
     ipcMain.on('update-pomo-timer', (event, data) => {
+        if (!windowManager.isOriginSafe(event)) return;
         if (windowManager.timerWindow && !windowManager.timerWindow.isDestroyed()) {
             windowManager.timerWindow.webContents.send('update-display', data);
         }
     });
 
-    ipcMain.on('close-pomo-timer', () => {
+    ipcMain.on('close-pomo-timer', (event) => {
+        if (!windowManager.isOriginSafe(event)) return;
         if (windowManager.timerWindow && !windowManager.timerWindow.isDestroyed()) {
             windowManager.timerWindow.close();
         }
     });
 
-    ipcMain.on('open-micro-sprint-timer', () => {
+    ipcMain.on('open-micro-sprint-timer', (event) => {
+        if (!windowManager.isOriginSafe(event)) return;
         windowManager.createMicroSprintTimerWindow();
     });
 
     ipcMain.on('update-micro-sprint-timer', (event, data) => {
+        if (!windowManager.isOriginSafe(event)) return;
         if (windowManager.timerWindow && !windowManager.timerWindow.isDestroyed()) {
             windowManager.timerWindow.webContents.send('update-display', data);
         }
     });
 
-    ipcMain.on('close-micro-sprint-timer', () => {
+    ipcMain.on('close-micro-sprint-timer', (event) => {
+        if (!windowManager.isOriginSafe(event)) return;
         if (windowManager.timerWindow && !windowManager.timerWindow.isDestroyed()) {
             windowManager.timerWindow.close();
         }
     });
 
-    ipcMain.on('open-flow-timer', () => {
+    ipcMain.on('open-flow-timer', (event) => {
+        if (!windowManager.isOriginSafe(event)) return;
         windowManager.createFlowTimerWindow();
     });
 
     ipcMain.on('update-flow-timer', (event, data) => {
+        if (!windowManager.isOriginSafe(event)) return;
         if (windowManager.timerWindow && !windowManager.timerWindow.isDestroyed()) {
             windowManager.timerWindow.webContents.send('update-display', data);
         }
     });
 
-    ipcMain.on('close-flow-timer', () => {
+    ipcMain.on('close-flow-timer', (event) => {
+        if (!windowManager.isOriginSafe(event)) return;
         if (windowManager.timerWindow && !windowManager.timerWindow.isDestroyed()) {
             windowManager.timerWindow.close();
         }
     });
 
-    ipcMain.on('next-phase-triggered', () => {
+    ipcMain.on('next-phase-triggered', (event) => {
+        if (!windowManager.isOriginSafe(event)) return;
         if (windowManager.mainWindow && !windowManager.mainWindow.isDestroyed()) {
             windowManager.mainWindow.webContents.send('start-next-phase');
         }
+    });
+
+    ipcMain.on('blocker-expand-fullscreen', (event, data) => {
+        if (!windowManager.isOriginSafe(event)) return;
+        windowManager.createFullscreenWindow(data);
     });
 }
 

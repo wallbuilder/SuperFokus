@@ -216,12 +216,14 @@ function init() {
     });
 
     ipcMain.on('blocker-start', (event, data) => {
+        if (!windowManager.isOriginSafe(event)) return;
         macBlockActive = false;
         let msg = typeof data === 'string' ? data : (data?.message || '');
         windowManager.createPopupWindow(msg, 10000, null, true);
     });
 
-    ipcMain.on('blocker-stop', () => {
+    ipcMain.on('blocker-stop', (event) => {
+        if (!windowManager.isOriginSafe(event)) return;
         macBlockActive = false;
         windowManager.forceKillFullscreen();
         if (windowManager.popupWindow && !windowManager.popupWindow.isDestroyed()) windowManager.popupWindow.close();

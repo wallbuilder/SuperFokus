@@ -143,3 +143,31 @@ if (clearBlockerModalBtn) {
 // Sync blocker state to main if it should always run
 if (siteBlockerEnabled) siteBlockerEnabled.addEventListener('change', updateBlocker);
 if (siteBlockerAlwaysRun) siteBlockerAlwaysRun.addEventListener('change', updateBlocker);
+
+// --- IPC Listeners for Blocker Status ---
+ipcRenderer.on('blocker-status', (msg) => {
+    console.log('[Blocker Status]', msg);
+    const statusEl = document.getElementById('blocker-status-display');
+    if (statusEl) {
+        statusEl.innerText = msg;
+        statusEl.style.color = '#2ecc71';
+    }
+});
+
+ipcRenderer.on('blocker-error', (err) => {
+    console.error('[Blocker Error]', err);
+    const statusEl = document.getElementById('blocker-status-display');
+    if (statusEl) {
+        statusEl.innerText = `⚠️ Error: ${err}`;
+        statusEl.style.color = '#e74c3c';
+    }
+});
+
+ipcRenderer.on('startup-cleanup-failed', (err) => {
+    console.warn('[Startup Cleanup] Failed to clear zombie blocks:', err);
+    const statusEl = document.getElementById('blocker-status-display');
+    if (statusEl) {
+        statusEl.innerText = `⚠️ Startup Warning: Old blocks could not be cleared. ${err}`;
+        statusEl.style.color = '#f39c12';
+    }
+});

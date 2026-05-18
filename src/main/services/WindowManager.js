@@ -69,18 +69,27 @@ class WindowManager {
         });
     }
 
-    createWindow() {
-        this.mainWindow = new BrowserWindow({
-            width: 900,
-            height: 700,
-            show: false,
-            icon: path.join(__dirname, '../../../assets/fokusicon.png'),
+    _createWindow(options = {}) {
+        const defaultOptions = {
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
                 sandbox: true,
                 preload: path.join(__dirname, '../preload.js'),
             },
+        };
+
+        const win = new BrowserWindow({ ...defaultOptions, ...options });
+        this.setupNavigationHandlers(win);
+        return win;
+    }
+
+    createWindow() {
+        this.mainWindow = this._createWindow({
+            width: 900,
+            height: 700,
+            show: false,
+            icon: path.join(__dirname, '../../../assets/fokusicon.png'),
         });
 
         this.mainWindow.maximize();
@@ -89,8 +98,6 @@ class WindowManager {
         this.mainWindow.once('ready-to-show', () => {
             this.mainWindow.show();
         });
-
-        this.setupNavigationHandlers(this.mainWindow);
 
         this.mainWindow.on('close', (event) => {
             if (!this.isQuitting) {
@@ -183,7 +190,7 @@ class WindowManager {
             });
         } else {
             if (isBlocking) {
-                this.popupWindow = new BrowserWindow({
+                this.popupWindow = this._createWindow({
                     width: screen.getPrimaryDisplay().workAreaSize.width,
                     height: screen.getPrimaryDisplay().workAreaSize.height,
                     x: 0,
@@ -192,32 +199,19 @@ class WindowManager {
                     frame: false,
                     fullscreen: false,
                     resizable: false,
-                    webPreferences: {
-                        nodeIntegration: false,
-                        contextIsolation: true,
-                        sandbox: true,
-                        preload: path.join(__dirname, '../preload.js'),
-                    },
                 });
                 this.currentPopupIsBlocking = true;
             } else {
-                this.popupWindow = new BrowserWindow({
+                this.popupWindow = this._createWindow({
                     width: 500,
                     height: 350,
                     alwaysOnTop: true,
                     frame: true,
                     resizable: false,
-                    webPreferences: {
-                        nodeIntegration: false,
-                        contextIsolation: true,
-                        sandbox: true,
-                        preload: path.join(__dirname, '../preload.js'),
-                    },
                 });
                 this.currentPopupIsBlocking = false;
             }
 
-            this.setupNavigationHandlers(this.popupWindow);
             this.popupWindow.loadFile(path.join(__dirname, '../../renderer/ui/popup.html'));
             
             this.popupWindow.webContents.on('did-finish-load', () => {
@@ -283,7 +277,7 @@ class WindowManager {
             return this.timerWindow;
         }
 
-        this.timerWindow = new BrowserWindow({
+        this.timerWindow = this._createWindow({
             width: windowWidth,
             height: windowHeight,
             x: x,
@@ -291,14 +285,7 @@ class WindowManager {
             alwaysOnTop: true,
             frame: true,
             resizable: true,
-            webPreferences: {
-                nodeIntegration: false,
-                contextIsolation: true,
-                preload: path.join(__dirname, '../preload.js')
-            },
         });
-
-        this.setupNavigationHandlers(this.timerWindow);
 
         try {
             this.timerWindow.setAlwaysOnTop(true, 'floating');
@@ -352,11 +339,6 @@ class WindowManager {
             alwaysOnTop: true,
             frame: false,
             show: false,
-            webPreferences: {
-                nodeIntegration: false,
-                contextIsolation: true,
-                preload: path.join(__dirname, '../preload.js')
-            },
         };
 
         if (process.platform === 'darwin') {
@@ -368,8 +350,7 @@ class WindowManager {
             windowConfig.kiosk = true;
         }
 
-        this.fullscreenWindow = new BrowserWindow(windowConfig);
-        this.setupNavigationHandlers(this.fullscreenWindow);
+        this.fullscreenWindow = this._createWindow(windowConfig);
         this.fullscreenWindow.openedAt = Date.now();
 
         this.fullscreenWindow.once('ready-to-show', () => {

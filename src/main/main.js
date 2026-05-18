@@ -4,10 +4,10 @@ const util = require('util');
 
 // Services
 const windowManager = require('./services/WindowManager');
-const blockerService = require('./services/BlockerService');
-const timerService = require('./services/TimerService');
-const healthService = require('./services/HealthService');
-const ipcMainHandlers = require('./services/IpcMainHandlers');
+let blockerService;
+let timerService;
+let healthService;
+let ipcMainHandlers;
 
 console.log('[Main Process] Starting modular SuperFokus...');
 
@@ -60,6 +60,12 @@ app.whenReady().then(() => {
     windowManager.createWindow();
     windowManager.createApplicationMenu();
     
+    // Lazy load services
+    blockerService = require('./services/BlockerService');
+    timerService = require('./services/TimerService');
+    healthService = require('./services/HealthService');
+    ipcMainHandlers = require('./services/IpcMainHandlers');
+
     blockerService.init();
     timerService.init();
     healthService.init();
@@ -116,16 +122,16 @@ app.on('before-quit', () => {
 
 let isClearingOnQuit = false;
 app.on('will-quit', (e) => {
-    timerService.cleanup();
-    healthService.cleanup();
+    if (timerService) timerService.cleanup();
+    if (healthService) healthService.cleanup();
 
-    if (blockerService.getBlocksApplied() && !isClearingOnQuit) {
+    if (blockerService && blockerService.getBlocksApplied() && !isClearingOnQuit) {
         e.preventDefault();
         isClearingOnQuit = true;
         blockerService.cleanup(() => {
             app.quit();
         });
-    } else {
+    } else if (blockerService) {
         blockerService.cleanup();
     }
 });

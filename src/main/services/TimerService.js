@@ -27,6 +27,7 @@ function startTimerService() {
                 if (id.includes('break') || id.includes('pomo')) {
                     windowManager.forceKillFullscreen();
                 }
+                delete timers[id];
             }
         }
 
@@ -68,9 +69,11 @@ function init() {
     });
 
     ipcMain.on('stop-timer', (event, id) => {
+        if (!windowManager.isOriginSafe(event)) return;
         if (timers[id]) {
             timers[id].isRunning = false;
             timers[id].remainingSeconds = 0;
+            delete timers[id];
         }
         windowManager.broadcastToWindows(`timer-stopped-${id}`, id);
         if (id && (id.includes('break') || id.includes('pomo'))) {
@@ -79,6 +82,7 @@ function init() {
     });
 
     ipcMain.on('pause-timer', (event, id) => {
+        if (!windowManager.isOriginSafe(event)) return;
         if (timers[id] && timers[id].isRunning) {
             timers[id].isRunning = false;
             timers[id].remainingSeconds = Math.max(0, Math.round((timers[id].endTime - Date.now()) / 1000));
@@ -87,6 +91,7 @@ function init() {
     });
 
     ipcMain.on('resume-timer', (event, id) => {
+        if (!windowManager.isOriginSafe(event)) return;
         if (timers[id] && !timers[id].isRunning && timers[id].remainingSeconds > 0) {
             const durationMs = timers[id].remainingSeconds * 1000;
             const endTime = Date.now() + durationMs;
@@ -99,6 +104,7 @@ function init() {
     });
 
     ipcMain.on('show-break-popup', (event, data) => {
+        if (!windowManager.isOriginSafe(event)) return;
         if (data.fullScreen) {
             windowManager.createFullscreenWindow(data);
         } else {
@@ -106,7 +112,8 @@ function init() {
         }
     });
 
-    ipcMain.on('close-fullscreen', () => {
+    ipcMain.on('close-fullscreen', (event) => {
+        if (!windowManager.isOriginSafe(event)) return;
         const breakOrPomoRunning = Object.entries(timers).some(([id, t]) => {
             if (!t.isRunning || (!id.includes('break') && !id.includes('pomo'))) return false;
             return (t.endTime - Date.now()) > 1000;
