@@ -39,6 +39,7 @@ export function applyTheme() {
     document.documentElement.style.removeProperty('--container-bg');
     document.documentElement.style.removeProperty('--drawer-bg');
     document.documentElement.style.removeProperty('--heading-color');
+    document.documentElement.style.removeProperty('--modal-bg');
     document.body.classList.remove('dark-mode');
 
     const themeData = {
@@ -72,6 +73,11 @@ export function applyTheme() {
         if (h1) {
             document.documentElement.style.setProperty('--heading-color', h1.value);
             themeData.colors['--heading-color'] = h1.value;
+        }
+        const bg2 = document.getElementById('custom-bg2-color');
+        if (bg2) {
+            document.documentElement.style.setProperty('--modal-bg', bg2.value);
+            themeData.colors['--modal-bg'] = bg2.value;
         }
     }
 

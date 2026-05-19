@@ -26,6 +26,24 @@ let pendingShowHeaderToggle = true;
 export async function initTheme() {
     try {
         const mode = await store.get('themeMode', 'light');
+        
+        if (!document.getElementById('modal-theme-style')) {
+            const style = document.createElement('style');
+            style.id = 'modal-theme-style';
+            style.textContent = `
+                .modal-overlay > div, .modal-container {
+                    background-color: var(--bg-grad-1) !important;
+                }
+                .modal-content {
+                    background-color: var(--container-bg) !important;
+                }
+                .bubble, .white-bubble, .modal-bubble, input[type="radio"], input[type="checkbox"] {
+                    background-color: var(--container-bg) !important;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
         setCurrentThemeMode(mode);
         const showToggle = await store.get('showHeaderDarkModeToggle', true);
         setShowHeaderDarkModeToggle(showToggle);
