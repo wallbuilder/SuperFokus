@@ -1,12 +1,13 @@
 {
   "name": "fokus",
-  "version": "1.0.0-beta",
+  "version": "1.0.0",
   "description": "Fokus is an Electron application designed to help regulate computer and homework time while minimizing distractions.",
   "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dist": "electron-builder --win"
+    "dist": "electron-builder --win",
+    "dist:mac": "electron-builder --mac"
   },
   "build": {
     "appId": "com.superfokus.app",
@@ -19,6 +20,14 @@
         "nsis"
       ],
       "icon": "assets/fokusicon.png"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "assets/fokusicon.png",
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "nsis": {
       "oneClick": false,

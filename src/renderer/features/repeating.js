@@ -2,9 +2,10 @@ import { ipcRenderer } from '../utils/ipc.js';
 import { playChime } from '../utils/audio.js';
 import { store } from '../utils/storage.js';
 import { sharedState } from '../utils/state.js';
+import { showOSNotification } from '../utils/notifications.js';
 import { customAlert } from '../ui/modals.js';
 import { recordFocusSession } from '../utils/stats.js';
-import { formatTime, setInputsLocked, toggleStartStopButton } from '../utils/ui-helpers.js';
+import { formatTime, setInputsLocked, toggleStartStopButton, escapeHtml } from '../utils/ui-helpers.js';
 
 // --- Repeating State ---
 export const repeatingState = {
@@ -79,6 +80,7 @@ ipcRenderer.on('timer-stopped-repeating', () => {
 
 ipcRenderer.on('timer-complete-repeating', () => {
     playChime();
+    showOSNotification('end');
     const autocloseSecs = reminderAutocloseInput ? (parseInt(reminderAutocloseInput.value, 10) || 10) : 10;
     ipcRenderer.send('show-popup', {
         message: reminderMessageInput ? reminderMessageInput.value : '',
@@ -192,7 +194,7 @@ function updateRepeatingPresetOptions() {
     Object.keys(repeatingPresets).forEach(key => {
         const option = document.createElement('option');
         option.value = `custom-preset-${key}`;
-        option.textContent = `Custom: ${key}`;
+        option.textContent = `Custom: ${escapeHtml(key)}`;
         repeatingPresetsSelect.appendChild(option);
     });
 }
@@ -236,7 +238,7 @@ if (deleteRepeatingPresetBtn) {
         const val = repeatingPresetsSelect.value;
         if (val.startsWith('custom-preset-')) {
             const key = val.replace('custom-preset-', '');
-            if (confirm(`Are you sure you want to delete preset "${key}"?`)) {
+            if (confirm(`Are you sure you want to delete preset "${escapeHtml(key)}"?`)) {
                 delete repeatingPresets[key];
                 store.set('repeatingPresets', repeatingPresets);
                 updateRepeatingPresetOptions();

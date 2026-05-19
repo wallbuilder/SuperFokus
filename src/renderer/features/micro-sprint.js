@@ -3,7 +3,7 @@ import { playChime } from '../utils/audio.js';
 import { store } from '../utils/storage.js';
 import { sharedState } from '../utils/state.js';
 import { recordFocusSession } from '../utils/stats.js';
-import { formatTime, setInputsLocked } from '../utils/ui-helpers.js';
+import { formatTime, setInputsLocked, escapeHtml } from '../utils/ui-helpers.js';
 
 const sprintDurationSelect = document.getElementById('sprint-duration');
 const sprintTasksInput = document.getElementById('sprint-tasks');
@@ -64,7 +64,7 @@ function updateSprintPresetOptions() {
     Object.keys(sprintPresets).forEach(key => {
         const option = document.createElement('option');
         option.value = `custom-preset-${key}`;
-        option.textContent = `Custom: ${key}`;
+        option.textContent = `Custom: ${escapeHtml(key)}`;
         sprintPresetsSelect.appendChild(option);
     });
 }
@@ -119,7 +119,7 @@ if (deleteSprintPresetBtn) {
         const val = sprintPresetsSelect.value;
         if (val.startsWith('custom-preset-')) {
             const key = val.replace('custom-preset-', '');
-            if (confirm(`Are you sure you want to delete preset "${key}"?`)) {
+            if (confirm(`Are you sure you want to delete preset "${escapeHtml(key)}"?`)) {
                 delete sprintPresets[key];
                 store.set('sprintPresets', sprintPresets);
                 updateSprintPresetOptions();
@@ -172,7 +172,7 @@ function updateSprintDisplay() {
     if (sprintTasksLeft) sprintTasksLeft.innerText = tasksLeftText;
 
     // Update timer popup
-    ipcRenderer.send('update-micro-sprint-timer', {
+    ipcRenderer.send('update-timer-window', {
         task: taskName,
         timeLeft: formatTime(sprintState.sprintTimerSeconds),
         percent: (sprintState.sprintTimerSeconds / sprintState.sprintDurationSeconds) * 100,
@@ -197,7 +197,8 @@ ipcRenderer.on('timer-stopped-sprint', () => {
 });
 
 ipcRenderer.on('timer-complete-sprint', () => {
-    playChime();
+    playChime('session-complete');
+    showOSNotification('end');
     recordFocusSession(Math.round(sprintState.sprintDurationSeconds / 60), 'Micro-Task Sprint');
     
     if (sprintAutostartCheckbox && sprintAutostartCheckbox.checked) {
@@ -236,7 +237,7 @@ export function startNextSprintTask() {
 export function stopSprintMode() {
     sprintState.isSprintRunning = false;
     ipcRenderer.send('stop-timer', 'sprint');
-    ipcRenderer.send('close-micro-sprint-timer');
+    ipcRenderer.send('close-timer-window');
     if (startSprintBtn) startSprintBtn.style.display = 'block';
     if (stopSprintBtn) stopSprintBtn.style.display = 'none';
     setInputsLocked('config-micro-sprint', false);
@@ -275,7 +276,7 @@ export function startSprintMode() {
         setInputsLocked('config-micro-sprint', true);
         if (sprintTimerDisplay) sprintTimerDisplay.classList.remove('hidden');
         
-        ipcRenderer.send('open-micro-sprint-timer');
+        ipcRenderer.send('open-timer-window', 'sprint');
         startNextSprintTask();
     }
 }

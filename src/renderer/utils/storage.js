@@ -25,12 +25,13 @@ export async function migrateStore() {
             if (val !== null) {
                 try {
                     store.set(key, JSON.parse(val));
+                    localStorage.removeItem(key);
                 } catch (e) {
                     console.error(`Migration failed for key: ${key}`, e);
                 }
             }
         }
         store.set('migratedToElectronStore', true);
-        console.log('[Migration] Settings moved to electron-store.');
+        console.log('[Migration] Settings moved to electron-store and localStorage cleared.');
     }
 }

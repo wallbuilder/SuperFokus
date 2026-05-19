@@ -54,13 +54,17 @@ function closeSidebar() {
 
 menuToggleBtn.addEventListener('click', toggleSidebar);
 
-// Sidebar click-outside-to-close logic
-window.addEventListener('click', (e) => {
-    const sidebarOpen = sideMenu.classList.contains('open');
-    if (!sidebarOpen) return;
-    const isSidebar = sideMenu.contains(e.target);
-    const isToggle = menuToggleBtn.contains(e.target);
-    if (!isSidebar && !isToggle) {
+// Smart sidebar closing logic:
+// Closes sidebar when clicking outside, UNLESS a modal menu is currently active.
+document.addEventListener('click', (e) => {
+    const isSidebarOpen = sideMenu.classList.contains('open');
+    if (!isSidebarOpen) return;
+
+    const isClickInsideSidebar = sideMenu.contains(e.target);
+    const isClickOnToggle = menuToggleBtn.contains(e.target);
+    const isModalActive = Array.from(modalOverlays).some(modal => modal.classList.contains('active'));
+
+    if (!isClickInsideSidebar && !isClickOnToggle && !isModalActive) {
         closeSidebar();
     }
 });

@@ -29,7 +29,8 @@ const ALLOWED_SEND_CHANNELS = [
     'clear-all-blocks',
     'start-health-mode',
     'stop-health-mode',
-    'store-set'
+    'store-set',
+    'show-notification'
 ];
 
 // Whitelist of channels the renderer can LISTEN to from the main process
@@ -82,9 +83,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         delete: (key) => ipcRenderer.send('store-delete', key)
     },
     normalizeHost: (val) => {
-        // Simple bridge for host normalization
-        const { normalizeHost } = require('../renderer/utils/utils.js');
-        return normalizeHost(val);
-    },
-    platform: process.platform
+       const { normalizeHost } = require('../utils/url-utils.js');
+       return normalizeHost(val);
+    },    platform: process.platform
 });

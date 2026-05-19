@@ -2,16 +2,26 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
 const os = require('os');
-const { exec } = require('child_process');
-const { normalizeHost, DOMAIN_REGEX, IP_REGEX } = require('../renderer/utils/utils.js');
+const { normalizeHost, DOMAIN_REGEX, IP_REGEX } = require('../utils/url-utils.js');
 
 // Determine hosts file path based on platform
-const HOSTS_FILE = process.platform === 'darwin'
-  ? '/etc/hosts'
-  : process.platform === 'win32'
-  ? 'C:\\Windows\\System32\\drivers\\etc\\hosts'
-  : '/etc/hosts'; // Default to Unix/Linux path
+function getHostsFilePath() {
+  if (process.platform === 'darwin') return '/etc/hosts';
+  if (process.platform === 'win32') {
+    // Standard path is %SystemRoot%\System32\drivers\etc\hosts
+    // On 64-bit Windows, 32-bit processes are redirected to SysWOW64.
+    // Using Sysnative helps bypass this redirection if it exists.
+    const sysRoot = process.env.SystemRoot || 'C:\\Windows';
+    const sysNative = path.join(sysRoot, 'Sysnative\\drivers\\etc\\hosts');
+    const system32 = path.join(sysRoot, 'System32\\drivers\\etc\\hosts');
+    
+    if (fsSync.existsSync(sysNative)) return sysNative;
+    return system32;
+  }
+  return '/etc/hosts';
+}
 
+const HOSTS_FILE = getHostsFilePath();
 const START_MARKER = '# --- SuperFokus Block Start ---';
 const END_MARKER = '# --- SuperFokus Block End ---';
 
@@ -25,24 +35,27 @@ function validateDomain(domain) {
 function flushDnsCache() {
     return new Promise((resolve) => {
         const platform = process.platform;
-        let cmd;
 
         if (platform === 'darwin') {
-            cmd = 'dscacheutil -flushcache; killall -HUP mDNSResponder';
+            execFile('dscacheutil', ['-flushcache'], (err) => {
+                if (err) console.warn('dscacheutil flush failed:', err.message);
+                execFile('killall', ['-HUP', 'mDNSResponder'], (err2) => {
+                    if (err2) console.warn('mDNSResponder killall failed:', err2.message);
+                    resolve();
+                });
+            });
         } else if (platform === 'win32') {
-            cmd = 'ipconfig /flushdns';
+            execFile('ipconfig', ['/flushdns'], (err) => {
+                if (err) console.warn('ipconfig flushdns failed:', err.message);
+                resolve();
+            });
         } else {
-            cmd = 'systemd-resolve --flush-caches || resolvectl flush-caches || service nscd restart || true';
+            // For Linux, try common options
+            exec('systemd-resolve --flush-caches || resolvectl flush-caches || service nscd restart || true', (err) => {
+                if (err) console.warn('Linux DNS flush failed:', err.message);
+                resolve();
+            });
         }
-
-        exec(cmd, (err) => {
-            if (err) {
-                console.warn('DNS flush failed:', err.message);
-            } else {
-                console.log('DNS cache flushed successfully:', cmd);
-            }
-            resolve();
-        });
     });
 }
 
@@ -102,34 +115,41 @@ async function applyBlocksAsync(domains, retries = 3) {
 
         for (const raw of domains) {
             if (!raw || typeof raw !== 'string') continue;
-            const host = normalizeHost(raw);
-            if (!host) {
-                throw new Error(`Invalid domain format: "${raw}".`);
+            if (!validateDomain(raw)) {
+                throw new Error(`Invalid domain format after normalization: "${raw}".`);
             }
-            addHost(host);
+            addHost(raw);
         }
 
         const validatedDomains = Array.from(domainSet).filter(host => validateDomain(host));
-        await clearBlocksAsync(retries);
-
-        if (validatedDomains.length === 0) {
-            console.log('No valid domains to apply.');
-            return { success: true };
-        }
-
+        
         let attempts = 0;
         while (attempts < retries) {
             try {
-                const lines = [
-                    '',
-                    START_MARKER,
-                    ...validatedDomains.flatMap(d => [`0.0.0.0 ${d}`, `::1 ${d}`]),
-                    END_MARKER,
-                    ''
-                ];
+                let content = await fs.readFile(HOSTS_FILE, 'utf-8');
+                
+                // Clear existing blocks first in memory
+                const startIndex = content.indexOf(START_MARKER);
+                const endIndex = content.indexOf(END_MARKER);
+                if (startIndex !== -1 && endIndex !== -1) {
+                    content = content.substring(0, startIndex) + content.substring(endIndex + END_MARKER.length);
+                }
+                content = content.trimEnd();
 
-                await fs.appendFile(HOSTS_FILE, lines.join('\n'), 'utf-8');
-                console.log(`Successfully applied block(s) for ${validatedDomains.length} domain(s).`);
+                // Append new blocks if any
+                if (validatedDomains.length > 0) {
+                    const lines = [
+                        '',
+                        '',
+                        START_MARKER,
+                        ...validatedDomains.flatMap(d => [`0.0.0.0 ${d}`, `::1 ${d}`]),
+                        END_MARKER
+                    ];
+                    content += lines.join('\n');
+                }
+
+                await fs.writeFile(HOSTS_FILE, content, 'utf-8');
+                console.log(`Successfully updated hosts file with ${validatedDomains.length} domain(s).`);
                 await flushDnsCache();
                 return { success: true, count: validatedDomains.length };
             } catch (e) {
@@ -146,21 +166,35 @@ async function applyBlocksAsync(domains, retries = 3) {
 
 (async () => {
     const action = process.argv[2];
-    const dataArg = process.argv[3];
+    const base64Data = process.argv[3];
+    let commandArgs = [];
+
+    if (base64Data) {
+        try {
+            // Try to decode as JSON-encoded Base64 (new secure format)
+            const decoded = Buffer.from(base64Data, 'base64').toString();
+            commandArgs = JSON.parse(decoded);
+            if (!Array.isArray(commandArgs)) commandArgs = [commandArgs];
+        } catch (e) {
+            // Fallback for legacy plain-text arguments
+            commandArgs = [base64Data];
+        }
+    }
 
     try {
         if (action === 'clear') {
             await clearBlocksAsync();
             process.exit(0);
         } else if (action === 'apply') {
-            const domains = dataArg ? dataArg.split(',').filter(Boolean) : [];
+            const domains = commandArgs[0] ? commandArgs[0].split(',').filter(Boolean) : [];
             await applyBlocksAsync(domains);
             process.exit(0);
         } else if (action === 'apply-file') {
-            if (!dataArg || !fsSync.existsSync(dataArg)) {
-                throw new Error('Data file not found: ' + dataArg);
+            const dataPath = commandArgs[0];
+            if (!dataPath || !fsSync.existsSync(dataPath)) {
+                throw new Error('Data file not found: ' + dataPath);
             }
-            const domains = JSON.parse(fsSync.readFileSync(dataArg, 'utf-8'));
+            const domains = JSON.parse(fsSync.readFileSync(dataPath, 'utf-8'));
             await applyBlocksAsync(domains);
             process.exit(0);
         } else {

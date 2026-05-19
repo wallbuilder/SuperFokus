@@ -1,4 +1,4 @@
-import { ipcRenderer, normalizeHost } from '../utils/ipc.js';
+import { ipcRenderer } from '../utils/ipc.js';
 
 // --- Blocker State ---
 export const blockerState = {
@@ -19,45 +19,37 @@ const urlListInput = document.getElementById('url-list');
 const siteBlockerEnabled = document.getElementById('site-blocker-enabled');
 const siteBlockerAlwaysRun = document.getElementById('site-blocker-always-run');
 
-// Visually disable and mark the Specific URLs box as a Work in Progress
-if (urlListInput) {
-    urlListInput.disabled = true;
-    urlListInput.placeholder = "Work in Progress ❌\nSpecific URL blocking is currently unavailable.";
-    urlListInput.value = "";
-    urlListInput.style.cursor = "not-allowed";
-    urlListInput.style.opacity = "0.6";
+// Removed work in progress block
+
+// Helper function to safely normalize URLs via main process utility
+function safeNormalizeHost(urlStr) {
+    if (!urlStr) return '';
+    return ipcRenderer.normalizeHost(urlStr) || urlStr.trim();
 }
 
 // Show/hide mode messages based on selection
-siteBlockerMode.addEventListener('change', () => {
-    const proxyMsg = document.getElementById('proxy-message');
-    const blockMsg = document.getElementById('block-message');
-    if (siteBlockerMode.value === 'allow') {
-        proxyMsg.style.display = 'block';
-        blockMsg.style.display = 'none';
-    } else {
-        proxyMsg.style.display = 'none';
-        blockMsg.style.display = 'block';
-    }
-    // Trigger change on load too
-    window.addEventListener('load', () => {
-        const currentMode = siteBlockerMode.value;
-        if (currentMode === 'allow') {
-            proxyMsg.style.display = 'block';
-            blockMsg.style.display = 'none';
+if (siteBlockerMode) {
+    siteBlockerMode.addEventListener('change', () => {
+        const proxyMsg = document.getElementById('proxy-message');
+        const blockMsg = document.getElementById('block-message');
+        if (siteBlockerMode.value === 'allow') {
+            if (proxyMsg) proxyMsg.style.display = 'block';
+            if (blockMsg) blockMsg.style.display = 'none';
         } else {
-            proxyMsg.style.display = 'none';
-            blockMsg.style.display = 'block';
+            if (proxyMsg) proxyMsg.style.display = 'none';
+            if (blockMsg) blockMsg.style.display = 'block';
         }
     });
-});
+}
 
 function updateBlocker() {
+    if (!siteBlockerMode || !domainListInput || !siteBlockerEnabled) return;
+
     blockerState.blockerMode = siteBlockerMode.value;
     const rawDomains = domainListInput.value.split('\n').map(s => s.trim()).filter(Boolean);
     const rawUrls = urlListInput ? urlListInput.value.split('\n').map(s => s.trim()).filter(Boolean) : [];
     blockerState.isBlockerActive = siteBlockerEnabled.checked;
-    blockerState.alwaysRun = siteBlockerAlwaysRun.checked;
+    blockerState.alwaysRun = siteBlockerAlwaysRun ? siteBlockerAlwaysRun.checked : false;
     blockerState.urls = rawUrls;
 
     const domainSet = new Set();
@@ -75,12 +67,12 @@ function updateBlocker() {
     }
 
     rawDomains.forEach(d => {
-        const host = normalizeHost(d);
+        const host = safeNormalizeHost(d);
         if (host) addBlockingHost(host);
     });
 
     rawUrls.forEach(u => {
-        const host = normalizeHost(u);
+        const host = safeNormalizeHost(u);
         if (host) addBlockingHost(host);
     });
 
@@ -105,15 +97,18 @@ function updateBlocker() {
 }
 
 
-saveBlockerBtn.addEventListener('click', () => {
-    updateBlocker();
-    saveBlockerBtn.innerText = 'Saved!';
-    saveBlockerBtn.style.background = '#2ecc71';
-    setTimeout(() => {
-        saveBlockerBtn.innerText = 'Save & Apply Blocker';
-        saveBlockerBtn.style.background = '#3498db';
-    }, 2000);
-});
+if (saveBlockerBtn) {
+    saveBlockerBtn.addEventListener('click', () => {
+        if (siteBlockerEnabled) siteBlockerEnabled.checked = true;
+        updateBlocker();
+        saveBlockerBtn.innerText = 'Saved and Applied';
+        saveBlockerBtn.style.background = '#e74c3c';
+        setTimeout(() => {
+            saveBlockerBtn.innerText = 'Save & Apply Blocker';
+            saveBlockerBtn.style.background = '#3498db';
+        }, 2000);
+    });
+}
 
 function handleClearBlocks(btn) {
     if (confirm('Are you sure you want to clear all SuperFokus block entries from your system hosts file?')) {
@@ -138,5 +133,33 @@ if (clearBlockerModalBtn) {
 }
 
 // Sync blocker state to main if it should always run
-siteBlockerEnabled.addEventListener('change', updateBlocker);
-siteBlockerAlwaysRun.addEventListener('change', updateBlocker);
+if (siteBlockerEnabled) siteBlockerEnabled.addEventListener('change', updateBlocker);
+if (siteBlockerAlwaysRun) siteBlockerAlwaysRun.addEventListener('change', updateBlocker);
+
+// --- IPC Listeners for Blocker Status ---
+ipcRenderer.on('blocker-status', (msg) => {
+    console.log('[Blocker Status]', msg);
+    const statusEl = document.getElementById('blocker-status-display');
+    if (statusEl) {
+        statusEl.innerText = msg;
+        statusEl.style.color = '#2ecc71';
+    }
+});
+
+ipcRenderer.on('blocker-error', (err) => {
+    console.error('[Blocker Error]', err);
+    const statusEl = document.getElementById('blocker-status-display');
+    if (statusEl) {
+        statusEl.innerText = `⚠️ Error: ${err}`;
+        statusEl.style.color = '#e74c3c';
+    }
+});
+
+ipcRenderer.on('startup-cleanup-failed', (err) => {
+    console.warn('[Startup Cleanup] Failed to clear zombie blocks:', err);
+    const statusEl = document.getElementById('blocker-status-display');
+    if (statusEl) {
+        statusEl.innerText = `⚠️ Startup Warning: Old blocks could not be cleared. ${err}`;
+        statusEl.style.color = '#f39c12';
+    }
+});

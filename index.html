@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:;">
     <meta charset="UTF-8">
     <title>SuperFokus Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -98,6 +98,16 @@
       }
 
       /* Startup Screen */
+
+      /* Dropdown active state */
+      .dropdown-option {
+          display: none;
+      }
+
+      .dropdown-option.active {
+          display: block !important;
+      }
+
       #startup-screen {
         position: fixed;
         top: 0; left: 0; width: 100%; height: 100%;
@@ -343,6 +353,7 @@
       .timer-display {
           text-align: center; margin-top: 1rem; padding: 1.5rem;
           background: var(--timer-bg); border-radius: 15px; border: 1px solid var(--border-color);
+          contain: layout paint;
       }
 
       /* Version */
@@ -548,7 +559,7 @@
     <div id="startup-screen">
       <div class="startup-content">
         <h1>SuperFokus</h1>
-        <div id="startup-version">v1.0.0-beta</div>      </div>
+        <div id="startup-version">v1.0.0</div>      </div>
       <div id="startup-loading-text" style="position: absolute; bottom: 65px; left: 0; right: 0; margin: 0 auto; width: 500px; text-align: center; font-size: 0.85rem; color: rgba(255,255,255,0.8); opacity: 0; animation: slideUpFade 1.2s ease-out forwards 0.3s; letter-spacing: 0.5px;">Initializing...</div>
       <div id="startup-loading-bar-container" style="position: absolute; bottom: 50px; left: 0; right: 0; margin: 0 auto; width: 500px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; opacity: 0; animation: slideUpFade 1.2s ease-out forwards 0.3s;">
         <div id="startup-loading-bar" style="width: 0%; height: 100%; background: white; transition: width 0.3s ease-out;"></div>
@@ -559,11 +570,15 @@
         <div class="modal-content">
             <span class="modal-close">✕</span>
             <h2>About SuperFokus</h2>
-            <p><strong>Introduction:</strong> SuperFokus is a versatile productivity tool designed to help you stay concentrated, manage your time, and minimize distractions. Built on core principles of focused work sessions, it provides three distinct "Fokus Modes" that you can configure to perfectly match your workflow and personal habits.</p>
-            <p><strong>Repeating Reminderrs:</strong> The "original" mode of Fokus. It involves a popup that continuously flashes on your screen after a set amount of minutes and seconds. You can configure custom messages and define the exact number of reminder rounds.</p>
-            <p><strong>Pomo Style:</strong> A structured time-management mode that functions similarly to Repeating Reminders, but incorporates scheduled breaks. You can configure dynamic work and break sequences, and either receive a gentle reminder or have the application comletely block your screen to enforce downtime.</p>
-            <p><strong>Site Blocker:</strong> A powerful tool to keep you away from digital distractions. You can create lists of specific domains or URLs to either block completely or exclusively allow, ensuring your browser remains a tool for work rather than procrastination.</p>
-            <p><strong>Sidebar Features:</strong>> The robust sidebar gives you access to real-time productivity statistics, a visual heatmap of your activity, comprehensive session history logs, and customization options to tailor themes and audio notifications to your liking.</p>
+            <p><strong>Introduction:</strong> SuperFokus is a versatile productivity tool designed to help you stay concentrated, manage your time, and minimize distractions. Built on core principles of focused work sessions, it provides several distinct "Fokus Modes" that you can configure to perfectly match your workflow and personal habits.</p>
+            <p><strong>Repeating Reminders:</strong> The classic mode of Fokus. It involves a popup that continuously appears on your screen after a set interval. You can configure custom messages and define the exact number of reminder rounds.</p>
+            <p><strong>Pomo Style:</strong> A structured time-management mode that balances work sessions with scheduled breaks. You can configure dynamic work/break sequences and choose to either receive a gentle reminder or have the application completely block your screen to enforce downtime.</p>
+            <p><strong>Micro-Task Sprints:</strong> Designed for high-velocity work. Break down large projects into rapid, timed intervals to maintain momentum and beat procrastination.</p>
+            <p><strong>Flow State:</strong> A simple stopwatch mode for open-ended work sessions. It can be configured to play a gentle chime at regular intervals to help you stay mindful of time passing without interrupting your flow.</p>
+            <p><strong>Multi-Mode Workflows:</strong> The ultimate builder for complex sessions. Use the drag-and-drop interface to stack different Fokus modes and breaks into a single, automated sequence.</p>
+            <p><strong>Site Blocker:</strong> A powerful tool to keep you away from digital distractions. You can create lists of specific domains or URLs to either block completely or exclusively allow, ensuring your browser remains a tool for work.</p>
+            <p><strong>Health Mode:</strong> Your personal "Body Guard." Enforce the 20-20-20 eye-saver rule and receive regular posture check reminders to stay healthy while you work.</p>
+            <p><strong>Sidebar Features:</strong> The robust sidebar gives you access to real-time productivity statistics, a visual heatmap of your activity, comprehensive session history logs, and deep customization options.</p>
             <p><strong>Conclusion:</strong> Together, these features make SuperFokus not just a simple timer, but a comprehensive environment for mastering your attention. Whether you are studying, coding, or just trying to get through the day's tasks, SuperFokus is here to keep you on track.</p>
         </div>
     </div>
@@ -634,7 +649,7 @@
                             
                             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
                                 <input type="radio" name="theme-selection" value="custom" id="theme-radio-custom" style="width: auto; margin: 0;">
-                                <span>@ Custom (create below)</span>
+                                <span>Custom Theme (create below)</span>
                             </label>
                         </div>
                     </div>
@@ -690,6 +705,10 @@
                             <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">BG 2 COLOR<br>(CONTAINER)</label>
                             <input type="color" id="custom-bg2-color" value="#ffffff" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
                         </div>
+                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
+                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">SIDEBAR<br>color</label>
+                            <input type="color" id="custom-drawer-bg" value="#ffffff" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
+                        </div>
                     </div>
                     <button class="action-btn" id="reset-theme-colors-btn" style="width: 100%; margin-top: 15px; padding: 0.6rem; background: var(--timer-bg); color: var(--text-color); border: 1px solid var(--border-color); font-size: 0.85rem;">Reset Custom Colors</button>
                 </div>
@@ -708,7 +727,7 @@
                     <div style="display: flex; gap: 15px; align-items: center;">
                         <div style="position: relative; flex: 1;">
                             <button id="toggle-option-1" class="action-btn" style="margin-top: 0; background: var(--timer-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 20px; padding: 0.6rem 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Light Mode</button>
-                            <div id="dropdown-option-1" style="display: none; position: absolute; bottom: calc(100% + 10px); left: 0; background: var(--container-bg); border: 2px solid var(--border-color); border-radius: 12px; padding: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 100; width: 180px;">
+                            <div id="dropdown-option-1" class="dropdown-option" style="position: absolute; bottom: calc(100% + 10px); left: 0; background: var(--container-bg); border: 2px solid var(--border-color); border-radius: 12px; padding: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 100; width: 180px;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                     <span style="font-size: 0.9rem; font-weight: 500;">Select below ⤵</span>
                                     <span id="close-dropdown-1" style="cursor: pointer; font-size: 0.8rem; background: var(--timer-bg); border-radius: 5px; padding: 2px 6px; border: 1px solid var(--border-color);">✕</span>
@@ -725,7 +744,7 @@
                         
                         <div style="position: relative; flex: 1;">
                             <button id="toggle-option-2" class="action-btn" style="margin-top: 0; background: var(--timer-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 20px; padding: 0.6rem 1rem; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Dark Mode</button>
-                            <div id="dropdown-option-2" style="display: none; position: absolute; bottom: calc(100% + 10px); left: 0; background: var(--container-bg); border: 2px solid var(--border-color); border-radius: 12px; padding: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 100; width: 180px;">
+                            <div id="dropdown-option-2" class="dropdown-option" style="position: absolute; bottom: calc(100% + 10px); left: 0; background: var(--container-bg); border: 2px solid var(--border-color); border-radius: 12px; padding: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 100; width: 180px;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                     <span style="font-size: 0.9rem; font-weight: 500;">Select below ⤵</span>
                                     <span id="close-dropdown-2" style="cursor: pointer; font-size: 0.8rem; background: var(--timer-bg); border-radius: 5px; padding: 2px 6px; border: 1px solid var(--border-color);">✕</span>
@@ -747,30 +766,151 @@
 
             <!-- Sounds Tab -->
             <div id="tab-sounds" class="tab-content" style="display: none;">
-                <div class="form-group">
-                    <label for="chime-selector">Chime Sound:</label>
-                    <div style="display: flex; gap: 10px;">
-                        <select id="chime-selector" style="flex: 1;">
-                            <option value="chime.mp3">Classic Chime</option>
-                            <option value="gentle.mp3">Gentle Notification</option>
-                            <option value="custom">Custom (Upload below)</option>
+                
+                <div style="font-size: 1.1rem; margin-bottom: 15px; font-weight: 500;">Sound Settings</div>
+                
+                <div class="form-group" style="margin-bottom: 25px;">
+                    <label>Sound Library Pack:</label>
+                    <select id="sound-pack-selector" style="width: 100%; margin-bottom: 5px;">
+                        <option value="classic">Classic (Default)</option>
+                        <option value="nature">Nature (Zen)</option>
+                        <option value="mechanical">Mechanical</option>
+                    </select>
+                    <small style="display: block; color: var(--timer-subtext);">The selected pack determines the available ambient and notification sounds below.</small>
+                </div>
+
+                <div style="background: var(--timer-bg); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <h3 style="margin-top: 0; font-size: 1rem; color: var(--timer-subtext); margin-bottom: 20px;">Pack Specific Sounds</h3>
+                    
+                    <div class="form-group" style="margin-bottom: 25px;">
+                        <label>Notification Sound:</label>
+                        <select id="notification-sound-selector" style="width: 100%; margin-bottom: 10px;">
+                            <option value="notif-1">Notification Sound 1</option>
+                            <option value="notif-2">Notification Sound 2</option>
+                            <option value="notif-3">Notification Sound 3</option>
                         </select>
-                        <button class="action-btn" id="test-chime-btn" style="margin-top: 0; width: auto; padding: 0.85rem; background: var(--header-grad-1);">Test</button>
+                        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+                            <label style="margin: 0;">Volume:</label>
+                            <input type="range" id="chime-volume" min="0" max="1" step="0.1" value="1" style="flex: 1;">
+                            <button class="action-btn" id="test-chime-btn" style="margin-top: 0; width: auto; padding: 0.5rem 1rem; background: var(--header-grad-1);">Test</button>
+                        </div>
+                        <div>
+                            <input type="file" id="chime-file-input" accept="audio/*" style="display: none;">
+                            <button class="action-btn" id="upload-chime-btn" style="margin-top: 0; width: 100%; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color);">Upload Custom Notification</button>
+                        </div>
+                        <div id="custom-notifs-container" style="display: flex; flex-direction: column; gap: 5px; margin-top: 10px;"></div>
                     </div>
-                    <div style="margin-top: 10px;">
-                        <label>Volume:</label>
-                        <input type="range" id="chime-volume" min="0" max="1" step="0.1" value="1" style="width: 100%;">
+                    
+                    <div class="form-group" style="margin-bottom: 25px;">
+                        <label>Alert Triggers:</label>
+                        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                            <label style="display: flex; align-items: center; gap: 10px; font-weight: normal; margin: 0;">
+                                <input type="checkbox" id="alert-session-start" checked> Session Start
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 10px; font-weight: normal; margin: 0;">
+                                <input type="checkbox" id="alert-break-start" checked> Break Start
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 10px; font-weight: normal; margin: 0;">
+                                <input type="checkbox" id="alert-session-complete" checked> Session Complete
+                            </label>
+                        </div>
                     </div>
-                    <input type="file" id="chime-file-input" accept="audio/*" style="display: none;">
-                    <button class="action-btn" id="upload-chime-btn" style="margin-top: 10px; width: 100%; background: var(--header-grad-1);">Upload Custom Chime</button>
+
+                    <div class="form-group" style="margin-bottom: 0; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                        <label>Ambient Background Noise:</label>
+                        <select id="ambient-noise-selector" style="width: 100%; margin-top: 5px;">
+                            <option value="none">None</option>
+                        </select>
+                        <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px; margin-bottom: 10px;">
+                            <label style="margin: 0;">Volume:</label>
+                            <input type="range" id="ambient-volume" min="0" max="1" step="0.1" value="0.5" style="flex: 1;">
+                        </div>
+                        <div>
+                            <input type="file" id="ambient-file-input" accept="audio/*" style="display: none;">
+                            <button class="action-btn" id="upload-ambient-btn" style="margin-top: 0; width: 100%; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color);">Upload Custom Background Noise</button>
+                        </div>
+                        <div id="custom-ambient-container" style="display:none; align-items: center; gap: 10px; margin-top: 10px; padding: 10px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px;">
+                            <span style="flex: 1; font-size: 0.9rem;" id="custom-ambient-label">Custom BG Active</span>
+                            <button class="action-btn" id="delete-custom-ambient-btn" style="margin-top: 0; background: #e74c3c; width: auto; padding: 5px 10px;">Delete</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 25px; padding-top: 20px; border-top: 2px solid var(--border-color);">
+                    <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--timer-subtext); margin-bottom: 15px;">Custom Soundpack Creator</h3>
+                    
+                    <div class="form-group">
+                        <label for="custom-pack-name">Soundpack Name:</label>
+                        <input type="text" id="custom-pack-name" placeholder="e.g. My Custom Pack" style="width: 100%;">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="custom-notif-upload">Upload Custom Notifications:</label>
+                        <input type="file" id="custom-notif-upload" accept="audio/*" multiple style="display: none;">
+                        <button class="action-btn" id="custom-notif-upload-btn" style="margin-top: 0; width: 100%; background: var(--header-grad-1);">Add Notification Sound(s)</button>
+                        <div id="custom-notif-preview" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 10px;"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="custom-ambient-upload">Upload Custom Ambient Sounds:</label>
+                        <input type="file" id="custom-ambient-upload" accept="audio/*" multiple style="display: none;">
+                        <button class="action-btn" id="custom-ambient-upload-btn" style="margin-top: 0; width: 100%; background: var(--header-grad-1);">Add Ambient Sound(s)</button>
+                        <div id="custom-ambient-preview" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 10px;"></div>
+                    </div>
+                    
+                    <button class="action-btn" id="save-custom-pack-btn" style="background: #27ae60;">Save Custom Soundpack</button>
+
+                    <div class="form-group" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                        <label for="custom-packs-selector">My Custom Soundpacks:</label>
+                        <div style="display: flex; gap: 10px;">
+                            <select id="custom-packs-selector" style="flex: 1;">
+                                <option value="none">No Custom Packs</option>
+                            </select>
+                            <button class="action-btn" id="delete-custom-pack-btn" style="margin-top: 0; width: auto; padding: 0.85rem; background: #e74c3c;">Delete Selected</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Integration Tab -->
             <div id="tab-integration" class="tab-content" style="display: none;">
-                <div style="text-align: center; color: var(--timer-subtext); padding: 2rem 0;">
-                    <em>Integration options coming soon.</em>
+                <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--timer-subtext); margin-bottom: 15px;">System Notifications</h3>
+                
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: normal;">
+                        <label class="toggle-switch">
+                          <input type="checkbox" id="notif-start-toggle">
+                          <span class="slider"></span>
+                        </label> 
+                        Enable Round Start Notifications
+                    </label>
+                    
+                    <div id="notif-start-settings" style="display: none; margin-top: 10px; padding-left: 15px; border-left: 2px solid var(--border-color);">
+                        <label style="font-size: 0.9rem;">Notification Title:</label>
+                        <input type="text" id="notif-start-title" placeholder="Round Started" style="margin-bottom: 10px;">
+                        <label style="font-size: 0.9rem;">Notification Body:</label>
+                        <input type="text" id="notif-start-body" placeholder="Time to focus!">
+                    </div>
                 </div>
+
+                <div class="form-group" style="margin-bottom: 25px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: normal;">
+                        <label class="toggle-switch">
+                          <input type="checkbox" id="notif-end-toggle">
+                          <span class="slider"></span>
+                        </label> 
+                        Enable Round End Notifications
+                    </label>
+                    
+                    <div id="notif-end-settings" style="display: none; margin-top: 10px; padding-left: 15px; border-left: 2px solid var(--border-color);">
+                        <label style="font-size: 0.9rem;">Notification Title:</label>
+                        <input type="text" id="notif-end-title" placeholder="Round Ended" style="margin-bottom: 10px;">
+                        <label style="font-size: 0.9rem;">Notification Body:</label>
+                        <input type="text" id="notif-end-body" placeholder="Great job! Take a break.">
+                    </div>
+                </div>
+                
+                <button class="action-btn" id="save-integration-settings-btn" style="background: #27ae60;">Save Settings</button>
             </div>
 
             <!-- Advanced Tab -->
@@ -789,31 +929,7 @@
         </div>
     </div>
 
-    <div id="modal-health" class="modal-overlay">
-        <div class="modal-content">
-            <span class="modal-close">✕</span>
-            <h2>Health Mode</h2>
-            <div class="form-group">
-                <label class="toggle-switch">
-                  <input type="checkbox" id="health-eye-saver" checked>
-                  <span class="slider"></span>
-                </label> Enable Eye Saver (20-20-20 Rule)
-                <small style="color: var(--timer-subtext); display: block; margin-top: 5px;">Every 20 minutes, you will be reminded to look 20 feet away for 20 seconds.</small>
-            </div>
-            <div class="form-group">
-                <label class="toggle-switch">
-                  <input type="checkbox" id="health-posture-check" checked>
-                  <span class="slider"></span>
-                </label> Enable Posture Check
-                <small style="color: var(--timer-subtext); display: block; margin-top: 5px;">Every 45 minutes, you will be reminded to stretch and adjust your posture.</small>
-            </div>
-            <div style="display: flex; gap: 10px;">
-              <button class="action-btn start-btn" id="start-health-btn" style="flex: 2;">Start Health Mode ➤</button>
-              <button class="action-btn" id="stop-health-btn" style="flex: 1; background: #e74c3c; display: none;">Stop ⏹</button>
-            </div>
-            <div id="health-status" style="margin-top: 15px; font-weight: bold; color: #27ae60; display: none; text-align: center;">Health Mode is active! Running in background.</div>
-        </div>
-    </div>
+
 
     <div id="modal-site-blocker" class="modal-overlay">
         <div class="modal-content">
@@ -829,8 +945,8 @@
                     </label> <span>Active</span>
                 </div>
                 <small class="warning-text" style="display: block; margin-top: 5px;">System-wide blocking requires Administrator privileges. You will be prompted to grant permissions when activating this feature.</small>
-            </div>
-
+                <div id="blocker-status-display" style="font-size: 0.85rem; margin-top: 8px; font-weight: 600;"></div>
+                </div>
             <div class="form-group">
                 <label class="toggle-switch">
                   <input type="checkbox" id="site-blocker-always-run">
@@ -852,10 +968,12 @@
               2. Only listed domains will be accessible<br/>
               3. All other sites will return "Site Blocked"
             </div>
-
-            <div id="block-message" style="display:none; margin-top:10px; padding:10px; background:#d4edda; border:1px solid #c3e6cb; border-radius:4px; color: #155724;">
-              <strong>✓ Block Mode Info:</strong> <br/>
-              1. Listed sites are blocked via system hosts file<br/>
+<div id="block-message" style="display:none; margin-top:10px; padding:10px; background:#d4edda; border:1px solid #c3e6cb; border-radius:4px; color: #155724;">
+  <strong>✓ Block Mode Info:</strong> <br/>
+  1. Listed sites are blocked via system hosts file<br/>
+  2. <strong>IMPORTANT:</strong> Disable "DNS over HTTPS" in browser settings (or blocking won't work)<br/>
+  3. Clear browser cache and fully restart the browser after enabling
+</div>
               2. <strong>IMPORTANT:</strong> Disable "DNS over HTTPS" in browser settings (or blocking won't work)<br/>
               3. Clear browser cache and fully restart the browser after enabling
             </div>
@@ -886,6 +1004,7 @@
                 <button class="action-btn extra-mode-btn" data-switch-mode="pomo-style" style="margin-top: 0; background: var(--header-grad-1);">Pomo Style</button>
                 <button class="action-btn extra-mode-btn" data-switch-mode="micro-sprint" style="margin-top: 0; background: var(--header-grad-1);">Micro-Task Sprint</button>
                 <button class="action-btn extra-mode-btn" data-switch-mode="flow-state" style="margin-top: 0; background: var(--header-grad-1);">Flow State Stopwatch</button>
+                <button class="action-btn extra-mode-btn" data-switch-mode="health-mode" style="margin-top: 0; background: var(--header-grad-1);">Health Mode</button>
                 <button class="action-btn extra-mode-btn" data-switch-mode="workflows" style="margin-top: 0; background: var(--header-grad-1);">Workflows</button>
             </div>
         </div>
@@ -897,7 +1016,7 @@
         <div class="menu-item" data-modal="modal-session-history">📜 Session History</div>
         <div class="menu-item" data-modal="modal-focus-stats">📊 Fokus Stats</div>
         <div class="menu-item" data-modal="modal-site-blocker">🔒 Site Blocker</div>
-        <div class="menu-item" data-modal="modal-health">❤️ Health Mode</div>
+
         <div class="menu-item" data-modal="modal-customization">⚙️ Customization</div>
         <div class="menu-item" data-modal="modal-about">ℹ️ About SuperFokus</div>
     </aside>
@@ -932,15 +1051,15 @@
         <button class="home-btn" data-mode="flow-state">
           <span class="icon">⏱</span> Flow State Stopwatch
         </button>
-        <div class="workflow-container" style="grid-column: span 2; display: flex; flex-direction: column;">
-           <button class="home-btn workflow-btn" data-mode="workflows">
-             <span class="icon" style="font-size: 1.5rem; margin-bottom: 5px;">⚙</span> Workflows
-           </button>
-           <div class="coming-soon-btns">
-              <button class="small-btn">Coming soon</button>
-              <button class="small-btn">Coming soon</button>
-           </div>
-        </div>
+        <button class="home-btn" data-mode="health-mode">
+          <span class="icon">♡</span> Health Mode
+        </button>
+        <button class="home-btn" style="background: var(--timer-bg); color: var(--timer-subtext); cursor: not-allowed; opacity: 0.8; border: 1px solid var(--border-color); box-shadow: none;">
+          <span class="icon">❓</span> Coming Soon
+        </button>
+        <button class="home-btn workflow-btn" data-mode="workflows" style="grid-column: span 2;">
+          <span class="icon" style="font-size: 1.5rem; margin-bottom: 5px;">⚙</span> Workflows
+        </button>
       </div>
 
       <!-- Flow State Config -->
@@ -966,6 +1085,30 @@
           <button class="action-btn start-btn" id="start-flow-btn" style="flex: 2;">Start Stopwatch ➤</button>
           <button class="action-btn" id="stop-flow-btn" style="flex: 1; background: #e74c3c; display: none;">Stop ⏹</button>
         </div>
+      </div>
+
+      <!-- Health Mode Config -->
+      <div id="config-health-mode" class="config-section">
+        <h3>Health Mode Config</h3>
+            <div class="form-group">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="health-eye-saver" checked>
+                  <span class="slider"></span>
+                </label> Enable Eye Saver (20-20-20 Rule)
+                <small style="color: var(--timer-subtext); display: block; margin-top: 5px;">Every 20 minutes, you will be reminded to look 20 feet away for 20 seconds.</small>
+            </div>
+            <div class="form-group">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="health-posture-check" checked>
+                  <span class="slider"></span>
+                </label> Enable Posture Check
+                <small style="color: var(--timer-subtext); display: block; margin-top: 5px;">Every 45 minutes, you will be reminded to stretch and adjust your posture.</small>
+            </div>
+            <div style="display: flex; gap: 10px;">
+              <button class="action-btn start-btn" id="start-health-btn" style="flex: 2;">Start Health Mode ➤</button>
+              <button class="action-btn" id="stop-health-btn" style="flex: 1; background: #e74c3c; display: none;">Stop ⏹</button>
+            </div>
+            <div id="health-status" style="margin-top: 15px; font-weight: bold; color: #27ae60; display: none; text-align: center;">Health Mode is active! Running in background.</div>
       </div>
 
       <!-- Repeating Reminders Config -->
@@ -1250,10 +1393,10 @@
     <div style="position: fixed; bottom: 15px; left: 20px; font-size: 0.85rem; color: #95a5a6; font-weight: 500; z-index: 1000;">
       <a href="https://github.com/wallbuilder/SuperFokus" target="_blank" style="color: inherit; text-decoration: none;">GitHub Page</a>
     </div>
-    <div id="version">SuperFokus v1.0.0-beta</div>
+    <div id="version">SuperFokus v1.0.0</div>
 
     <!-- Audio for chimes -->
-    <audio id="chime-audio" src="chime.mp3" preload="auto"></audio>
+    <audio id="chime-audio" src="./assets/sounds/nature-notif-1.mp3" preload="auto"></audio>
 
     <!-- Custom Alert Modal for JS alert() replacement -->
     <div id="custom-alert-modal" class="modal-overlay" tabindex="-1">
@@ -1263,6 +1406,7 @@
       </div>
     </div>
 
+    <script src="./src/renderer/error-handler.js"></script>
     <script src="node_modules/chart.js/dist/chart.umd.js"></script>
     <script type="module" src="./src/renderer/renderer.js"></script>
   </body>

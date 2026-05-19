@@ -17,7 +17,7 @@
 - Add a lightweight backend (like Firebase or Supabase) to sync user presets, Pomo configs, and session histories.
 - Allow users to seamlessly transition between work and personal devices without losing their stats and configurations.
 
-### Gamification (Streaks & Unlockables)
+### Gamification (Streaks & Unlockables) 
 - Add a new "Fokus Streak" section that tracks daily consecutive Fokusing days to encourage users to maintain their habits.
 - Allow users to unlock new custom chimes, "Premium" themes, or certain advanced capabilities by reaching milestone hours of focus.
 
@@ -31,10 +31,6 @@
 - **Dashboard Backgrounds:** Provide subtle patterns or AI-generated soft gradients.
 - **Animation Intensity:** Slider to control transition speeds or disable animations (Reduced Motion).
 
-### Audio & Sensory (Sound Tab)
-- **Sound Libraries:** Categorized sound packs (Nature, Mechanical, Zen).
-- **Event-Specific Alerts:** Unique sounds for session start, break start, and completion.
-- **Ambient Background Noise:** Optional Lo-Fi, Rain, or White Noise (create a white noise generator) during work/break phases with option to select one unified theme.
 
 ### Advanced Timer Control (Advanced Tab)
 - **Floating Window Customization:** 

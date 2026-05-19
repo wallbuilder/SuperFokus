@@ -3,40 +3,48 @@
 UPDATE DOCUMENTATION DESCRIPTION
 
 This file is strictly for the purpose of documenting/writing down changes to the SuperFokus codebase so they can later be summarized into a commit message.
-Before each commit, the contents of this file should be mostly discarded of, EXCLUDING this chunk of text.
+Before each commit, the contents of this file should be mostly discarded of, EXCLUDING this header and the footer at the bottom.
 Each new edit to the file that documents new changes should also list the date and time of implementation.
-[DO NOT DELETE THIS TEXT] >
+(Note: You must list ALL changes, including small ones. No detail is too small).
+[DO NOT DELETE THIS TEXT, DELETE TEXT BELOW THIS LINE] >
+~
 
-{5/5/2026 at 5:45 PM}
-    **Fixed Theme Application and Settings**
-    - Fixed an issue where the "Reset Custom Colors" button threw an error due to a missing storage deletion method. Added the required IPC method to `storage.js`, `preload.js`, and `main.js`.
-    - Fixed an issue where setting custom background colors (`--bg-grad-1` and `--bg-grad-2`) would permanently override the standard background colors when switching back to Dark Mode by updating the cleanup logic in `theme.js`.
+- Hardened IPC security by implementing `isOriginSafe` validation across all `ipcMain` handlers.
+- Enabled `sandbox: true` for `timerWindow` and `fullscreenWindow` to improve security posture.
+- Implemented the missing `blocker-expand-fullscreen` IPC handler to fix the site blocker's lock functionality.
+- Added a `blocker-status-display` element and listeners to provide real-time feedback on site blocking operations.
+- Fixed a build-breaking issue by providing a default `entitlements.mac.plist` for macOS packaging.
+- Optimized memory usage in `TimerService.js` by ensuring completed timers are properly deleted from the state.
+- Completed the storage migration process by clearing `localStorage` keys after they are moved to `electron-store`.
+- Added a warning for users regarding "DNS over HTTPS" (DoH) to prevent silent bypasses of the site blocker.
 
-{5/5/2026 at 6:00 PM}
-    **UI Customization Adjustments & Bug Fix**
-    - Renamed "BG 2 COLOR" to "BG 1 GRADIENT" in the Custom Theme creator.
-    - Added a new color picker for the main application "pad" labeled "BG 2 COLOR", which controls the `--container-bg` variable.
-    - Fixed an issue where the new pad color was not applying due to a race condition in file writing by sequentially patching `theme.js` logic.
-    - Updated the reset colors button to prompt a confirmation alert before reverting to default custom colors.
-    - Added a dedicated "HEADER TEXT" color picker for the main 'SuperFokus' title, decoupling it from the "Heading 1" color.
+- Created new "fokus-guidelines" folder in the specs/ directory (the files will be modified later)
+- Added specs/ directory to the .gitignore file to ensure it (and all its extra weight) no longer gets packaged with the rest of the SuperFokus files.
 
-< [DO NOT DELETE THIS TEXT]
-(Example chunk of documentation: 
+- Optimized application startup by implementing lazy loading for `BlockerService`, `TimerService`, `HealthService`, and `IpcMainHandlers` in the main process.
+- Refactored `WindowManager.js` to use a centralized `_createWindow` helper, reducing code duplication and standardizing `BrowserWindow` configurations.
+- Optimized `fokus-sb-helper.js` to perform atomic updates to the system hosts file, reducing disk I/O by merging clearing and applying operations into a single read-write cycle.
+- Added null safety checks for services during the application shutdown sequence to prevent potential crashes if services were not fully initialized.
+- Reorganized the workspace by moving diagnostic and prototyping scripts (`test-app.js`, `test-proxy.js`, etc.) into `tests/manual/` and updated `.gitignore` accordingly.
+
+~
+< [DO NOT DELETE THIS TEXT, DELETE TEXT ABOVE THIS LINE]
+(Example chunk of documentation:
 {1/1/2025 at 12:00 PM}
-    **Fixed Bugs**
+    [Fixed Bugs]
      - Fixed critical bugs
      - Other Example text
 
-    **Added New Features**
+    [Added New Features]
      - Added new features
      - Other Example text
 
 {1/2/2025 at 12:00 PM}
-    **Fixed Bugs**
+    [Fixed Bugs]
      - Fixed critical bugs
      - Other example text
 
-    **Added New Features**
+    [Added New Features]
      - Added new features
      - Other example text
 

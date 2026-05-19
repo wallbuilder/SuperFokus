@@ -3,6 +3,7 @@ import { store } from '../utils/storage.js';
 import { sharedState } from '../utils/state.js';
 import { customAlert } from '../ui/modals.js';
 import { playChime } from '../utils/audio.js';
+import { showOSNotification } from '../utils/notifications.js';
 import { setInputsLocked, toggleStartStopButton } from '../utils/ui-helpers.js';
 import { recordFocusSession } from '../utils/stats.js';
 
@@ -283,7 +284,7 @@ function updatePomoDisplay(notifyWindow = false) {
 
     if (notifyWindow) {
         const totalSecs = currentPhase ? getPhaseSecs(currentPhase) : 1;
-        ipcRenderer.send('update-pomo-timer', {
+        ipcRenderer.send('update-timer-window', {
             phase: pomoStatusText ? pomoStatusText.innerText : '',
             timeLeft: formatTime(pomoState.pomoTimer),
             percent: currentPhase ? (pomoState.pomoTimer / totalSecs) * 100 : 0
@@ -352,10 +353,14 @@ function startPomoPhase() {
 }
 
 function handlePhaseEnd() {
-    playChime();
     const finishedPhase = pomoState.activePomoSequence[pomoState.currentPhaseIndex];
     if (finishedPhase.type === 'work') {
+        playChime('break-start');
+        showOSNotification('end');
         recordFocusSession(Math.round(finishedPhase.totalSeconds / 60), 'Pomo Work');
+    } else {
+        playChime('session-start');
+        showOSNotification('start');
     }
     
     ipcRenderer.send('close-popup');
@@ -364,6 +369,8 @@ function handlePhaseEnd() {
     pomoState.currentPhaseIndex++;
     
     if (pomoState.currentPhaseIndex >= pomoState.activePomoSequence.length && (!pomoInfiniteCheckbox || !pomoInfiniteCheckbox.checked) && pomoState.currentRepeatCount + 1 >= pomoState.totalRepeatsPlanned) {
+        playChime('session-complete');
+        showOSNotification('end');
         stopPomoStyle();
         if (sharedState.isWorkflowRunning) {
             setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
@@ -392,7 +399,7 @@ function stopPomoStyle() {
         pausePomoBtn.style.display = 'none';
         pausePomoBtn.innerText = 'Pause ⏸';
     }
-    ipcRenderer.send('close-pomo-timer');
+    ipcRenderer.send('close-timer-window');
     ipcRenderer.send('close-popup');
     ipcRenderer.send('close-fullscreen');
 }
@@ -426,7 +433,7 @@ export function startPomoStyle() {
             pausePomoBtn.style.display = 'block';
             pausePomoBtn.innerText = 'Pause ⏸';
         }
-        ipcRenderer.send('open-pomo-timer');
+        ipcRenderer.send('open-timer-window', 'pomo');
         startPomoPhase();
     }
 }
@@ -472,7 +479,7 @@ ipcRenderer.on('start-next-phase', () => {
         ipcRenderer.send('stop-timer', 'workflow-break');
         ipcRenderer.send('close-popup');
         ipcRenderer.send('close-fullscreen');
-        ipcRenderer.send('close-pomo-timer');
+        ipcRenderer.send('close-timer-window');
         setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
     } else {
         ipcRenderer.send('stop-timer', 'pomo');
