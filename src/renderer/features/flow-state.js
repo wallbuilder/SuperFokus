@@ -42,7 +42,7 @@ function updateFlowDisplay(elapsedSeconds) {
     if (!flowTimeElapsed) return;
     const timeStr = formatFlowTime(elapsedSeconds);
     flowTimeElapsed.innerText = timeStr;
-    ipcRenderer.send('update-flow-timer', {
+    ipcRenderer.send('update-timer-window', {
         timeLeft: timeStr
     });
 }
@@ -62,7 +62,7 @@ function startFlowState() {
     flowState.nextChimeSeconds = flowState.totalChimeIntervalSeconds > 0 ? flowState.totalChimeIntervalSeconds : 0;
     
     updateFlowDisplay(0);
-    ipcRenderer.send('open-flow-timer');
+    ipcRenderer.send('open-timer-window', 'flow');
     // Start a long-running timer (24h) in Main to receive ticks for the stopwatch
     ipcRenderer.send('start-timer', { id: 'flow', seconds: 86400 });
 }
@@ -76,7 +76,7 @@ function stopFlowState() {
     if (flowTimerDisplay) flowTimerDisplay.classList.add('hidden');
     
     ipcRenderer.send('stop-timer', 'flow');
-    ipcRenderer.send('close-flow-timer');
+    ipcRenderer.send('close-timer-window');
     
     const elapsedMinutes = Math.round(flowState.currentFlowElapsed / 60);
     if (elapsedMinutes > 0) {

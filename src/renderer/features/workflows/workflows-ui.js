@@ -9,6 +9,9 @@ import {
     calculateBlockDuration 
 } from './workflows-state.js';
 
+/**
+ * Renders the entire workflow stack by creating and appending block elements.
+ */
 export async function renderWorkflowStack() {
     try {
         if (!window.workflowStack) {
@@ -39,154 +42,177 @@ export async function renderWorkflowStack() {
             return { block, index, dur, availablePresets, presetDetails };
         }));
 
-        let totalDuration = 0;
-
         for (const { block, index, dur, availablePresets, presetDetails } of blockData) {
-            totalDuration += dur;
-
-            const blockEl = document.createElement('div');
-            blockEl.className = 'workflow-block';
-            blockEl.draggable = true;
-            blockEl.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('text/plain', `reorder:${index}`);
-                e.dataTransfer.effectAllowed = 'move';
-                window._draggedWorkflowItem = { type: null, index: index };
-                setTimeout(() => blockEl.style.opacity = '0.5', 0);
-            });
-            blockEl.addEventListener('dragend', (e) => {
-                blockEl.style.opacity = '1';
-                window._draggedWorkflowItem = { type: null, index: null };
-                const ph = document.getElementById('workflow-drop-placeholder');
-                if (ph) ph.remove();
-            });
-            
-            let typeIcon = '';
-            let typeColor = '#6a11cb'; // Default to valid hex for pomo
-            if (block.type === 'pomo') {
-                typeIcon = '✓';
-            } else if (block.type === 'sprint') {
-                typeIcon = '☑';
-                typeColor = '#3498db';
-            } else if (block.type === 'repeating') {
-                typeIcon = '⟳';
-                typeColor = '#27ae60';
-            } else if (block.type === 'break') {
-                typeIcon = '⛾';
-                typeColor = '#f1c40f';
-            }
-
-            // Create preset details static content
-            let presetDetailsHtml = '';
-            if (block.type === 'pomo' && presetDetails.sequence) {
-                presetDetailsHtml = '<div style="font-size: 0.85rem; color: var(--text-color); margin-top: 8px; padding: 8px; background: var(--timer-bg); border-radius: 6px; border: 1px solid var(--border-color);">';
-                presetDetails.sequence.forEach(phase => {
-                    const phaseType = phase.type === 'work' ? 'Work' : 'Break';
-                    const phaseColor = phase.type === 'work' ? '#27ae60' : '#f39c12';
-                    const phaseDuration = phase.unit === 'secs' ? `${phase.duration}s` : `${phase.duration}m`;
-                    presetDetailsHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span style="color: ${phaseColor};">${phaseType}:</span><span>${phaseDuration}</span></div>`;
-                });
-                presetDetailsHtml += '</div>';
-            } else if (block.type === 'sprint') {
-                presetDetailsHtml = `<div style="font-size: 0.85rem; color: var(--text-color); margin-top: 8px; padding: 8px; background: var(--timer-bg); border-radius: 6px; border: 1px solid var(--border-color);"><div style="display: flex; justify-content: space-between;"><span>Duration:</span><span>${presetDetails.duration}m</span></div></div>`;
-            } else if (block.type === 'repeating') {
-                const interval = presetDetails.interval;
-                presetDetailsHtml = `<div style="font-size: 0.85rem; color: var(--text-color); margin-top: 8px; padding: 8px; background: var(--timer-bg); border-radius: 6px; border: 1px solid var(--border-color);"><div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>Interval:</span><span>${interval.mins}m ${interval.secs}s</span></div><div style="display: flex; justify-content: space-between;"><span>Rounds:</span><span>${presetDetails.rounds}</span></div></div>`;
-            }
-
-            let blockContentHtml = '';
-            if (block.type === 'break') {
-                blockContentHtml = `
-                    <div style="display: flex; flex-direction: column; gap: 12px;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                            <div style="display: flex; flex-direction: column; gap: 6px;">
-                                <label style="font-size: 0.75rem; color: var(--timer-subtext); text-transform: uppercase; font-weight: 500;">Duration (mins)</label>
-                                <input type="number" class="block-break-duration" data-index="${index}" value="${block.duration || 5}" min="1" style="padding: 8px; text-align: center; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); font-weight: 600; color: var(--heading-color);">
-                            </div>
-                            <div style="display: flex; flex-direction: column; gap: 6px; justify-content: center; align-items: center; background: var(--timer-bg); border-radius: 6px; border: 1px solid var(--border-color);">
-                                <label style="font-size: 0.75rem; color: var(--timer-subtext); text-transform: uppercase; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                                    <input type="checkbox" class="block-break-screen" data-index="${index}" ${block.blocksScreen ? 'checked' : ''} style="width: 16px; height: 16px; cursor: pointer;">
-                                    Block Screen
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            } else {
-                let presetSelectHtml = '<select class="block-preset-input" data-index="' + index + '" style="flex: 1; padding: 6px; border: 1px solid var(--input-border); border-radius: 4px; background: var(--input-bg); color: var(--text-color); font-size: 0.9rem;">';
-                availablePresets.forEach(preset => {
-                    const selected = preset.key === block.presetKey ? 'selected' : '';
-                    presetSelectHtml += '<option value="' + escapeHtml(preset.key) + '" ' + selected + '>' + escapeHtml(preset.label) + '</option>';
-                });
-                presetSelectHtml += '</select>';
-
-                blockContentHtml = `
-                    <div style="display: flex; flex-direction: column; gap: 4px;">
-                        <label style="font-size: 0.75rem; color: var(--timer-subtext); text-transform: uppercase; font-weight: 500;">Preset</label>
-                        ${presetSelectHtml}
-                    </div>
-                    ${presetDetailsHtml}
-                `;
-            }
-
-            let cyclesHtml = '';
-            if (block.type !== 'break') {
-                cyclesHtml = `
-                    <!-- Cycles and Duration Grid -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px;">
-                        <div style="display: flex; flex-direction: column; gap: 6px;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); text-transform: uppercase; font-weight: 500;">Cycles</label>
-                            <input type="number" class="block-cycles-input" value="${block.cycles}" min="1" data-index="${index}" style="padding: 8px; text-align: center; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); font-weight: 600; color: var(--heading-color);">
-                        </div>
-                        <div style="display: flex; flex-direction: column; gap: 6px;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); text-transform: uppercase; font-weight: 500;">Total Duration</label>
-                            <div class="block-duration-display" style="padding: 8px; text-align: center; font-weight: 600; color: var(--header-grad-1); background: var(--timer-bg); border-radius: 6px; border: 1px solid var(--border-color);">${dur}m</div>
-                        </div>
-                    </div>
-                `;
-            } else {
-                cyclesHtml = `
-                    <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">
-                        <label style="font-size: 0.75rem; color: var(--timer-subtext); text-transform: uppercase; font-weight: 500;">Total Duration</label>
-                        <div class="block-duration-display" style="padding: 8px; text-align: center; font-weight: 600; color: var(--header-grad-1); background: var(--timer-bg); border-radius: 6px; border: 1px solid var(--border-color);">${dur}m</div>
-                    </div>
-                `;
-            }
-
-            blockEl.style.cssText = `
-                background: var(--container-bg);
-                border-radius: 12px;
-                border: 2px solid ${typeColor}40;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-                transition: all 0.2s ease;
-                overflow: hidden;
-            `;
-
-            blockEl.innerHTML = `
-                <!-- Colored Header -->
-                <div style="background: linear-gradient(135deg, ${typeColor} 0%, ${typeColor}dd 100%); padding: 12px 15px; color: white; display: flex; align-items: center; gap: 10px;">
-                    <div style="font-size: 1.2rem; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: rgba(255,255,255,0.2); border-radius: 6px;">${typeIcon}</div>
-                    <div style="flex: 1; font-weight: 600; font-size: 0.95rem;">${block.type === 'pomo' ? 'Pomo Style' : block.type === 'sprint' ? 'Micro-Task Sprint' : block.type === 'repeating' ? 'Repeating Reminders' : 'Break Block'}</div>
-                    <button class="remove-block-btn" data-index="${index}" style="margin: 0; width: auto; padding: 4px 8px; background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.8rem; transition: all 0.2s;">×</button>
-                </div>
-
-                <!-- Block Content -->
-                <div style="padding: 15px;">
-                    <div style="display: flex; flex-direction: column; gap: 12px;">
-                        ${blockContentHtml}
-                        ${cyclesHtml}
-                    </div>
-                </div>
-            `;
-
+            const blockEl = createWorkflowBlockElement(block, index, dur, availablePresets, presetDetails);
             fragment.appendChild(blockEl);
         }
 
         window.workflowStack.appendChild(fragment);
-
         await updateTotalDuration();
     } catch (error) {
         console.error('[Startup] Error rendering workflow stack:', error);
     }
+}
+
+/**
+ * Creates a single workflow block DOM element.
+ */
+function createWorkflowBlockElement(block, index, dur, availablePresets, presetDetails) {
+    const blockEl = document.createElement('div');
+    blockEl.className = 'workflow-block';
+    blockEl.draggable = true;
+    
+    // Setup Drag and Drop
+    blockEl.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', `reorder:${index}`);
+        e.dataTransfer.effectAllowed = 'move';
+        window._draggedWorkflowItem = { type: null, index: index };
+        setTimeout(() => blockEl.style.opacity = '0.5', 0);
+    });
+    blockEl.addEventListener('dragend', () => {
+        blockEl.style.opacity = '1';
+        window._draggedWorkflowItem = { type: null, index: null };
+        const ph = document.getElementById('workflow-drop-placeholder');
+        if (ph) ph.remove();
+    });
+
+    const config = getBlockTypeConfig(block.type);
+    const presetDetailsHtml = getPresetDetailsHtml(block, presetDetails);
+    const blockContentHtml = getBlockContentHtml(block, index, availablePresets, presetDetailsHtml);
+    const cyclesHtml = getCyclesHtml(block, index, dur);
+
+    blockEl.style.cssText = `
+        background: var(--container-bg);
+        border-radius: 12px;
+        border: 2px solid ${config.color}40;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        transition: all 0.2s ease;
+        overflow: hidden;
+    `;
+
+    blockEl.innerHTML = `
+        <!-- Colored Header -->
+        <div style="background: linear-gradient(135deg, ${config.color} 0%, ${config.color}dd 100%); padding: 12px 15px; color: white; display: flex; align-items: center; gap: 10px;">
+            <div style="font-size: 1.2rem; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: rgba(255,255,255,0.2); border-radius: 6px;">${config.icon}</div>
+            <div style="flex: 1; font-weight: 600; font-size: 0.95rem;">${config.label}</div>
+            <button class="remove-block-btn" data-index="${index}" style="margin: 0; width: auto; padding: 4px 8px; background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.8rem; transition: all 0.2s;">×</button>
+        </div>
+
+        <!-- Block Content -->
+        <div style="padding: 15px;">
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                ${blockContentHtml}
+                ${cyclesHtml}
+            </div>
+        </div>
+    `;
+
+    return blockEl;
+}
+
+/**
+ * Returns configuration for a specific block type.
+ */
+function getBlockTypeConfig(type) {
+    const configs = {
+        'pomo': { icon: '✓', color: '#6a11cb', label: 'Pomo Style' },
+        'sprint': { icon: '☑', color: '#3498db', label: 'Micro-Task Sprint' },
+        'repeating': { icon: '⟳', color: '#27ae60', label: 'Repeating Reminders' },
+        'break': { icon: '⛾', color: '#f1c40f', label: 'Break Block' }
+    };
+    return configs[type] || { icon: '', color: '#6a11cb', label: 'Block' };
+}
+
+/**
+ * Generates HTML for the preset details sub-section.
+ */
+function getPresetDetailsHtml(block, presetDetails) {
+    if (block.type === 'pomo' && presetDetails.sequence) {
+        let html = '<div style="font-size: 0.85rem; color: var(--text-color); margin-top: 8px; padding: 8px; background: var(--timer-bg); border-radius: 6px; border: 1px solid var(--border-color);">';
+        presetDetails.sequence.forEach(phase => {
+            const phaseType = phase.type === 'work' ? 'Work' : 'Break';
+            const phaseColor = phase.type === 'work' ? '#27ae60' : '#f39c12';
+            const phaseDuration = phase.unit === 'secs' ? `${phase.duration}s` : `${phase.duration}m`;
+            html += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span style="color: ${phaseColor};">${phaseType}:</span><span>${phaseDuration}</span></div>`;
+        });
+        return html + '</div>';
+    } else if (block.type === 'sprint') {
+        return `<div style="font-size: 0.85rem; color: var(--text-color); margin-top: 8px; padding: 8px; background: var(--timer-bg); border-radius: 6px; border: 1px solid var(--border-color);"><div style="display: flex; justify-content: space-between;"><span>Duration:</span><span>${presetDetails.duration}m</span></div></div>`;
+    } else if (block.type === 'repeating') {
+        const interval = presetDetails.interval;
+        return `<div style="font-size: 0.85rem; color: var(--text-color); margin-top: 8px; padding: 8px; background: var(--timer-bg); border-radius: 6px; border: 1px solid var(--border-color);"><div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>Interval:</span><span>${interval.mins}m ${interval.secs}s</span></div><div style="display: flex; justify-content: space-between;"><span>Rounds:</span><span>${presetDetails.rounds}</span></div></div>`;
+    }
+    return '';
+}
+
+/**
+ * Generates HTML for the main content area of a block.
+ */
+function getBlockContentHtml(block, index, availablePresets, presetDetailsHtml) {
+    if (block.type === 'break') {
+        return `
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <label style="font-size: 0.75rem; color: var(--timer-subtext); text-transform: uppercase; font-weight: 500;">Duration (mins)</label>
+                        <input type="number" class="block-break-duration" data-index="${index}" value="${block.duration || 5}" min="1" style="padding: 8px; text-align: center; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); font-weight: 600; color: var(--heading-color);">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px; justify-content: center; align-items: center; background: var(--timer-bg); border-radius: 6px; border: 1px solid var(--border-color);">
+                        <label style="font-size: 0.75rem; color: var(--timer-subtext); text-transform: uppercase; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" class="block-break-screen" data-index="${index}" ${block.blocksScreen ? 'checked' : ''} style="width: 16px; height: 16px; cursor: pointer;">
+                            Block Screen
+                        </label>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    let presetSelectHtml = `<select class="block-preset-input" data-index="${index}" style="flex: 1; padding: 6px; border: 1px solid var(--input-border); border-radius: 4px; background: var(--input-bg); color: var(--text-color); font-size: 0.9rem;">`;
+    availablePresets.forEach(preset => {
+        const selected = preset.key === block.presetKey ? 'selected' : '';
+        presetSelectHtml += `<option value="${escapeHtml(preset.key)}" ${selected}>${escapeHtml(preset.label)}</option>`;
+    });
+    presetSelectHtml += '</select>';
+
+    return `
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 0.75rem; color: var(--timer-subtext); text-transform: uppercase; font-weight: 500;">Preset</label>
+            ${presetSelectHtml}
+        </div>
+        ${presetDetailsHtml}
+    `;
+}
+
+/**
+ * Generates HTML for the cycles and duration section.
+ */
+function getCyclesHtml(block, index, dur) {
+    const labelStyle = 'font-size: 0.75rem; color: var(--timer-subtext); text-transform: uppercase; font-weight: 500;';
+    const displayStyle = 'padding: 8px; text-align: center; font-weight: 600; color: var(--header-grad-1); background: var(--timer-bg); border-radius: 6px; border: 1px solid var(--border-color);';
+    const inputStyle = 'padding: 8px; text-align: center; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); font-weight: 600; color: var(--heading-color);';
+
+    if (block.type !== 'break') {
+        return `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px;">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="${labelStyle}">Cycles</label>
+                    <input type="number" class="block-cycles-input" value="${block.cycles}" min="1" data-index="${index}" style="${inputStyle}">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="${labelStyle}">Total Duration</label>
+                    <div class="block-duration-display" style="${displayStyle}">${dur}m</div>
+                </div>
+            </div>
+        `;
+    }
+    
+    return `
+        <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">
+            <label style="${labelStyle}">Total Duration</label>
+            <div class="block-duration-display" style="${displayStyle}">${dur}m</div>
+        </div>
+    `;
 }
 
 export async function updateTotalDuration() {

@@ -2,11 +2,7 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
 const os = require('os');
-const { exec, execFile, spawn } = require('child_process');
-
-// Inline regexes to avoid dependency on renderer utils which might not be unpacked in production
-const DOMAIN_REGEX = /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]$/;
-const IP_REGEX = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^((([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}:[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){5}:([0-9A-Fa-f]{1,4}:)?)[0-9A-Fa-f]{1,4}|(([0-9A-Fa-f]{1,4}:){4}:([0-9A-Fa-f]{1,4}:){0,2})[0-9A-Fa-f]{1,4}|(([0-9A-Fa-f]{1,4}:){3}:([0-9A-Fa-f]{1,4}:){0,3})[0-9A-Fa-f]{1,4}|(([0-9A-Fa-f]{1,4}:){2}:([0-9A-Fa-f]{1,4}:){0,4})[0-9A-Fa-f]{1,4}|(([0-9A-Fa-f]{1,4}:){1}:([0-9A-Fa-f]{1,4}:){0,5})[0-9A-Fa-f]{1,4}|(::([0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4})|(::[0-9A-Fa-f]{1,4})|([0-9A-Fa-f]{1,4}::)|(::))(\/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8]))?$/;
+const { normalizeHost, DOMAIN_REGEX, IP_REGEX } = require('../utils/url-utils.js');
 
 // Determine hosts file path based on platform
 function getHostsFilePath() {
@@ -170,21 +166,35 @@ async function applyBlocksAsync(domains, retries = 3) {
 
 (async () => {
     const action = process.argv[2];
-    const dataArg = process.argv[3];
+    const base64Data = process.argv[3];
+    let commandArgs = [];
+
+    if (base64Data) {
+        try {
+            // Try to decode as JSON-encoded Base64 (new secure format)
+            const decoded = Buffer.from(base64Data, 'base64').toString();
+            commandArgs = JSON.parse(decoded);
+            if (!Array.isArray(commandArgs)) commandArgs = [commandArgs];
+        } catch (e) {
+            // Fallback for legacy plain-text arguments
+            commandArgs = [base64Data];
+        }
+    }
 
     try {
         if (action === 'clear') {
             await clearBlocksAsync();
             process.exit(0);
         } else if (action === 'apply') {
-            const domains = dataArg ? dataArg.split(',').filter(Boolean) : [];
+            const domains = commandArgs[0] ? commandArgs[0].split(',').filter(Boolean) : [];
             await applyBlocksAsync(domains);
             process.exit(0);
         } else if (action === 'apply-file') {
-            if (!dataArg || !fsSync.existsSync(dataArg)) {
-                throw new Error('Data file not found: ' + dataArg);
+            const dataPath = commandArgs[0];
+            if (!dataPath || !fsSync.existsSync(dataPath)) {
+                throw new Error('Data file not found: ' + dataPath);
             }
-            const domains = JSON.parse(fsSync.readFileSync(dataArg, 'utf-8'));
+            const domains = JSON.parse(fsSync.readFileSync(dataPath, 'utf-8'));
             await applyBlocksAsync(domains);
             process.exit(0);
         } else {

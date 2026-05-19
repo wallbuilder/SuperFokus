@@ -8,6 +8,7 @@ import { startSprintMode, stopSprintMode, sprintState } from '../micro-sprint.js
 import { formatTime } from '../../utils/ui-helpers.js';
 import { showOSNotification } from '../../utils/notifications.js';
 import { workflowState, workflowBlocks } from './workflows-state.js';
+import { switchMode } from '../../renderer.js';
 
 const startWorkflowBtn = document.getElementById('start-workflow-btn');
 const stopWorkflowBtn = document.getElementById('stop-workflow-btn');
@@ -27,8 +28,7 @@ export function startNextWorkflowBlock() {
     if (workflowState.currentBlockIndex >= workflowBlocks.length) {
         customAlert('Workflow Complete!');
         resetWorkflowState();
-        const workflowsHomeBtn = document.querySelector('.home-btn[data-mode="workflows"]');
-        if (workflowsHomeBtn) workflowsHomeBtn.click();
+        switchMode('workflows');
         return;
     }
 
@@ -58,8 +58,8 @@ export function startNextWorkflowBlock() {
         });
         
         if (!currentBlock.blocksScreen) {
-            ipcRenderer.send('open-pomo-timer');
-            ipcRenderer.send('update-pomo-timer', {
+            ipcRenderer.send('open-timer-window', 'pomo');
+            ipcRenderer.send('update-timer-window', {
                 phase: 'Break Time',
                 timeLeft: formatTime(durationSecs),
                 percent: 100
@@ -74,10 +74,7 @@ export function startNextWorkflowBlock() {
         'repeating': 'repeating-reminders'
     };
     
-    const targetHomeBtn = document.querySelector(`.home-btn[data-mode="${modeMap[currentBlock.type]}"]`);
-    if (targetHomeBtn) {
-        targetHomeBtn.click();
-    }
+    switchMode(modeMap[currentBlock.type]);
 
     setTimeout(() => {
         if (currentBlock.type === 'pomo') {
@@ -134,16 +131,14 @@ export function setupEngineListeners() {
             ipcRenderer.send('stop-timer', 'workflow-break');
             ipcRenderer.send('close-popup');
             ipcRenderer.send('close-fullscreen');
-            ipcRenderer.send('close-pomo-timer');
+            ipcRenderer.send('close-timer-window');
 
             if (pomoState.isPomoRunning) stopPomoStyle();
             if (repeatingState.isRepeatingRunning) stopRepeatingReminders();
             if (sprintState.isSprintRunning) stopSprintMode();
             
             resetWorkflowState();
-            
-            const workflowsHomeBtn = document.querySelector('.home-btn[data-mode="workflows"]');
-            if (workflowsHomeBtn) workflowsHomeBtn.click();
+            switchMode('workflows');
         });
     }
 

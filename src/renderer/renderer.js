@@ -42,30 +42,37 @@ window.addEventListener('click', (e) => {
     }
 });
 
-document.querySelectorAll('.home-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const mode = btn.getAttribute('data-mode');
-    if (homeMenu) homeMenu.style.display = 'none';
-    Object.values(configSections).forEach(section => {
-      if (section) section.classList.remove('active');
-    });
-    if (configSections[mode]) {
-      configSections[mode].classList.add('active');
+export function switchMode(mode) {
+  if (homeMenu) homeMenu.style.display = 'none';
+  Object.values(configSections).forEach(section => {
+    if (section) section.classList.remove('active');
+  });
+  if (configSections[mode]) {
+    configSections[mode].classList.add('active');
+    const btn = document.querySelector(`.home-btn[data-mode="${mode}"]`);
+    if (btn) {
       const titleText = btn.innerText.replace(/[\n\r]+|[\s]{2,}/g, ' ').trim();
       if (dashboardTitle) dashboardTitle.innerText = titleText.replace(/^[⟳✓☑⏱⚙❤️♡]\s*/, '');
     }
+  }
 
-    const dashboardSubtitle = document.getElementById('dashboard-subtitle');
-    if (dashboardSubtitle) {
-        dashboardSubtitle.innerHTML = '<span id="select-another-mode-btn" style="text-decoration: underline; cursor: pointer; color: var(--header-grad-1);">Select another Fokus Mode</span>';
-        const selectAnotherBtn = document.getElementById('select-another-mode-btn');
-        if (selectAnotherBtn) {
-            selectAnotherBtn.addEventListener('click', () => {
-                const modal = document.getElementById('choose-extra-mode');
-                if (modal) modal.classList.add('active');
-            });
-        }
-    }
+  const dashboardSubtitle = document.getElementById('dashboard-subtitle');
+  if (dashboardSubtitle) {
+      dashboardSubtitle.innerHTML = '<span id="select-another-mode-btn" style="text-decoration: underline; cursor: pointer; color: var(--header-grad-1);">Select another Fokus Mode</span>';
+      const selectAnotherBtn = document.getElementById('select-another-mode-btn');
+      if (selectAnotherBtn) {
+          selectAnotherBtn.addEventListener('click', () => {
+              const modal = document.getElementById('choose-extra-mode');
+              if (modal) modal.classList.add('active');
+          });
+      }
+  }
+}
+
+document.querySelectorAll('.home-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const mode = btn.getAttribute('data-mode');
+    switchMode(mode);
   });
 });
 
