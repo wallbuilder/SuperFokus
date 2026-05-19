@@ -83,9 +83,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         delete: (key) => ipcRenderer.send('store-delete', key)
     },
     normalizeHost: (val) => {
-        // Simple bridge for host normalization
-        const { normalizeHost } = require('../renderer/utils/utils.js');
-        return normalizeHost(val);
-    },
-    platform: process.platform
+       const { normalizeHost } = require('../utils/url-utils.js');
+       return normalizeHost(val);
+    },    platform: process.platform
 });

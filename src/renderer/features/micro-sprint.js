@@ -172,7 +172,7 @@ function updateSprintDisplay() {
     if (sprintTasksLeft) sprintTasksLeft.innerText = tasksLeftText;
 
     // Update timer popup
-    ipcRenderer.send('update-micro-sprint-timer', {
+    ipcRenderer.send('update-timer-window', {
         task: taskName,
         timeLeft: formatTime(sprintState.sprintTimerSeconds),
         percent: (sprintState.sprintTimerSeconds / sprintState.sprintDurationSeconds) * 100,
@@ -237,7 +237,7 @@ export function startNextSprintTask() {
 export function stopSprintMode() {
     sprintState.isSprintRunning = false;
     ipcRenderer.send('stop-timer', 'sprint');
-    ipcRenderer.send('close-micro-sprint-timer');
+    ipcRenderer.send('close-timer-window');
     if (startSprintBtn) startSprintBtn.style.display = 'block';
     if (stopSprintBtn) stopSprintBtn.style.display = 'none';
     setInputsLocked('config-micro-sprint', false);
@@ -276,7 +276,7 @@ export function startSprintMode() {
         setInputsLocked('config-micro-sprint', true);
         if (sprintTimerDisplay) sprintTimerDisplay.classList.remove('hidden');
         
-        ipcRenderer.send('open-micro-sprint-timer');
+        ipcRenderer.send('open-timer-window', 'sprint');
         startNextSprintTask();
     }
 }

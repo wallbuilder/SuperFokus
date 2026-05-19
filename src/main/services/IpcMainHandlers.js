@@ -12,8 +12,8 @@ async function initStore() {
     }
 }
 
-function init() {
-    initStore();
+async function init() {
+    await initStore();
 
     ipcMain.on('store-set', (event, key, value) => {
         if (!windowManager.isOriginSafe(event)) return;
@@ -62,57 +62,22 @@ function init() {
         }
     });
 
-    ipcMain.on('open-pomo-timer', (event) => {
+    // Generic Timer Handlers
+    ipcMain.on('open-timer-window', (event, type) => {
         if (!windowManager.isOriginSafe(event)) return;
-        windowManager.createPomoTimerWindow();
+        if (type === 'pomo') windowManager.createPomoTimerWindow();
+        else if (type === 'sprint') windowManager.createMicroSprintTimerWindow();
+        else if (type === 'flow') windowManager.createFlowTimerWindow();
     });
 
-    ipcMain.on('update-pomo-timer', (event, data) => {
-        if (!windowManager.isOriginSafe(event)) return;
-        if (windowManager.timerWindow && !windowManager.timerWindow.isDestroyed()) {
-            windowManager.timerWindow.webContents.send('update-display', data);
-        }
-    });
-
-    ipcMain.on('close-pomo-timer', (event) => {
-        if (!windowManager.isOriginSafe(event)) return;
-        if (windowManager.timerWindow && !windowManager.timerWindow.isDestroyed()) {
-            windowManager.timerWindow.close();
-        }
-    });
-
-    ipcMain.on('open-micro-sprint-timer', (event) => {
-        if (!windowManager.isOriginSafe(event)) return;
-        windowManager.createMicroSprintTimerWindow();
-    });
-
-    ipcMain.on('update-micro-sprint-timer', (event, data) => {
+    ipcMain.on('update-timer-window', (event, data) => {
         if (!windowManager.isOriginSafe(event)) return;
         if (windowManager.timerWindow && !windowManager.timerWindow.isDestroyed()) {
             windowManager.timerWindow.webContents.send('update-display', data);
         }
     });
 
-    ipcMain.on('close-micro-sprint-timer', (event) => {
-        if (!windowManager.isOriginSafe(event)) return;
-        if (windowManager.timerWindow && !windowManager.timerWindow.isDestroyed()) {
-            windowManager.timerWindow.close();
-        }
-    });
-
-    ipcMain.on('open-flow-timer', (event) => {
-        if (!windowManager.isOriginSafe(event)) return;
-        windowManager.createFlowTimerWindow();
-    });
-
-    ipcMain.on('update-flow-timer', (event, data) => {
-        if (!windowManager.isOriginSafe(event)) return;
-        if (windowManager.timerWindow && !windowManager.timerWindow.isDestroyed()) {
-            windowManager.timerWindow.webContents.send('update-display', data);
-        }
-    });
-
-    ipcMain.on('close-flow-timer', (event) => {
+    ipcMain.on('close-timer-window', (event) => {
         if (!windowManager.isOriginSafe(event)) return;
         if (windowManager.timerWindow && !windowManager.timerWindow.isDestroyed()) {
             windowManager.timerWindow.close();
