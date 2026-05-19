@@ -7,29 +7,6 @@ Before each commit, the contents of this file should be mostly discarded of, EXC
 Each new edit to the file that documents new changes should also list the date and time of implementation.
 (Note: You must list ALL changes, including small ones. No detail is too small).
 [DO NOT DELETE THIS TEXT, DELETE TEXT BELOW THIS LINE] >
-~
-
-- Hardened IPC security by implementing `isOriginSafe` validation across all `ipcMain` handlers.
-- Enabled `sandbox: true` for `timerWindow` and `fullscreenWindow` to improve security posture.
-- Implemented the missing `blocker-expand-fullscreen` IPC handler to fix the site blocker's lock functionality.
-- Added a `blocker-status-display` element and listeners to provide real-time feedback on site blocking operations.
-- Fixed a build-breaking issue by providing a default `entitlements.mac.plist` for macOS packaging.
-- Optimized memory usage in `TimerService.js` by ensuring completed timers are properly deleted from the state.
-- Completed the storage migration process by clearing `localStorage` keys after they are moved to `electron-store`.
-- Added a warning for users regarding "DNS over HTTPS" (DoH) to prevent silent bypasses of the site blocker.
-
-- Created new "fokus-guidelines" folder in the specs/ directory (the files will be modified later)
-- Added specs/ directory to the .gitignore file to ensure it (and all its extra weight) no longer gets packaged with the rest of the SuperFokus files.
-
-- Optimized application startup by implementing lazy loading for `BlockerService`, `TimerService`, `HealthService`, and `IpcMainHandlers` in the main process.
-- Refactored `WindowManager.js` to use a centralized `_createWindow` helper, reducing code duplication and standardizing `BrowserWindow` configurations.
-- Optimized `fokus-sb-helper.js` to perform atomic updates to the system hosts file, reducing disk I/O by merging clearing and applying operations into a single read-write cycle.
-- Added null safety checks for services during the application shutdown sequence to prevent potential crashes if services were not fully initialized.
-- Reorganized the workspace by moving diagnostic and prototyping scripts (`test-app.js`, `test-proxy.js`, etc.) into `tests/manual/` and updated `.gitignore` accordingly.
-
-- Fixed critical startup crash (`Node.util.isObject is not a function`) by replacing the unmaintained `sudo-prompt` dependency with the `@vscode/sudo-prompt` fork in `package.json` and updating the `require` statement in `BlockerService.js`.
-
-~
 < [DO NOT DELETE THIS TEXT, DELETE TEXT ABOVE THIS LINE]
 (Example chunk of documentation:
 {1/1/2025 at 12:00 PM}

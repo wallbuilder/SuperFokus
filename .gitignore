@@ -30,3 +30,6 @@ logs
 # Development/Manual Tests
 tests/manual/
 specs/
+
+# Rust builds
+target/

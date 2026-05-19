@@ -2,6 +2,7 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
 const os = require('os');
+const { execFile, exec } = require('child_process');
 const { normalizeHost, DOMAIN_REGEX, IP_REGEX } = require('../utils/url-utils.js');
 
 // Determine hosts file path based on platform
