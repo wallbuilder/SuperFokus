@@ -27,6 +27,8 @@ Each new edit to the file that documents new changes should also list the date a
 - Added null safety checks for services during the application shutdown sequence to prevent potential crashes if services were not fully initialized.
 - Reorganized the workspace by moving diagnostic and prototyping scripts (`test-app.js`, `test-proxy.js`, etc.) into `tests/manual/` and updated `.gitignore` accordingly.
 
+- Fixed critical startup crash (`Node.util.isObject is not a function`) by replacing the unmaintained `sudo-prompt` dependency with the `@vscode/sudo-prompt` fork in `package.json` and updating the `require` statement in `BlockerService.js`.
+
 ~
 < [DO NOT DELETE THIS TEXT, DELETE TEXT ABOVE THIS LINE]
 (Example chunk of documentation:
