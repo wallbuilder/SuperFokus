@@ -6,7 +6,7 @@ let window;
 
 test.beforeAll(async () => {
   // Launch the electron app
-  electronApp = await electron.launch({ args: ['.'] });
+  electronApp = await electron.launch({ args: ['src/main/main.js', '--no-single-instance'] });
 
   // Get the first window that the app opens
   window = await electronApp.firstWindow();

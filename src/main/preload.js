@@ -12,6 +12,7 @@ const ALLOWED_SEND_CHANNELS = [
     'open-timer-window',
     'update-timer-window',
     'close-timer-window',
+    'request-initial-timer-update',
     'show-break-popup',
     'close-fullscreen',
     'next-phase-triggered',
@@ -30,6 +31,8 @@ const ALLOWED_SEND_CHANNELS = [
 const ALLOWED_ON_CHANNELS = [
     'display-message',
     'set-theme',
+    'init-timer',
+    'update-timer-window',
     'pomo-popup-closed',
     'flow-popup-closed',
     'set-fullscreen-data',

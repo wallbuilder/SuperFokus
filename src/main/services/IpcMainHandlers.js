@@ -62,7 +62,7 @@ async function init() {
     ipcMain.on('update-timer-window', (event, data) => {
         if (!windowManager.isOriginSafe(event)) return;
         if (windowManager.timerWindow && !windowManager.timerWindow.isDestroyed()) {
-            windowManager.timerWindow.webContents.send('update-display', data);
+            windowManager.timerWindow.webContents.send('update-timer-window', data);
         }
     });
 

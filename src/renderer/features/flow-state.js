@@ -31,6 +31,12 @@ ipcRenderer.on('timer-tick', (data) => {
     }
 });
 
+ipcRenderer.on('request-initial-timer-update', (type) => {
+    if (type === 'flow' && flowState.isFlowRunning) {
+        updateFlowDisplay(flowState.currentFlowElapsed);
+    }
+});
+
 function formatFlowTime(elapsedSeconds) {
     const h = Math.floor(elapsedSeconds / 3600);
     const m = Math.floor((elapsedSeconds % 3600) / 60);
@@ -43,6 +49,7 @@ function updateFlowDisplay(elapsedSeconds) {
     const timeStr = formatFlowTime(elapsedSeconds);
     flowTimeElapsed.innerText = timeStr;
     ipcRenderer.send('update-timer-window', {
+        task: 'Flow State',
         timeLeft: timeStr
     });
 }

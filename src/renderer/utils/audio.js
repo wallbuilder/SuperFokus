@@ -10,7 +10,7 @@ import {
 } from './audio/audio-definitions.js';
 import { 
     playChime, 
-    playFallbackBeep, 
+
     toggleAmbientNoise,
     setChimeVolume,
     setAmbientVolume
@@ -184,7 +184,7 @@ export async function deleteCustomSoundPack(packName) {
 
 export { 
     playChime, 
-    playFallbackBeep, 
+
     toggleAmbientNoise, 
     loadFileAsDataURL, 
     updateCustomPackUI,

@@ -5,6 +5,8 @@ node_modules/
 dist/
 build/
 out/
+.cache/
+electron-data/
 
 # IDEs and editors
 .vscode/

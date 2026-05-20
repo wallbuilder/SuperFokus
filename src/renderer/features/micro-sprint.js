@@ -168,21 +168,27 @@ function updateSprintDisplay() {
     if (sprintTimeLeft) sprintTimeLeft.innerText = formatTime(sprintState.sprintTimerSeconds);
     const taskName = sprintState.sprintTasks[sprintState.currentSprintTaskIndex] || `Sprint ${sprintState.currentSprintTaskIndex + 1}`;
     if (sprintCurrentTask) sprintCurrentTask.innerText = taskName;
-    const tasksLeftText = `Remaining Tasks: ${Math.max(0, sprintState.sprintTasks.length - sprintState.currentSprintTaskIndex - 1)}`;
-    if (sprintTasksLeft) sprintTasksLeft.innerText = tasksLeftText;
+    const remainingCount = Math.max(0, sprintState.sprintTasks.length - sprintState.currentSprintTaskIndex - 1);
+    if (sprintTasksLeft) sprintTasksLeft.innerText = `Remaining Tasks: ${remainingCount}`;
 
-    // Update timer popup
+    // Update timer popup - pass only the count to avoid duplicate labeling in the timer window
     ipcRenderer.send('update-timer-window', {
         task: taskName,
         timeLeft: formatTime(sprintState.sprintTimerSeconds),
         percent: (sprintState.sprintTimerSeconds / sprintState.sprintDurationSeconds) * 100,
-        tasksLeft: tasksLeftText
+        tasksLeft: remainingCount
     });
 }
 
 ipcRenderer.on('timer-tick', (data) => {
     if (data.id === 'sprint') {
         sprintState.sprintTimerSeconds = data.remaining;
+        updateSprintDisplay();
+    }
+});
+
+ipcRenderer.on('request-initial-timer-update', (type) => {
+    if (type === 'sprint' && sprintState.isSprintRunning) {
         updateSprintDisplay();
     }
 });

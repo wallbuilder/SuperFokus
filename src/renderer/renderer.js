@@ -111,6 +111,7 @@ if (headerTitle) {
             import('./ui/integration.js')
         ]);
 
+
         const initApp = async () => {
           console.log('[Startup] Initializing App UI...');
           const startupScreen = document.getElementById('startup-screen');
