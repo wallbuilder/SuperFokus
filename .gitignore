@@ -28,7 +28,6 @@ logs
 *.log
 
 # Development/Manual Tests
-tests/
 test-results/
 specs/major_updates/
 specs/minor_updates/
