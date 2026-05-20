@@ -35,17 +35,6 @@ async function init() {
         windowManager.setTheme(themeData);
     });
 
-    ipcMain.on('show-notification', (event, payload) => {
-        if (!windowManager.isOriginSafe(event)) return;
-        if (Notification.isSupported()) {
-            new Notification({
-                title: payload.title,
-                body: payload.body,
-                silent: true
-            }).show();
-        }
-    });
-
     ipcMain.on('show-popup', (event, payload) => {
         if (!windowManager.isOriginSafe(event)) return;
         if (typeof payload === 'object' && payload !== null) {

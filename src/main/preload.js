@@ -9,15 +9,9 @@ const ALLOWED_SEND_CHANNELS = [
     'resume-timer',
     'show-popup',
     'close-popup',
-    'open-pomo-timer',
-    'update-pomo-timer',
-    'close-pomo-timer',
-    'open-micro-sprint-timer',
-    'update-micro-sprint-timer',
-    'close-micro-sprint-timer',
-    'open-flow-timer',
-    'update-flow-timer',
-    'close-flow-timer',
+    'open-timer-window',
+    'update-timer-window',
+    'close-timer-window',
     'show-break-popup',
     'close-fullscreen',
     'next-phase-triggered',
@@ -29,8 +23,7 @@ const ALLOWED_SEND_CHANNELS = [
     'clear-all-blocks',
     'start-health-mode',
     'stop-health-mode',
-    'store-set',
-    'show-notification'
+    'store-set'
 ];
 
 // Whitelist of channels the renderer can LISTEN to from the main process
