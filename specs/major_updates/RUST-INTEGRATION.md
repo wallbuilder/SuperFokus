@@ -35,6 +35,7 @@ While the current `TimerService.js` is good, a Rust-backed timer can ensure micr
 ## Section C. Modular Architecture & Directory Structure
 We will use a **Rust Workspace** architecture for maximum modularity. All native code will reside within the project's source tree to ensure feature encapsulation.
 
+```
 src/
 ├── native/ (Rust Workspace Root)
 │   ├── Cargo.toml (Workspace Manifest)
