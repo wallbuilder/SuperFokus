@@ -7,6 +7,11 @@ Before each commit, the contents of this file should be mostly discarded of, EXC
 Each new edit to the file that documents new changes should also list the date and time of implementation.
 (Note: You must list ALL changes, including small ones. No detail is too small).
 [DO NOT DELETE THIS TEXT, DELETE TEXT BELOW THIS LINE] >
+~ (< spacer)
+~
+{delete this line and insert text here}
+~
+~
 < [DO NOT DELETE THIS TEXT, DELETE TEXT ABOVE THIS LINE]
 (Example chunk of documentation:
 {1/1/2025 at 12:00 PM}
