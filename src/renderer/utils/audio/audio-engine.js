@@ -56,8 +56,6 @@ export function playSynthChime(pack, type) {
     if (type === 'session-complete') freq = 783.99; // G5
     if (type === 'test') freq = 880; // A5
 
-    console.log(`[Audio] Playing synth chime: pack=${pack}, type=${type}, freq=${freq}`);
-
     // Trap for the Legacy Chime specifically
     if (selectedNotif === 'nature-notif-1') {
         oscillator.type = 'sine';

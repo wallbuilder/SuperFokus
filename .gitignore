@@ -31,9 +31,6 @@ logs
 
 # Development/Manual Tests
 test-results/
-specs/major_updates/
-specs/minor_updates/
-specs/update_template.md
 
 # Rust builds
 target/
