@@ -28,8 +28,11 @@ logs
 *.log
 
 # Development/Manual Tests
-tests/manual/
-specs/
+tests/
+test-results/
+specs/major_updates/
+specs/minor_updates/
+specs/update_template.md
 
 # Rust builds
 target/
