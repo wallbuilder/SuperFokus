@@ -35,7 +35,6 @@ While the current `TimerService.js` is good, a Rust-backed timer can ensure micr
 ## Section C. Modular Architecture & Directory Structure
 We will use a **Rust Workspace** architecture for maximum modularity. All native code will reside within the project's source tree to ensure feature encapsulation.
 
-```text
 src/
 ├── native/ (Rust Workspace Root)
 │   ├── Cargo.toml (Workspace Manifest)
@@ -67,11 +66,14 @@ Any specialized agent handling this update MUST:
 2. Maintain the existing IPC interface so the Renderer doesn't require a full rewrite.
 3. Implement a graceful fallback to JavaScript logic if the compiled binary fails to load on a specific architecture.
 
-## Section E. Security Mandates
-- All Rust modules must be built with `panic = 'abort'` in release mode to prevent memory leaks in the Electron process.
-- Direct pointer manipulation must be minimized in favor of the safe `napi` wrappers.
-- The `Guardian` service must require a one-time elevation to install its monitoring hook.
-
+## Section E. Security & Stability Mandates
+- **Panic Protection:** All entry points in `bridge/` must use `std::panic::catch_unwind` or return a `Result` type. A crash in Rust must **never** take down the entire Electron process.
+- **Input Sanitization:** All data received from the JavaScript bridge must be validated and sanitized before being passed to OS-level crates (`guardian`, `watcher`).
+- **Resource Lifecycle:** Any background threads or system handles (file pointers, raw inputs) created in Rust must be properly dropped or closed when the feature is stopped to prevent memory and handle leaks.
+- **Elevation Transparency:** Any action requiring Administrator/Root privileges must be clearly signaled to the Main process so it can request user consent via the standard OS prompt.
+- **Incompatibility Fallback:** The application must remain functional (using existing JS logic) if the `.node` binary fails to load due to missing libraries or architecture mismatch.
+- **Build Hardening:** All Rust modules must be built with `panic = 'abort'` in release mode to minimize binary size and ensure predictable behavior during critical failures.
+- **Minimal Surface:** The JS-to-Rust API should be as small as possible. Expose only high-level commands, never raw memory or sensitive internal state.
 ---
 **Status:** DRAFT / PENDING IMPLEMENTATION
 **Target Version:** 1.0.0
