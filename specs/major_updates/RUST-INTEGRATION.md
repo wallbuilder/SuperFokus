@@ -35,15 +35,29 @@ While the current `TimerService.js` is good, a Rust-backed timer can ensure micr
 ## Section C. Modular Architecture & Directory Structure
 We will use a **Rust Workspace** architecture for maximum modularity. All native code will reside within the project's source tree to ensure feature encapsulation.
 
+```text
+src/
+├── native/ (Rust Workspace Root)
+│   ├── Cargo.toml (Workspace Manifest)
+│   ├── guardian/  (Blocker & Security Crate)
+│   │   ├── Cargo.toml
+│   │   └── src/lib.rs
+│   ├── watcher/   (Idle & System Polling Crate)
+│   │   ├── Cargo.toml
+│   │   └── src/lib.rs
+│   ├── timer/     (High-Precision Timer Crate)
+│   │   ├── Cargo.toml
+│   │   └── src/lib.rs
+│   └── bridge/    (NAPI-RS JS Entry Point)
+│       ├── Cargo.toml
+│       └── src/lib.rs
+├── main/     (Electron Main Process)
+└── renderer/ (Electron Renderer Process)
+```
+
 - **Compiler:** Rust stable (latest).
 - **Binding:** `@napi-rs/cli`.
 - **Root Directory:** `src/native/`
-- **Modular Components (Crates):**
-  - `src/native/Cargo.toml`: The workspace manifest.
-  - `src/native/guardian/`: Blocker & security logic.
-  - `src/native/watcher/`: System polling & idle detection.
-  - `src/native/timer/`: High-precision global timer thread.
-  - `src/native/bridge/`: The NAPI-RS entry point that exposes all crates to JS.
 
 ------------------------------------------------------------------------------------------
 
