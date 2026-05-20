@@ -9,7 +9,10 @@ import { recordFocusSession } from '../utils/stats.js';
 
 // --- Pomo State ---
 export const pomoState = {
-    pomoSequence: [],
+    pomoSequence: [
+        { type: 'work', duration: 25 },
+        { type: 'break', duration: 5 }
+    ],
     isPomoRunning: false,
     isPomoPaused: false,
     pomoTimer: 0,
