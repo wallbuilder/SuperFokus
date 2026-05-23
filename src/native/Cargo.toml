@@ -1,0 +1,14 @@
+[workspace]
+resolver = "2"
+members = [
+    "guardian",
+    "watcher",
+    "timer",
+    "bridge"
+]
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+strip = true
