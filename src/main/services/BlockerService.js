@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const net = require('net');
-const sudo = require('sudo-prompt');
+const sudo = require('@vscode/sudo-prompt');
 const { exec } = require('child_process');
 const windowManager = require('./WindowManager');
 

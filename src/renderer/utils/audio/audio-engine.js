@@ -124,12 +124,14 @@ export function playChime(eventType = 'test') {
     
     const selectedNotif = notifSelector ? notifSelector.value : `${pack}-notif-1`;
 
-    if (pack === 'classic' || selectedNotif === 'nature-notif-1') {
+    if (pack === 'classic') {
         playSynthChime(pack, eventType);
         return;
     }
 
     if (chimeAudio) {
+        const chimeVolumeInput = document.getElementById('chime-volume');
+        if (chimeVolumeInput) chimeAudio.volume = parseFloat(chimeVolumeInput.value);
         if (selectedNotif.startsWith('custom-notif-')) {
             const idx = parseInt(selectedNotif.split('-').pop(), 10);
             if (customNotifs[idx]) {

@@ -6,8 +6,9 @@ export function setInputsLocked(sectionId, locked) {
         const text = input.textContent ? input.textContent.toLowerCase() : '';
         const isStopBtn = text.includes('stop') || input.id.includes('stop') || input.className.includes('stop');
         const isContinueBtn = text.includes('continue') || input.id.includes('continue') || input.className.includes('continue');
+        const isPauseBtn = text.includes('pause') || input.id.includes('pause') || input.className.includes('pause');
         
-        if (isStopBtn || isContinueBtn) {
+        if (isStopBtn || isContinueBtn || isPauseBtn) {
             input.disabled = false; // Always enabled
         } else {
             input.disabled = locked;

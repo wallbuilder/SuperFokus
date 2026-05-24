@@ -49,3 +49,13 @@
 - **Global Hotkeys:** Customizable keyboard shortcuts for Start/Stop and Site Blocker toggle.
 - **Localization:** Support for multiple languages.
 - **Webhook Integration:** Trigger external actions (Slack status, smart lights) on session events.
+
+---
+
+## Performance & Architecture
+
+### Rust Integration (Efficiency Gains)
+- Introduce **Rust** as a secondary language to rewrite performance-critical system-level operations, reducing memory overhead and execution speed.
+- **The Proxy Server:** Rewrite the "allow-only" Node.js HTTP/HTTPS proxy using Rust (via `napi-rs`, `tokio`, and `hyper`) to significantly reduce latency and CPU usage for system-wide network traffic.
+- **Elevated Helper Script:** Replace the Node.js `fokus-sb-helper.js` with a tiny, standalone compiled Rust executable. This eliminates the heavy V8 startup time for simple elevated administrative tasks (like modifying the hosts file).
+- **Future OS Integrations:** Utilize native Rust addons for low-level OS polling (e.g., system idle tracking for Smart Pause), providing better battery efficiency and minimal CPU wake-ups compared to JavaScript.

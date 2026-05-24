@@ -7,26 +7,29 @@ Before each commit, the contents of this file should be mostly discarded of, EXC
 Each new edit to the file that documents new changes should also list the date and time of implementation.
 (Note: You must list ALL changes, including small ones. No detail is too small).
 [DO NOT DELETE THIS TEXT, DELETE TEXT BELOW THIS LINE] >
+~ (< spacer)
 ~
+{May 23, 2026 at 12:00 PM}
+    [Fixed Bugs]
+     - Fixed an issue where the Pause button would become disabled (unclickable with a "not allowed" cursor) while a timer was running. Updated `setInputsLocked` in `src/renderer/utils/ui-helpers.js` to ensure elements with ID, class, or text containing "pause" remain unlocked.
 
-- Hardened IPC security by implementing `isOriginSafe` validation across all `ipcMain` handlers.
-- Enabled `sandbox: true` for `timerWindow` and `fullscreenWindow` to improve security posture.
-- Implemented the missing `blocker-expand-fullscreen` IPC handler to fix the site blocker's lock functionality.
-- Added a `blocker-status-display` element and listeners to provide real-time feedback on site blocking operations.
-- Fixed a build-breaking issue by providing a default `entitlements.mac.plist` for macOS packaging.
-- Optimized memory usage in `TimerService.js` by ensuring completed timers are properly deleted from the state.
-- Completed the storage migration process by clearing `localStorage` keys after they are moved to `electron-store`.
-- Added a warning for users regarding "DNS over HTTPS" (DoH) to prevent silent bypasses of the site blocker.
+{May 23, 2026 at 12:05 PM}
+    [Added New Features]
+     - Updated the Credits modal in `index.html` to include a new "Sound Assets" section.
+     - Added specific links and credits for the Mechanical sound pack (mech-notif-1, mech-notif-2, mech-notif-3) sourced from Pixabay.
 
-- Created new "fokus-guidelines" folder in the specs/ directory (the files will be modified later)
-- Added specs/ directory to the .gitignore file to ensure it (and all its extra weight) no longer gets packaged with the rest of the SuperFokus files.
+{May 23, 2026 at 12:10 PM}
+    [Added New Features]
+     - Refined the "Sound Assets" section in the Credits modal.
+     - Added credit for the "Classic Pack" as being computer-generated via the built-in JavaScript / Web Audio API synthesizer.
+     - Added a placeholder for the "Nature Pack" credits.
+     - Simplified the "Mechanical Pack" header by removing the "(via Pixabay)" text.
 
-- Optimized application startup by implementing lazy loading for `BlockerService`, `TimerService`, `HealthService`, and `IpcMainHandlers` in the main process.
-- Refactored `WindowManager.js` to use a centralized `_createWindow` helper, reducing code duplication and standardizing `BrowserWindow` configurations.
-- Optimized `fokus-sb-helper.js` to perform atomic updates to the system hosts file, reducing disk I/O by merging clearing and applying operations into a single read-write cycle.
-- Added null safety checks for services during the application shutdown sequence to prevent potential crashes if services were not fully initialized.
-- Reorganized the workspace by moving diagnostic and prototyping scripts (`test-app.js`, `test-proxy.js`, etc.) into `tests/manual/` and updated `.gitignore` accordingly.
-
+{May 23, 2026 at 12:15 PM}
+    [Added New Features]
+     - Updated the Mechanical Pack credits in the modal to display full Pixabay URLs instead of descriptive labels.
+     - Added `word-break: break-all;` to the credit links to ensure they wrap correctly on smaller screens.
+~
 ~
 < [DO NOT DELETE THIS TEXT, DELETE TEXT ABOVE THIS LINE]
 (Example chunk of documentation:

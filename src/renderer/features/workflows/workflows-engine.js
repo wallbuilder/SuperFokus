@@ -146,7 +146,7 @@ export function setupEngineListeners() {
         if (data.id === 'workflow-break') {
             const currentBlock = workflowBlocks[workflowState.currentBlockIndex];
             if (currentBlock && currentBlock.type === 'break') {
-                ipcRenderer.send('update-pomo-timer', {
+                ipcRenderer.send('update-timer-window', {
                     phase: 'Break Time',
                     timeLeft: formatTime(data.remaining),
                     percent: data.total > 0 ? (data.remaining / data.total) * 100 : 0
@@ -160,7 +160,7 @@ export function setupEngineListeners() {
         showOSNotification('start');
         ipcRenderer.send('close-popup');
         ipcRenderer.send('close-fullscreen');
-        ipcRenderer.send('close-pomo-timer');
+        ipcRenderer.send('close-timer-window');
         
         if (workflowState.isWorkflowRunning || sharedState.isWorkflowRunning) {
             setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
