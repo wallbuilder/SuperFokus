@@ -106,7 +106,17 @@ export function startNextWorkflowBlock() {
     }, 100); // slight delay to ensure UI updates after switching modes
 }
 
+// Track listeners to prevent duplicates and enable cleanup
+let engineListenersInitialized = false;
+let timerTickHandler = null;
+let timerCompleteHandler = null;
+
 export function setupEngineListeners() {
+    // Prevent duplicate listener registration
+    if (engineListenersInitialized) {
+        return;
+    }
+
     if (startWorkflowBtn) {
         startWorkflowBtn.addEventListener('click', () => {
             if (workflowBlocks.length === 0) {
@@ -142,7 +152,8 @@ export function setupEngineListeners() {
         });
     }
 
-    ipcRenderer.on('timer-tick', (data) => {
+    // Store handler references for cleanup
+    timerTickHandler = (data) => {
         if (data.id === 'workflow-break') {
             const currentBlock = workflowBlocks[workflowState.currentBlockIndex];
             if (currentBlock && currentBlock.type === 'break') {
@@ -153,9 +164,9 @@ export function setupEngineListeners() {
                 });
             }
         }
-    });
+    };
 
-    ipcRenderer.on('timer-complete-workflow-break', () => {
+    timerCompleteHandler = () => {
         playChime('session-start');
         showOSNotification('start');
         ipcRenderer.send('close-popup');
@@ -165,5 +176,25 @@ export function setupEngineListeners() {
         if (workflowState.isWorkflowRunning || sharedState.isWorkflowRunning) {
             setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
         }
-    });
+    };
+
+    ipcRenderer.on('timer-tick', timerTickHandler);
+    ipcRenderer.on('timer-complete-workflow-break', timerCompleteHandler);
+
+    engineListenersInitialized = true;
+}
+
+export function cleanupEngineListeners() {
+    if (!engineListenersInitialized) return;
+    
+    if (timerTickHandler) {
+        ipcRenderer.off('timer-tick', timerTickHandler);
+    }
+    if (timerCompleteHandler) {
+        ipcRenderer.off('timer-complete-workflow-break', timerCompleteHandler);
+    }
+    
+    engineListenersInitialized = false;
+    timerTickHandler = null;
+    timerCompleteHandler = null;
 }

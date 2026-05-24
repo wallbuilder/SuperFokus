@@ -61,9 +61,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
     on: (channel, func) => {
         const isTimerChannel = TIMER_PREFIXES.some(prefix => channel.startsWith(prefix));
         if (ALLOWED_ON_CHANNELS.includes(channel) || isTimerChannel) {
-            ipcRenderer.on(channel, (event, ...args) => func(...args));
+            const wrappedFunc = (event, ...args) => func(...args);
+            ipcRenderer.on(channel, wrappedFunc);
+            return wrappedFunc;
         } else {
             console.warn(`Blocked unauthorized IPC listener registration on channel: ${channel}`);
+        }
+    },
+    off: (channel, wrappedFunc) => {
+        const isTimerChannel = TIMER_PREFIXES.some(prefix => channel.startsWith(prefix));
+        if (ALLOWED_ON_CHANNELS.includes(channel) || isTimerChannel) {
+            if (wrappedFunc) {
+                ipcRenderer.removeListener(channel, wrappedFunc);
+            }
+        } else {
+            console.warn(`Blocked unauthorized IPC listener removal on channel: ${channel}`);
         }
     },
     invoke: (channel, ...args) => {

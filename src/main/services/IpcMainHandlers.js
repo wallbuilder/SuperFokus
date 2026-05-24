@@ -12,12 +12,32 @@ async function initStore() {
     }
 }
 
+const MAX_STORE_VALUE_SIZE = 1024 * 1024; // 1MB limit
+
+function validateStoreValue(key, value) {
+    if (!key || typeof key !== 'string') {
+        throw new Error('Store key must be a non-empty string');
+    }
+    
+    const serialized = JSON.stringify(value);
+    if (serialized.length > MAX_STORE_VALUE_SIZE) {
+        throw new Error(`Store value for key "${key}" exceeds maximum size of ${MAX_STORE_VALUE_SIZE} bytes`);
+    }
+    
+    return true;
+}
+
 async function init() {
     await initStore();
 
     ipcMain.on('store-set', (event, key, value) => {
         if (!windowManager.isOriginSafe(event)) return;
-        if (store) store.set(key, value);
+        try {
+            validateStoreValue(key, value);
+            if (store) store.set(key, value);
+        } catch (err) {
+            console.error('[IpcMainHandlers] Store validation error:', err.message);
+        }
     });
 
     ipcMain.handle('store-get', async (event, key, defaultValue) => {

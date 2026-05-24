@@ -88,7 +88,7 @@ app.whenReady().then(async () => {
     });
 
     app.on('activate', () => {
-        if (require('electron').BrowserWindow.getAllWindows().length === 0) {
+        if (!windowManager.mainWindow || windowManager.mainWindow.isDestroyed()) {
             windowManager.createWindow();
         } else {
             windowManager.mainWindow.show();
