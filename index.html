@@ -356,8 +356,10 @@
           contain: layout paint;
       }
 
-      /* Version */
-      #version { position: fixed; bottom: 15px; right: 20px; font-size: 0.85rem; color: #95a5a6; font-weight: 500; }
+      /* Version & Github Link */
+      #version { position: fixed; bottom: 15px; right: 20px; font-size: 0.85rem; color: #95a5a6; font-weight: 500; z-index: 1000; }
+      #github-link { position: fixed; bottom: 15px; left: 20px; font-size: 0.85rem; color: #95a5a6; font-weight: 500; text-decoration: none; transition: color 0.3s; z-index: 1000; }
+      #github-link:hover { color: var(--header-grad-1); }
       .hidden { display: none !important; }
       .error-msg { color: #e74c3c; font-size: 0.9rem; margin-top: 0.5rem; display: none; font-weight: 500; }
       .warning-text { color: #e74c3c; }
@@ -1437,6 +1439,7 @@
       </div>
     </div>
 
+    <a id="github-link" href="https://github.com/wallbuilder/superfokus" target="_blank">Github Page</a>
     <div id="version">SuperFokus v1.0.0</div>
 
     <!-- Audio for chimes -->
