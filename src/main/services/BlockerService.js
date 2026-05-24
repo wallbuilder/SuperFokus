@@ -31,29 +31,23 @@ function runElevated(command, commandArgs, callback) {
         return;
     }
 
-    const escapedArgs = commandArgs
-        .map(arg => {
-            const sanitized = arg.replace(/[^\w\s\-\.\:\/\\\[\]\{\}\(\)\,\_\=]/g, '');
-            return `"${sanitized}"`;
-        })
-        .join(' ');
+    // Use Base64 encoding for arguments to ensure they pass through the shell safely without injection risks
+    const base64Args = Buffer.from(JSON.stringify(commandArgs)).toString('base64');
 
     const nodePath = process.execPath;
     let fullCommand;
     if (process.platform === 'win32') {
         // Use set "VAR=VAL" to avoid trailing spaces and ensure it works in cmd.exe
         // We also clear NODE_OPTIONS to prevent VS Code's debugger from trying to attach to the helper script
-        // which can cause "Access is denied" errors and other conflicts during startup.
-        fullCommand = `set "ELECTRON_RUN_AS_NODE=1" && set "NODE_OPTIONS=" && "${nodePath}" "${helperPath}" ${command} ${escapedArgs}`;
+        fullCommand = `set "ELECTRON_RUN_AS_NODE=1" && set "NODE_OPTIONS=" && "${nodePath}" "${helperPath}" ${command} ${base64Args}`;
     } else {
-        fullCommand = `ELECTRON_RUN_AS_NODE=1 NODE_OPTIONS="" "${nodePath}" "${helperPath}" ${command} ${escapedArgs}`;
+        fullCommand = `ELECTRON_RUN_AS_NODE=1 NODE_OPTIONS="" "${nodePath}" "${helperPath}" ${command} ${base64Args}`;
     }
-    
+
     sudo.exec(fullCommand, { name: 'SuperFokus' }, (error, stdout, stderr) => {
         if (callback) callback(error, stdout, stderr);
     });
-}
-
+    }
 function startProxy(allowedHosts, allowedUrls) {
     if (proxyServer) proxyServer.close();
 

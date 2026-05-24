@@ -11,14 +11,6 @@ let ipcMainHandlers;
 
 console.log('[Main Process] Starting modular SuperFokus...');
 
-// Polyfills for sudo-prompt
-if (typeof util.isObject !== 'function') {
-    util.isObject = (obj) => obj !== null && typeof obj === 'object';
-}
-if (typeof util.isFunction !== 'function') {
-    util.isFunction = (fn) => typeof fn === 'function';
-}
-
 // Prevent multiple instances
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
@@ -37,7 +29,7 @@ if (!gotTheLock) {
 
 app.name = 'SuperFokus';
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
     // Set AppUserModelId for native notifications (Windows only)
     if (process.platform === 'win32') {
         app.setAppUserModelId('com.superfokus.app');
@@ -69,7 +61,7 @@ app.whenReady().then(() => {
     blockerService.init();
     timerService.init();
     healthService.init();
-    ipcMainHandlers.init();
+    await ipcMainHandlers.init();
 
     if (process.platform === 'darwin') {
         try { app.dock.setIcon(path.join(__dirname, '../../assets/fokusicon.png')); } catch (e) {}

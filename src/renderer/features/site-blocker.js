@@ -21,18 +21,10 @@ const siteBlockerAlwaysRun = document.getElementById('site-blocker-always-run');
 
 // Removed work in progress block
 
-// Helper function to safely normalize URLs locally
+// Helper function to safely normalize URLs via main process utility
 function safeNormalizeHost(urlStr) {
     if (!urlStr) return '';
-    try {
-        let url = urlStr.trim();
-        if (!url.startsWith('http://') && !url.startsWith('https://')) {
-            url = 'https://' + url;
-        }
-        return new URL(url).hostname;
-    } catch (e) {
-        return urlStr.trim();
-    }
+    return ipcRenderer.normalizeHost(urlStr) || urlStr.trim();
 }
 
 // Show/hide mode messages based on selection
