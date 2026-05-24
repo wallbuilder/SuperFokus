@@ -113,6 +113,9 @@ if (headerTitle) {
 
         const initApp = async () => {
           console.log('[Startup] Initializing App UI...');
+          if (window.electronAPI && window.electronAPI.platform === 'darwin') {
+              document.body.classList.add('platform-darwin');
+          }
           const startupScreen = document.getElementById('startup-screen');
           const loadingBar = document.getElementById('startup-loading-bar');
           const loadingText = document.getElementById('startup-loading-text');

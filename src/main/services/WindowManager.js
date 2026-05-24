@@ -85,12 +85,20 @@ class WindowManager {
     }
 
     createWindow() {
-        this.mainWindow = this._createWindow({
+        const windowOptions = {
             width: 900,
             height: 700,
             show: false,
             icon: path.join(__dirname, '../../../assets/fokusicon.png'),
-        });
+        };
+
+        if (process.platform === 'darwin') {
+            windowOptions.vibrancy = 'under-window';
+            windowOptions.titleBarStyle = 'hiddenInset';
+            windowOptions.transparent = true;
+        }
+
+        this.mainWindow = this._createWindow(windowOptions);
 
         this.mainWindow.maximize();
         this.mainWindow.loadFile(path.join(__dirname, '../../../index.html'));
