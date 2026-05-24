@@ -424,7 +424,7 @@ export function setupWorkflowEventListeners() {
     }
 }
 
-function updateWorkflowCurrentPresetDisplay() {
+export function updateWorkflowCurrentPresetDisplay() {
     const presetDisplay = document.getElementById('workflow-current-preset');
     if (!presetDisplay) return;
     
