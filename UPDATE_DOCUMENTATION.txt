@@ -9,7 +9,9 @@ Each new edit to the file that documents new changes should also list the date a
 [DO NOT DELETE THIS TEXT, DELETE TEXT BELOW THIS LINE] >
 ~ (< spacer)
 ~
-{delete this line and insert text here}
+{May 23, 2026 at 12:00 PM}
+    [Fixed Bugs]
+     - Fixed an issue where the Pause button would become disabled (unclickable with a "not allowed" cursor) while a timer was running. Updated `setInputsLocked` in `src/renderer/utils/ui-helpers.js` to ensure elements with ID, class, or text containing "pause" remain unlocked.
 ~
 ~
 < [DO NOT DELETE THIS TEXT, DELETE TEXT ABOVE THIS LINE]

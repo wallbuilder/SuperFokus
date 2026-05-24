@@ -411,8 +411,8 @@ function startNextWorkflowBlock() {
         });
         
         if (!currentBlock.blocksScreen) {
-            ipcRenderer.send('open-pomo-timer');
-            ipcRenderer.send('update-pomo-timer', {
+            ipcRenderer.send('open-timer-window', 'pomo');
+            ipcRenderer.send('update-timer-window', {
                 phase: 'Break Time',
                 timeLeft: formatTime(durationSecs),
                 percent: 100
@@ -487,7 +487,7 @@ if (stopWorkflowBtn) {
         ipcRenderer.send('stop-timer', 'workflow-break');
         ipcRenderer.send('close-popup');
         ipcRenderer.send('close-fullscreen');
-        ipcRenderer.send('close-pomo-timer');
+        ipcRenderer.send('close-timer-window');
 
         if (typeof isPomoRunning !== 'undefined' && isPomoRunning) stopPomoStyle();
         if (typeof isRepeatingRunning !== 'undefined' && isRepeatingRunning) stopRepeatingReminders();
@@ -509,4 +509,6 @@ ipcRenderer.on('timer-complete-workflow-break', () => {
     if (isWorkflowRunning) {
         setTimeout(() => { if (typeof startNextWorkflowBlock === 'function') startNextWorkflowBlock(); }, 500);
     }
+});
+}
 });
