@@ -56,7 +56,9 @@ function startProxy(allowedHosts, allowedUrls) {
         allowedUrls.forEach(urlStr => {
             try {
                 parsedAllowedUrls.push(new URL(urlStr));
-            } catch (e) {}
+            } catch (e) {
+                console.error(`[BlockerService] Invalid URL in allowedUrls: ${urlStr}`, e.message);
+            }
         });
     }
 
@@ -74,7 +76,9 @@ function startProxy(allowedHosts, allowedUrls) {
                     return allowed.hostname === requested.hostname &&
                            requested.pathname.startsWith(allowed.pathname);
                 });
-            } catch (e) {}
+            } catch (e) {
+                console.error(`[BlockerService] Error parsing requested URL: ${fullUrl}`, e.message);
+            }
         }
 
         if (hostAllowed || urlAllowed) {
@@ -237,12 +241,6 @@ function cleanup(callback) {
 }
 
 module.exports = {
-    init,
-    cleanup,
-    runElevated,
-    getBlocksApplied: () => blocksApplied
-};
-exports = {
     init,
     cleanup,
     runElevated,
