@@ -1,0 +1,1 @@
+D:\Coding\fokus\src\native\target\x86_64-pc-windows-msvc\release\bridge.dll: D:\Coding\fokus\src\native\bridge\build.rs D:\Coding\fokus\src\native\bridge\src\lib.rs D:\Coding\fokus\src\native\guardian\src\lib.rs D:\Coding\fokus\src\native\timer\src\lib.rs D:\Coding\fokus\src\native\watcher\src\lib.rs
