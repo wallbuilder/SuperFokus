@@ -7,10 +7,20 @@ Before each commit, the contents of this file should be mostly discarded of, EXC
 Each new edit to the file that documents new changes should also list the date and time of implementation.
 (Note: You must list ALL changes, including small ones. No detail is too small).
 [DO NOT DELETE THIS TEXT, DELETE TEXT BELOW THIS LINE] >
-~ (< spacer)
-~
-~
-~
+{5/24/2026 at 10:00 AM}
+    [Refactor & Merge]
+     - Merged 'master' into 'windows' branch.
+     - Resolved IPC conflicts in 'preload.js' and 'workflows-engine.js' by adopting centralized 'timer-event' pattern.
+     - Implemented listener cleanup functions in renderer-side IPC handlers.
+
+    [Cleanup & Maintenance]
+     - Deleted dead code files: 'temp_workflows.js' (25KB) and 'test-env.js'.
+     - Removed redundant/incorrect exports in 'BlockerService.js'.
+
+    [Fixed Bugs & Improvements]
+     - Added error logging to 'BlockerService.js' for URL parsing and proxy setup failures.
+     - Verified 'pomoTimerWindow' typo fix in 'TimerService.js'.
+
 < [DO NOT DELETE THIS TEXT, DELETE TEXT ABOVE THIS LINE]
 (Example chunk of documentation:
 {1/1/2025 at 12:00 PM}
