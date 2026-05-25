@@ -85,12 +85,20 @@ class WindowManager {
     }
 
     createWindow() {
-        this.mainWindow = this._createWindow({
+        const windowOptions = {
             width: 900,
             height: 700,
             show: false,
             icon: path.join(__dirname, '../../../assets/fokusicon.png'),
-        });
+        };
+
+        if (process.platform === 'darwin') {
+            windowOptions.vibrancy = 'under-window';
+            windowOptions.titleBarStyle = 'hiddenInset';
+            windowOptions.transparent = true;
+        }
+
+        this.mainWindow = this._createWindow(windowOptions);
 
         this.mainWindow.maximize();
         this.mainWindow.loadFile(path.join(__dirname, '../../../index.html'));
@@ -262,7 +270,11 @@ class WindowManager {
     }
 
     _createTimerWindow(type) {
-        const { width: screenWidth, height: screenHeight, x: screenX, y: screenY } = screen.getPrimaryDisplay().workArea;
+        let targetDisplay = screen.getPrimaryDisplay();
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+            targetDisplay = screen.getDisplayMatching(this.mainWindow.getBounds());
+        }
+        const { width: screenWidth, height: screenHeight, x: screenX, y: screenY } = targetDisplay.workArea;
         const windowWidth = 400;
         const windowHeight = 250;
         const x = screenX;
@@ -464,6 +476,12 @@ class WindowManager {
                 }
                 win.webContents.send(channel, ...args);
             }
+        });
+    }
+}
+
+module.exports = new WindowManager();
+
         });
     }
 }

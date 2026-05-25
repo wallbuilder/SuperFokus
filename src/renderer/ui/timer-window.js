@@ -41,26 +41,30 @@ function setThemeColor(type) {
 function startLocalTick(endTime, duration) {
     if (duration) totalDuration = duration;
     if (localInterval) clearInterval(localInterval);
+    const startTime = endTime - (totalDuration * 1000);
+
     localInterval = setInterval(() => {
-        const seconds = Math.max(0, Math.round((endTime - Date.now()) / 1000));
+        const now = Date.now();
+        const secondsRemaining = Math.max(0, Math.round((endTime - now) / 1000));
+        const secondsElapsed = Math.round((now - startTime) / 1000);
         
         if (currentType === 'flow') {
-            const h = Math.floor(seconds / 3600);
-            const m = Math.floor((seconds % 3600) / 60);
-            const s = seconds % 60;
+            const h = Math.floor(secondsElapsed / 3600);
+            const m = Math.floor((secondsElapsed % 3600) / 60);
+            const s = secondsElapsed % 60;
             timerDisplay.innerText = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         } else {
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
+            const mins = Math.floor(secondsRemaining / 60);
+            const secs = secondsRemaining % 60;
             timerDisplay.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         }
         
         if (totalDuration > 0 && currentType !== 'flow') {
-            const percent = (seconds / totalDuration) * 100;
+            const percent = (secondsRemaining / totalDuration) * 100;
             progressBar.style.width = `${percent}%`;
         }
         
-        if (seconds <= 0) {
+        if (secondsRemaining <= 0 && currentType !== 'flow') {
             clearInterval(localInterval);
             localInterval = null;
         }
@@ -74,49 +78,11 @@ ipcRenderer.on('init-timer', (type) => {
     else if (type === 'sprint') labelDisplay.innerText = 'Sprint Task';
     else if (type === 'flow') labelDisplay.innerText = 'Flow State';
     else if (type === 'break') labelDisplay.innerText = 'Break Time';
+    
+    ipcRenderer.send('request-initial-timer-update', type);
 });
 
-// Generic listeners for all timer types
-const timerEvents = ['pomo', 'sprint', 'flow', 'workflow-break'];
-
-timerEvents.forEach(id => {
-    ipcRenderer.on(`timer-started-${id}`, (data) => {
-        if (id.includes(currentType) || (currentType === 'break' && id === 'workflow-break')) {
-            startLocalTick(data.endTime, data.seconds);
-        }
-    });
-
-    ipcRenderer.on(`timer-paused-${id}`, (targetId, remainingSeconds) => {
-        if (id.includes(currentType) || (currentType === 'break' && id === 'workflow-break')) {
-            if (localInterval) clearInterval(localInterval);
-            localInterval = null;
-            timerDisplay.classList.add('paused');
-            // Update display manually
-            const mins = Math.floor(remainingSeconds / 60);
-            const secs = remainingSeconds % 60;
-            timerDisplay.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        }
-    });
-
-    ipcRenderer.on(`timer-resumed-${id}`, (data) => {
-        if (id.includes(currentType) || (currentType === 'break' && id === 'workflow-break')) {
-            timerDisplay.classList.remove('paused');
-            startLocalTick(data.endTime);
-        }
-    });
-
-    ipcRenderer.on(`timer-stopped-${id}`, () => {
-        if (id.includes(currentType) || (currentType === 'break' && id === 'workflow-break')) {
-            if (localInterval) clearInterval(localInterval);
-            localInterval = null;
-            timerDisplay.innerText = currentType === 'flow' ? "00:00:00" : "00:00";
-            progressBar.style.width = "0%";
-            timerDisplay.classList.remove('paused');
-        }
-    });
-});
-
-ipcRenderer.on('update-display', (data) => {
+ipcRenderer.on('update-timer-window', (data) => {
     if (data.phase || data.task) labelDisplay.innerText = data.phase || data.task;
     if (data.timeLeft) timerDisplay.innerText = data.timeLeft;
     if (data.percent !== undefined) progressBar.style.width = `${data.percent}%`;

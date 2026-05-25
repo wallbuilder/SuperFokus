@@ -168,54 +168,61 @@ function updateSprintDisplay() {
     if (sprintTimeLeft) sprintTimeLeft.innerText = formatTime(sprintState.sprintTimerSeconds);
     const taskName = sprintState.sprintTasks[sprintState.currentSprintTaskIndex] || `Sprint ${sprintState.currentSprintTaskIndex + 1}`;
     if (sprintCurrentTask) sprintCurrentTask.innerText = taskName;
-    const tasksLeftText = `Remaining Tasks: ${Math.max(0, sprintState.sprintTasks.length - sprintState.currentSprintTaskIndex - 1)}`;
-    if (sprintTasksLeft) sprintTasksLeft.innerText = tasksLeftText;
+    const remainingCount = Math.max(0, sprintState.sprintTasks.length - sprintState.currentSprintTaskIndex - 1);
+    if (sprintTasksLeft) sprintTasksLeft.innerText = `Remaining Tasks: ${remainingCount}`;
 
-    // Update timer popup
+    // Update timer popup - pass only the count to avoid duplicate labeling in the timer window
     ipcRenderer.send('update-timer-window', {
         task: taskName,
         timeLeft: formatTime(sprintState.sprintTimerSeconds),
         percent: (sprintState.sprintTimerSeconds / sprintState.sprintDurationSeconds) * 100,
-        tasksLeft: tasksLeftText
+        tasksLeft: remainingCount
     });
 }
 
-ipcRenderer.on('timer-tick', (data) => {
-    if (data.id === 'sprint') {
+ipcRenderer.on('timer-tick', (batchedTicks) => {
+    const data = batchedTicks.find(t => t.id === 'sprint');
+    if (data) {
         sprintState.sprintTimerSeconds = data.remaining;
         updateSprintDisplay();
     }
 });
 
-ipcRenderer.on('timer-started-sprint', (data) => {
-    // Ticks are handled by timer-tick event
+ipcRenderer.on('request-initial-timer-update', (type) => {
+    if (type === 'sprint' && sprintState.isSprintRunning) {
+        updateSprintDisplay();
+    }
 });
 
-ipcRenderer.on('timer-stopped-sprint', () => {
-    sprintState.sprintTimerSeconds = 0;
-    updateSprintDisplay();
-});
-
-ipcRenderer.on('timer-complete-sprint', () => {
-    playChime('session-complete');
-    showOSNotification('end');
-    recordFocusSession(Math.round(sprintState.sprintDurationSeconds / 60), 'Micro-Task Sprint');
-    
-    if (sprintAutostartCheckbox && sprintAutostartCheckbox.checked) {
-        setTimeout(() => {
-            sprintState.currentSprintTaskIndex++;
-            if (sprintState.currentSprintTaskIndex >= sprintState.sprintTasks.length) {
-                stopSprintMode();
-                if (sharedState.isWorkflowRunning) {
-                    setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
-                }
+ipcRenderer.on('timer-event', (payload) => {
+    if (payload.type !== 'sprint') return;
+    switch(payload.event) {
+        case 'stopped':
+            sprintState.sprintTimerSeconds = 0;
+            updateSprintDisplay();
+            break;
+        case 'complete':
+            playChime('session-complete');
+            showOSNotification('end');
+            recordFocusSession(Math.round(sprintState.sprintDurationSeconds / 60), 'Micro-Task Sprint');
+            
+            if (sprintAutostartCheckbox && sprintAutostartCheckbox.checked) {
+                setTimeout(() => {
+                    sprintState.currentSprintTaskIndex++;
+                    if (sprintState.currentSprintTaskIndex >= sprintState.sprintTasks.length) {
+                        stopSprintMode();
+                        if (sharedState.isWorkflowRunning) {
+                            setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
+                        }
+                    } else {
+                        startNextSprintTask();
+                    }
+                }, 2000); // 2 second delay before autostarting next
             } else {
-                startNextSprintTask();
+                if (nextSprintBtn) nextSprintBtn.style.display = 'block';
+                if (skipSprintBtn) skipSprintBtn.style.display = 'block';
             }
-        }, 2000); // 2 second delay before autostarting next
-    } else {
-        if (nextSprintBtn) nextSprintBtn.style.display = 'block';
-        if (skipSprintBtn) skipSprintBtn.style.display = 'block';
+            break;
     }
 });
 
@@ -256,7 +263,14 @@ if (stopSprintBtn) {
     });
 }
 
-export function startSprintMode() {
+export function setPresetAndStart(presetKey) {
+    const select = document.getElementById('sprint-presets');
+    if (select) {
+        select.value = presetKey;
+        select.dispatchEvent(new Event('change'));
+    }
+    startSprintMode();
+}
     if (!sprintState.isSprintRunning) {
         const rawTasks = sprintTasksInput ? sprintTasksInput.value.split('\n').map(t => t.trim()).filter(Boolean) : [];
         sprintState.sprintTasks = rawTasks.length > 0 ? rawTasks : ['Unnamed Sprint'];

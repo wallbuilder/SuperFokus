@@ -53,60 +53,65 @@ function updateRepeatingDisplay() {
     }
 }
 
-ipcRenderer.on('timer-tick', (data) => {
-    if (data.id === 'repeating') {
+ipcRenderer.on('timer-tick', (batchedTicks) => {
+    const data = batchedTicks.find(t => t.id === 'repeating');
+    if (data) {
         repeatingState.repeatingTimer = data.remaining;
         updateRepeatingDisplay();
     }
 });
 
-ipcRenderer.on('timer-started-repeating', (data) => {
-    // Ticks handled by timer-tick
-});
+ipcRenderer.on('timer-event', (payload) => {
+    if (payload.type !== 'repeating') return;
+    switch(payload.event) {
+        case 'paused':
+            repeatingState.repeatingTimer = payload.data;
+            updateRepeatingDisplay();
+            break;
+        case 'stopped':
+            repeatingState.repeatingTimer = 0;
+            updateRepeatingDisplay();
+            break;
+        case 'complete':
+            playChime();
+            showOSNotification('end');
+            const autocloseSecs = reminderAutocloseInput ? (parseInt(reminderAutocloseInput.value, 10) || 10) : 10;
+            ipcRenderer.send('show-popup', {
+                message: reminderMessageInput ? reminderMessageInput.value : '',
+                closeDelay: autocloseSecs * 1000,
+                type: 'Repeating Reminder',
+                isAutoclose: true
+            });
+            recordFocusSession(Math.round(repeatingState.currentRepeatingTotalSeconds / 60), 'Repeating Reminder');
+            
+            if (infiniteRoundsCheckbox && !infiniteRoundsCheckbox.checked) {
+                repeatingState.currentRounds--;
+            }
 
-ipcRenderer.on('timer-resumed-repeating', (data) => {
-    // Ticks handled by timer-tick
-});
-
-ipcRenderer.on('timer-paused-repeating', (remainingSeconds) => {
-    repeatingState.repeatingTimer = remainingSeconds;
-    updateRepeatingDisplay();
-});
-
-ipcRenderer.on('timer-stopped-repeating', () => {
-    repeatingState.repeatingTimer = 0;
-    updateRepeatingDisplay();
-});
-
-ipcRenderer.on('timer-complete-repeating', () => {
-    playChime();
-    showOSNotification('end');
-    const autocloseSecs = reminderAutocloseInput ? (parseInt(reminderAutocloseInput.value, 10) || 10) : 10;
-    ipcRenderer.send('show-popup', {
-        message: reminderMessageInput ? reminderMessageInput.value : '',
-        closeDelay: autocloseSecs * 1000,
-        type: 'Repeating Reminder',
-        isAutoclose: true
-    });
-    recordFocusSession(Math.round(repeatingState.currentRepeatingTotalSeconds / 60), 'Repeating Reminder');
-    
-    if (infiniteRoundsCheckbox && !infiniteRoundsCheckbox.checked) {
-        repeatingState.currentRounds--;
-    }
-
-    if (repeatingState.currentRounds <= 0 && (!infiniteRoundsCheckbox || !infiniteRoundsCheckbox.checked)) {
-        stopRepeatingReminders();
-        if (sharedState.isWorkflowRunning) {
-            setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
-        }
-    } else {
-        repeatingState.repeatingTimer = repeatingState.currentRepeatingTotalSeconds;
-        updateRepeatingDisplay();
-        ipcRenderer.send('start-timer', { id: 'repeating', seconds: repeatingState.repeatingTimer });
+            if (repeatingState.currentRounds <= 0 && (!infiniteRoundsCheckbox || !infiniteRoundsCheckbox.checked)) {
+                stopRepeatingReminders();
+                if (sharedState.isWorkflowRunning) {
+                    setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
+                }
+            } else {
+                repeatingState.repeatingTimer = repeatingState.currentRepeatingTotalSeconds;
+                updateRepeatingDisplay();
+                ipcRenderer.send('start-timer', { id: 'repeating', seconds: repeatingState.repeatingTimer });
+            }
+            break;
     }
 });
 
-export function startRepeatingReminders() {
+export function setPresetAndStart(presetKey) {
+    const select = document.getElementById('repeating-presets');
+    if (select) {
+        select.value = presetKey;
+        select.dispatchEvent(new Event('change'));
+    }
+    const reminderRoundsInput = document.getElementById('reminder-rounds');
+    if (reminderRoundsInput) reminderRoundsInput.value = 1; // 1 round per cycle
+    startRepeatingReminders();
+}
     const intervalMins = parseInt(reminderIntervalInput.value, 10) || 0;
     const intervalSecs = parseInt(reminderIntervalSecondsInput.value, 10) || 0;
     const totalSeconds = (intervalMins * 60) + intervalSecs;

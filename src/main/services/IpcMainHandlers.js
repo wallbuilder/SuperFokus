@@ -40,6 +40,15 @@ async function init() {
         }
     });
 
+    ipcMain.on('store-set-multiple', (event, dataObj) => {
+        if (!windowManager.isOriginSafe(event)) return;
+        if (store && typeof dataObj === 'object') {
+            for (const [key, value] of Object.entries(dataObj)) {
+                store.set(key, value);
+            }
+        }
+    });
+
     ipcMain.handle('store-get', async (event, key, defaultValue) => {
         if (!windowManager.isOriginSafe(event)) return defaultValue;
         return store ? store.get(key, defaultValue) : defaultValue;
@@ -53,17 +62,6 @@ async function init() {
     ipcMain.on('theme-changed', (event, themeData) => {
         if (!windowManager.isOriginSafe(event)) return;
         windowManager.setTheme(themeData);
-    });
-
-    ipcMain.on('show-notification', (event, payload) => {
-        if (!windowManager.isOriginSafe(event)) return;
-        if (Notification.isSupported()) {
-            new Notification({
-                title: payload.title,
-                body: payload.body,
-                silent: true
-            }).show();
-        }
     });
 
     ipcMain.on('show-popup', (event, payload) => {
@@ -93,7 +91,7 @@ async function init() {
     ipcMain.on('update-timer-window', (event, data) => {
         if (!windowManager.isOriginSafe(event)) return;
         if (windowManager.timerWindow && !windowManager.timerWindow.isDestroyed()) {
-            windowManager.timerWindow.webContents.send('update-display', data);
+            windowManager.timerWindow.webContents.send('update-timer-window', data);
         }
     });
 
@@ -108,6 +106,27 @@ async function init() {
         if (!windowManager.isOriginSafe(event)) return;
         if (windowManager.mainWindow && !windowManager.mainWindow.isDestroyed()) {
             windowManager.mainWindow.webContents.send('start-next-phase');
+        }
+    });
+
+    ipcMain.handle('save-audio-file', async (event, fileName, arrayBuffer) => {
+        if (!windowManager.isOriginSafe(event)) return null;
+        const soundsDir = path.join(app.getPath('userData'), 'sounds');
+        await require('fs').promises.mkdir(soundsDir, { recursive: true });
+        const filePath = path.join(soundsDir, fileName);
+        await require('fs').promises.writeFile(filePath, Buffer.from(arrayBuffer));
+        return `file://${filePath.replace(/\\/g, '/')}`;
+    });
+
+    ipcMain.handle('delete-audio-file', async (event, fileUrl) => {
+        if (!windowManager.isOriginSafe(event)) return;
+        if (fileUrl.startsWith('file://')) {
+            const filePath = decodeURI(fileUrl.replace('file://', ''));
+            if (filePath.includes('sounds')) {
+                try {
+                    await require('fs').promises.unlink(filePath);
+                } catch (e) {}
+            }
         }
     });
 

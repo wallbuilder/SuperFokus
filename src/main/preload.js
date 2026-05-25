@@ -24,13 +24,15 @@ const ALLOWED_SEND_CHANNELS = [
     'start-health-mode',
     'stop-health-mode',
     'store-set',
-    'show-notification'
+    'store-set-multiple'
 ];
 
 // Whitelist of channels the renderer can LISTEN to from the main process
 const ALLOWED_ON_CHANNELS = [
     'display-message',
     'set-theme',
+    'init-timer',
+    'update-timer-window',
     'pomo-popup-closed',
     'flow-popup-closed',
     'set-fullscreen-data',
@@ -38,16 +40,8 @@ const ALLOWED_ON_CHANNELS = [
     'update-display',
     'start-next-phase',
     'blocker-status',
-    'blocker-error'
-];
-
-// Prefix-based whitelist for dynamic timer channels
-const TIMER_PREFIXES = [
-    'timer-complete-',
-    'timer-started-',
-    'timer-stopped-',
-    'timer-paused-',
-    'timer-resumed-'
+    'blocker-error',
+    'timer-event'
 ];
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -59,18 +53,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
         }
     },
     on: (channel, func) => {
-        const isTimerChannel = TIMER_PREFIXES.some(prefix => channel.startsWith(prefix));
-        if (ALLOWED_ON_CHANNELS.includes(channel) || isTimerChannel) {
-            const wrappedFunc = (event, ...args) => func(...args);
-            ipcRenderer.on(channel, wrappedFunc);
-            return wrappedFunc;
+        if (ALLOWED_ON_CHANNELS.includes(channel)) {
+            const listener = (event, ...args) => func(...args);
+            ipcRenderer.on(channel, listener);
+            return () => {
+                ipcRenderer.removeListener(channel, listener);
+            };
         } else {
             console.warn(`Blocked unauthorized IPC listener registration on channel: ${channel}`);
+            return () => {};
         }
     },
     off: (channel, wrappedFunc) => {
-        const isTimerChannel = TIMER_PREFIXES.some(prefix => channel.startsWith(prefix));
-        if (ALLOWED_ON_CHANNELS.includes(channel) || isTimerChannel) {
+        if (ALLOWED_ON_CHANNELS.includes(channel)) {
             if (wrappedFunc) {
                 ipcRenderer.removeListener(channel, wrappedFunc);
             }
@@ -79,13 +74,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
         }
     },
     invoke: (channel, ...args) => {
-        if (['store-get'].includes(channel)) {
+        if (['store-get', 'save-audio-file', 'delete-audio-file'].includes(channel)) {
             return ipcRenderer.invoke(channel, ...args);
         }
     },
     store: {
         get: (key, defaultValue) => ipcRenderer.invoke('store-get', key, defaultValue),
         set: (key, value) => ipcRenderer.send('store-set', key, value),
+        setMultiple: (dataObj) => ipcRenderer.send('store-set-multiple', dataObj),
         delete: (key) => ipcRenderer.send('store-delete', key)
     },
     normalizeHost: (val) => {

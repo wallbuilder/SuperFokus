@@ -356,8 +356,10 @@
           contain: layout paint;
       }
 
-      /* Version */
-      #version { position: fixed; bottom: 15px; right: 20px; font-size: 0.85rem; color: #95a5a6; font-weight: 500; }
+      /* Version & Github Link */
+      #version { position: fixed; bottom: 15px; right: 20px; font-size: 0.85rem; color: #95a5a6; font-weight: 500; z-index: 1000; }
+      #github-link { position: fixed; bottom: 15px; left: 20px; font-size: 0.85rem; color: #95a5a6; font-weight: 500; text-decoration: none; transition: color 0.3s; z-index: 1000; }
+      #github-link:hover { color: var(--header-grad-1); }
       .hidden { display: none !important; }
       .error-msg { color: #e74c3c; font-size: 0.9rem; margin-top: 0.5rem; display: none; font-weight: 500; }
       .warning-text { color: #e74c3c; }
@@ -551,6 +553,20 @@
         flex: 1; background: rgba(106, 17, 203, 0.2); color: var(--text-color);
         border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem;
         font-size: 0.8rem; cursor: not-allowed;
+      }
+      
+      /* macOS Specific Tweaks */
+      body.platform-darwin header {
+        /* Add padding to the top of the header to account for the hiddenInset titlebar traffic lights */
+        padding-top: 2rem !important;
+        -webkit-app-region: drag;
+      }
+      body.platform-darwin header button,
+      body.platform-darwin header .header-left h1 {
+        -webkit-app-region: no-drag;
+      }
+      body.platform-darwin .modal-overlay {
+          padding-top: 15vh;
       }
     </style>
   </head>
@@ -1043,8 +1059,12 @@
                     </ul>
                     <strong>Claude / Anthropic Models:</strong>
                     <ul style="list-style: disc; padding-left: 20px; margin-top: 5px; margin-bottom: 0;">
-                        <li>Claude Haiku 4.6</li>
+                        <li>Claude Haiku 4.5</li>
                         <li>Claude Sonnet 4.6</li>
+                    </ul>
+                    <strong>Other Models:</strong>
+                    <ul style="list-style: disc; padding-left: 20px; margin-top: 5px; margin-bottom: 0;">
+                        <li>ChatGPT-4.1</li>
                     </ul>
                 </div>
             </div>
@@ -1364,7 +1384,7 @@
         </div>
         <div class="form-group">
           <label class="toggle-switch">
-            <input type="checkbox" id="sprint-utostart">
+            <input type="checkbox" id="sprint-autostart">
             <span class="slider"></span>
           </label> Autostart next task
         </div>
@@ -1467,6 +1487,7 @@
       </div>
     </div>
 
+    <a id="github-link" href="https://github.com/wallbuilder/superfokus" target="_blank">Github Page</a>
     <div id="version">SuperFokus v1.0.0</div>
 
     <!-- Audio for chimes -->
