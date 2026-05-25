@@ -76,34 +76,15 @@ export function startNextWorkflowBlock() {
     
     switchMode(modeMap[currentBlock.type]);
 
-    setTimeout(() => {
+    requestAnimationFrame(() => {
         if (currentBlock.type === 'pomo') {
-            const pomoPresetsSelect = document.getElementById('pomo-presets');
-            if (pomoPresetsSelect) {
-                pomoPresetsSelect.value = currentBlock.presetKey;
-                pomoPresetsSelect.dispatchEvent(new Event('change'));
-                startPomoStyle();
-            }
+            import('../pomo-timer.js').then(module => module.setPresetAndStart(currentBlock.presetKey));
         } else if (currentBlock.type === 'sprint') {
-            const sprintPresetsSelect = document.getElementById('sprint-presets');
-            if (sprintPresetsSelect) {
-                sprintPresetsSelect.value = currentBlock.presetKey;
-                sprintPresetsSelect.dispatchEvent(new Event('change'));
-                startSprintMode();
-            }
+            import('../micro-sprint.js').then(module => module.setPresetAndStart(currentBlock.presetKey));
         } else if (currentBlock.type === 'repeating') {
-            const repeatingPresetsSelect = document.getElementById('repeating-presets');
-            if (repeatingPresetsSelect) {
-                repeatingPresetsSelect.value = currentBlock.presetKey;
-                repeatingPresetsSelect.dispatchEvent(new Event('change'));
-                
-                const reminderRoundsInput = document.getElementById('reminder-rounds');
-                if (reminderRoundsInput) reminderRoundsInput.value = 1; // 1 round per cycle
-                
-                startRepeatingReminders();
-            }
+            import('../repeating.js').then(module => module.setPresetAndStart(currentBlock.presetKey));
         }
-    }, 100); // slight delay to ensure UI updates after switching modes
+    }); // slight delay to ensure UI updates after switching modes
 }
 
 export function setupEngineListeners() {
@@ -142,8 +123,9 @@ export function setupEngineListeners() {
         });
     }
 
-    ipcRenderer.on('timer-tick', (data) => {
-        if (data.id === 'workflow-break') {
+    ipcRenderer.on('timer-tick', (batchedTicks) => {
+        const data = batchedTicks.find(t => t.id === 'workflow-break');
+        if (data) {
             const currentBlock = workflowBlocks[workflowState.currentBlockIndex];
             if (currentBlock && currentBlock.type === 'break') {
                 ipcRenderer.send('update-timer-window', {
@@ -155,15 +137,17 @@ export function setupEngineListeners() {
         }
     });
 
-    ipcRenderer.on('timer-complete-workflow-break', () => {
-        playChime('session-start');
-        showOSNotification('start');
-        ipcRenderer.send('close-popup');
-        ipcRenderer.send('close-fullscreen');
-        ipcRenderer.send('close-timer-window');
-        
-        if (workflowState.isWorkflowRunning || sharedState.isWorkflowRunning) {
-            setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
+    ipcRenderer.on('timer-event', (payload) => {
+        if (payload.type === 'workflow-break' && payload.event === 'complete') {
+            playChime('session-start');
+            showOSNotification('start');
+            ipcRenderer.send('close-popup');
+            ipcRenderer.send('close-fullscreen');
+            ipcRenderer.send('close-timer-window');
+            
+            if (workflowState.isWorkflowRunning || sharedState.isWorkflowRunning) {
+                setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
+            }
         }
     });
 }

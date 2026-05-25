@@ -270,7 +270,11 @@ class WindowManager {
     }
 
     _createTimerWindow(type) {
-        const { width: screenWidth, height: screenHeight, x: screenX, y: screenY } = screen.getPrimaryDisplay().workArea;
+        let targetDisplay = screen.getPrimaryDisplay();
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+            targetDisplay = screen.getDisplayMatching(this.mainWindow.getBounds());
+        }
+        const { width: screenWidth, height: screenHeight, x: screenX, y: screenY } = targetDisplay.workArea;
         const windowWidth = 400;
         const windowHeight = 250;
         const x = screenX;
@@ -467,6 +471,12 @@ class WindowManager {
             if (win && !win.isDestroyed()) {
                 win.webContents.send(channel, ...args);
             }
+        });
+    }
+}
+
+module.exports = new WindowManager();
+
         });
     }
 }

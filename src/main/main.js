@@ -94,9 +94,12 @@ app.whenReady().then(async () => {
 
     process.on('uncaughtException', (err) => {
         console.error('CRITICAL UNCAUGHT EXCEPTION:', err);
-        blockerService.runElevated('clear', [], () => {
-            process.exit(1);
-        });
+        // Do not use runElevated with UAC prompt on crash.
+        // If possible, clear blocks un-elevated or just exit to prevent zombie processes.
+        if (blockerService) {
+            try { blockerService.stopProxy(); } catch (e) {}
+        }
+        process.exit(1);
     });
 
     app.on('activate', () => {

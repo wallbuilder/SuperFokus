@@ -180,8 +180,9 @@ function updateSprintDisplay() {
     });
 }
 
-ipcRenderer.on('timer-tick', (data) => {
-    if (data.id === 'sprint') {
+ipcRenderer.on('timer-tick', (batchedTicks) => {
+    const data = batchedTicks.find(t => t.id === 'sprint');
+    if (data) {
         sprintState.sprintTimerSeconds = data.remaining;
         updateSprintDisplay();
     }
@@ -193,35 +194,35 @@ ipcRenderer.on('request-initial-timer-update', (type) => {
     }
 });
 
-ipcRenderer.on('timer-started-sprint', (data) => {
-    // Ticks are handled by timer-tick event
-});
-
-ipcRenderer.on('timer-stopped-sprint', () => {
-    sprintState.sprintTimerSeconds = 0;
-    updateSprintDisplay();
-});
-
-ipcRenderer.on('timer-complete-sprint', () => {
-    playChime('session-complete');
-    showOSNotification('end');
-    recordFocusSession(Math.round(sprintState.sprintDurationSeconds / 60), 'Micro-Task Sprint');
-    
-    if (sprintAutostartCheckbox && sprintAutostartCheckbox.checked) {
-        setTimeout(() => {
-            sprintState.currentSprintTaskIndex++;
-            if (sprintState.currentSprintTaskIndex >= sprintState.sprintTasks.length) {
-                stopSprintMode();
-                if (sharedState.isWorkflowRunning) {
-                    setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
-                }
+ipcRenderer.on('timer-event', (payload) => {
+    if (payload.type !== 'sprint') return;
+    switch(payload.event) {
+        case 'stopped':
+            sprintState.sprintTimerSeconds = 0;
+            updateSprintDisplay();
+            break;
+        case 'complete':
+            playChime('session-complete');
+            showOSNotification('end');
+            recordFocusSession(Math.round(sprintState.sprintDurationSeconds / 60), 'Micro-Task Sprint');
+            
+            if (sprintAutostartCheckbox && sprintAutostartCheckbox.checked) {
+                setTimeout(() => {
+                    sprintState.currentSprintTaskIndex++;
+                    if (sprintState.currentSprintTaskIndex >= sprintState.sprintTasks.length) {
+                        stopSprintMode();
+                        if (sharedState.isWorkflowRunning) {
+                            setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
+                        }
+                    } else {
+                        startNextSprintTask();
+                    }
+                }, 2000); // 2 second delay before autostarting next
             } else {
-                startNextSprintTask();
+                if (nextSprintBtn) nextSprintBtn.style.display = 'block';
+                if (skipSprintBtn) skipSprintBtn.style.display = 'block';
             }
-        }, 2000); // 2 second delay before autostarting next
-    } else {
-        if (nextSprintBtn) nextSprintBtn.style.display = 'block';
-        if (skipSprintBtn) skipSprintBtn.style.display = 'block';
+            break;
     }
 });
 
@@ -262,7 +263,14 @@ if (stopSprintBtn) {
     });
 }
 
-export function startSprintMode() {
+export function setPresetAndStart(presetKey) {
+    const select = document.getElementById('sprint-presets');
+    if (select) {
+        select.value = presetKey;
+        select.dispatchEvent(new Event('change'));
+    }
+    startSprintMode();
+}
     if (!sprintState.isSprintRunning) {
         const rawTasks = sprintTasksInput ? sprintTasksInput.value.split('\n').map(t => t.trim()).filter(Boolean) : [];
         sprintState.sprintTasks = rawTasks.length > 0 ? rawTasks : ['Unnamed Sprint'];

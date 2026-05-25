@@ -23,7 +23,8 @@ const ALLOWED_SEND_CHANNELS = [
     'clear-all-blocks',
     'start-health-mode',
     'stop-health-mode',
-    'store-set'
+    'store-set',
+    'store-set-multiple'
 ];
 
 // Whitelist of channels the renderer can LISTEN to from the main process
@@ -39,16 +40,8 @@ const ALLOWED_ON_CHANNELS = [
     'update-display',
     'start-next-phase',
     'blocker-status',
-    'blocker-error'
-];
-
-// Prefix-based whitelist for dynamic timer channels
-const TIMER_PREFIXES = [
-    'timer-complete-',
-    'timer-started-',
-    'timer-stopped-',
-    'timer-paused-',
-    'timer-resumed-'
+    'blocker-error',
+    'timer-event'
 ];
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -60,21 +53,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
         }
     },
     on: (channel, func) => {
-        const isTimerChannel = TIMER_PREFIXES.some(prefix => channel.startsWith(prefix));
-        if (ALLOWED_ON_CHANNELS.includes(channel) || isTimerChannel) {
-            ipcRenderer.on(channel, (event, ...args) => func(...args));
+        if (ALLOWED_ON_CHANNELS.includes(channel)) {
+            const listener = (event, ...args) => func(...args);
+            ipcRenderer.on(channel, listener);
+            return () => {
+                ipcRenderer.removeListener(channel, listener);
+            };
         } else {
             console.warn(`Blocked unauthorized IPC listener registration on channel: ${channel}`);
+            return () => {};
         }
     },
     invoke: (channel, ...args) => {
-        if (['store-get'].includes(channel)) {
+        if (['store-get', 'save-audio-file', 'delete-audio-file'].includes(channel)) {
             return ipcRenderer.invoke(channel, ...args);
         }
     },
     store: {
         get: (key, defaultValue) => ipcRenderer.invoke('store-get', key, defaultValue),
         set: (key, value) => ipcRenderer.send('store-set', key, value),
+        setMultiple: (dataObj) => ipcRenderer.send('store-set-multiple', dataObj),
         delete: (key) => ipcRenderer.send('store-delete', key)
     },
     normalizeHost: (val) => {

@@ -27,14 +27,22 @@ function init() {
         if (data.postureBreakDuration) healthConfig.postureBreakDuration = data.postureBreakDuration;
         
         if (healthConfig.eyeSaver) {
+            let nextEyeTime = Date.now() + healthConfig.eyeSaverInterval;
             healthIntervals.eye = setInterval(() => {
-                windowManager.createPopupWindow("Eye Saver: Look at something 20 feet away for 20 seconds.", healthConfig.eyeBreakDuration, 'eye', false, healthConfig);
-            }, healthConfig.eyeSaverInterval);
+                if (Date.now() >= nextEyeTime) {
+                    windowManager.createPopupWindow("Eye Saver: Look at something 20 feet away for 20 seconds.", healthConfig.eyeBreakDuration, 'eye', false, healthConfig);
+                    nextEyeTime = Date.now() + healthConfig.eyeSaverInterval;
+                }
+            }, 1000);
         }
         if (healthConfig.postureCheck) {
+            let nextPostureTime = Date.now() + healthConfig.postureInterval;
             healthIntervals.posture = setInterval(() => {
-                windowManager.createPopupWindow("Posture Check: Time to sit up straight and stretch for a minute.", healthConfig.postureBreakDuration, 'posture', false, healthConfig);
-            }, healthConfig.postureInterval);
+                if (Date.now() >= nextPostureTime) {
+                    windowManager.createPopupWindow("Posture Check: Time to sit up straight and stretch for a minute.", healthConfig.postureBreakDuration, 'posture', false, healthConfig);
+                    nextPostureTime = Date.now() + healthConfig.postureInterval;
+                }
+            }, 1000);
         }
     });
 

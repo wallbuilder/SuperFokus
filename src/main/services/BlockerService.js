@@ -108,7 +108,7 @@ function startProxy(allowedHosts, allowedUrls) {
             serverSocket.on('error', () => { try { clientSocket.end(); } catch (e) {} });
             clientSocket.on('error', () => { try { serverSocket.end(); } catch (e) {} });
         } else {
-            clientSocket.end('HTTP/1.1 403 Forbidden\r\n\r\n');
+            clientSocket.end();
         }
     });
 
@@ -237,6 +237,12 @@ function cleanup(callback) {
 }
 
 module.exports = {
+    init,
+    cleanup,
+    runElevated,
+    getBlocksApplied: () => blocksApplied
+};
+exports = {
     init,
     cleanup,
     runElevated,
