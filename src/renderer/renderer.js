@@ -111,6 +111,7 @@ if (headerTitle) {
             import('./ui/integration.js')
         ]);
 
+
         const initApp = async () => {
           console.log('[Startup] Initializing App UI...');
           if (window.electronAPI && window.electronAPI.platform === 'darwin') {

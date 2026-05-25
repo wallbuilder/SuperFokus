@@ -23,14 +23,15 @@ const ALLOWED_SEND_CHANNELS = [
     'clear-all-blocks',
     'start-health-mode',
     'stop-health-mode',
-    'store-set',
-    'show-notification'
+    'store-set'
 ];
 
 // Whitelist of channels the renderer can LISTEN to from the main process
 const ALLOWED_ON_CHANNELS = [
     'display-message',
     'set-theme',
+    'init-timer',
+    'update-timer-window',
     'pomo-popup-closed',
     'flow-popup-closed',
     'set-fullscreen-data',
