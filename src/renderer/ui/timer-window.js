@@ -7,7 +7,6 @@ const progressContainer = document.getElementById('progress-container');
 const extraInfoDisplay = document.getElementById('extra-info');
 
 let currentType = 'pomo';
-let localInterval = null;
 let totalDuration = 0;
 
 function setThemeColor(type) {
@@ -38,38 +37,35 @@ function setThemeColor(type) {
     document.body.style.setProperty('--theme-color-2', color2);
 }
 
-function startLocalTick(endTime, duration) {
-    if (duration) totalDuration = duration;
-    if (localInterval) clearInterval(localInterval);
-    const startTime = endTime - (totalDuration * 1000);
-
-    localInterval = setInterval(() => {
-        const now = Date.now();
-        const secondsRemaining = Math.max(0, Math.round((endTime - now) / 1000));
-        const secondsElapsed = Math.round((now - startTime) / 1000);
-        
-        if (currentType === 'flow') {
-            const h = Math.floor(secondsElapsed / 3600);
-            const m = Math.floor((secondsElapsed % 3600) / 60);
-            const s = secondsElapsed % 60;
-            timerDisplay.innerText = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        } else {
-            const mins = Math.floor(secondsRemaining / 60);
-            const secs = secondsRemaining % 60;
-            timerDisplay.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        }
-        
-        if (totalDuration > 0 && currentType !== 'flow') {
-            const percent = (secondsRemaining / totalDuration) * 100;
-            progressBar.style.width = `${percent}%`;
-        }
-        
-        if (secondsRemaining <= 0 && currentType !== 'flow') {
-            clearInterval(localInterval);
-            localInterval = null;
-        }
-    }, 1000);
+function formatTime(seconds) {
+    if (currentType === 'flow') {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    } else {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
 }
+
+ipcRenderer.on('timer-tick', (batchedTicks) => {
+    // Find the relevant tick for currentType or any active timer
+    // In timer-window, we usually only care about the primary active timer
+    const data = batchedTicks.find(t => t.id === currentType) || batchedTicks[0];
+    if (data) {
+        if (currentType === 'flow') {
+            timerDisplay.innerText = formatTime(data.total - data.remaining);
+        } else {
+            timerDisplay.innerText = formatTime(data.remaining);
+            if (data.total > 0) {
+                const percent = (data.remaining / data.total) * 100;
+                progressBar.style.width = `${percent}%`;
+            }
+        }
+    }
+});
 
 ipcRenderer.on('init-timer', (type) => {
     currentType = type;

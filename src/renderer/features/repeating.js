@@ -112,6 +112,7 @@ export function setPresetAndStart(presetKey) {
     if (reminderRoundsInput) reminderRoundsInput.value = 1; // 1 round per cycle
     startRepeatingReminders();
 }
+export function startRepeatingReminders() {
     const intervalMins = parseInt(reminderIntervalInput.value, 10) || 0;
     const intervalSecs = parseInt(reminderIntervalSecondsInput.value, 10) || 0;
     const totalSeconds = (intervalMins * 60) + intervalSecs;

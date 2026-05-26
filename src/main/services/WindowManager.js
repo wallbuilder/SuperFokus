@@ -481,9 +481,3 @@ class WindowManager {
 }
 
 module.exports = new WindowManager();
-
-        });
-    }
-}
-
-module.exports = new WindowManager();

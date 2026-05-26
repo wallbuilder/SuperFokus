@@ -99,6 +99,12 @@ export async function initFlow() {
 if (startFlowBtn) startFlowBtn.addEventListener('click', startFlowState);
 if (stopFlowBtn) stopFlowBtn.addEventListener('click', stopFlowState);
 
+ipcRenderer.on('start-flow-state-from-dock', () => {
+    if (!flowState.isFlowRunning) {
+        startFlowState();
+    }
+});
+
 ipcRenderer.on('flow-popup-closed', () => {
     if (flowState.isFlowRunning) {
         stopFlowState();

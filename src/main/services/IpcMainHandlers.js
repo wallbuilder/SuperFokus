@@ -111,9 +111,10 @@ async function init() {
 
     ipcMain.handle('save-audio-file', async (event, fileName, arrayBuffer) => {
         if (!windowManager.isOriginSafe(event)) return null;
+        const safeFileName = path.basename(fileName);
         const soundsDir = path.join(app.getPath('userData'), 'sounds');
         await require('fs').promises.mkdir(soundsDir, { recursive: true });
-        const filePath = path.join(soundsDir, fileName);
+        const filePath = path.join(soundsDir, safeFileName);
         await require('fs').promises.writeFile(filePath, Buffer.from(arrayBuffer));
         return `file://${filePath.replace(/\\/g, '/')}`;
     });
