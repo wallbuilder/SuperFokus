@@ -2,9 +2,7 @@ import { ipcRenderer } from '../../utils/ipc.js';
 import { sharedState } from '../../utils/state.js';
 import { customAlert } from '../../ui/modals.js';
 import { playChime } from '../../utils/audio.js';
-import { startPomoStyle, stopPomoStyle, pomoState } from '../pomo-timer.js';
-import { startRepeatingReminders, stopRepeatingReminders, repeatingState } from '../repeating.js';
-import { startSprintMode, stopSprintMode, sprintState } from '../micro-sprint.js';
+import { timerState, setPresetAndStart, stopAllActive } from '../TimerService.js';
 import { formatTime } from '../../utils/ui-helpers.js';
 import { showOSNotification } from '../../utils/notifications.js';
 import { workflowState, workflowBlocks } from './workflows-state.js';
@@ -33,7 +31,7 @@ export function startNextWorkflowBlock() {
     }
 
     const currentBlock = workflowBlocks[workflowState.currentBlockIndex];
-    
+
     if (workflowState.currentCycle >= currentBlock.cycles) {
         workflowState.currentBlockIndex++;
         workflowState.currentCycle = 0;
@@ -42,21 +40,21 @@ export function startNextWorkflowBlock() {
     }
 
     workflowState.currentCycle++;
-    
+
     // Execute Break Block if it is next in the Workflow
     if (currentBlock.type === 'break') {
         const durationSecs = (currentBlock.duration || 5) * 60;
-        
+
         // Ensure timer is registered in main BEFORE showing the popup
         ipcRenderer.send('start-timer', { id: 'workflow-break', seconds: durationSecs });
-        
+
         ipcRenderer.send('show-break-popup', { 
             type: 'Break', 
             duration: durationSecs, 
             fullScreen: currentBlock.blocksScreen,
             autoStart: true 
         });
-        
+
         if (!currentBlock.blocksScreen) {
             ipcRenderer.send('open-timer-window', 'pomo');
             ipcRenderer.send('update-timer-window', {
@@ -67,23 +65,17 @@ export function startNextWorkflowBlock() {
         }
         return;
     }
-    
+
     const modeMap = {
         'pomo': 'pomo-style',
         'sprint': 'micro-sprint',
         'repeating': 'repeating-reminders'
     };
-    
+
     switchMode(modeMap[currentBlock.type]);
 
     requestAnimationFrame(() => {
-        if (currentBlock.type === 'pomo') {
-            import('../pomo-timer.js').then(module => module.setPresetAndStart(currentBlock.presetKey));
-        } else if (currentBlock.type === 'sprint') {
-            import('../micro-sprint.js').then(module => module.setPresetAndStart(currentBlock.presetKey));
-        } else if (currentBlock.type === 'repeating') {
-            import('../repeating.js').then(module => module.setPresetAndStart(currentBlock.presetKey));
-        }
+        setPresetAndStart(currentBlock.type, currentBlock.presetKey);
     }); // slight delay to ensure UI updates after switching modes
 }
 
@@ -118,21 +110,18 @@ export function setupEngineListeners() {
     if (stopWorkflowBtn) {
         stopWorkflowBtn.addEventListener('click', () => {
             workflowState.isWorkflowRunning = false;
-            
+
             ipcRenderer.send('stop-timer', 'workflow-break');
             ipcRenderer.send('close-popup');
             ipcRenderer.send('close-fullscreen');
             ipcRenderer.send('close-timer-window');
 
-            if (pomoState.isPomoRunning) stopPomoStyle();
-            if (repeatingState.isRepeatingRunning) stopRepeatingReminders();
-            if (sprintState.isSprintRunning) stopSprintMode();
-            
+            stopAllActive();
+
             resetWorkflowState();
             switchMode('workflows');
         });
     }
-
     cleanupTimerTick = ipcRenderer.on('timer-tick', (batchedTicks) => {
         const data = batchedTicks.find(t => t.id === 'workflow-break');
         if (data) {

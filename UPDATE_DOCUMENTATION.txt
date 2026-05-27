@@ -7,19 +7,21 @@ Before each commit, the contents of this file should be mostly discarded of, EXC
 Each new edit to the file that documents new changes should also list the date and time of implementation.
 (Note: You must list ALL changes, including small ones. No detail is too small).
 [DO NOT DELETE THIS TEXT, DELETE TEXT BELOW THIS LINE] >
-{5/24/2026 at 10:00 AM}
-    [Refactor & Merge]
-     - Merged 'master' into 'windows' branch.
-     - Resolved IPC conflicts in 'preload.js' and 'workflows-engine.js' by adopting centralized 'timer-event' pattern.
-     - Implemented listener cleanup functions in renderer-side IPC handlers.
 
-    [Cleanup & Maintenance]
-     - Deleted dead code files: 'temp_workflows.js' (25KB) and 'test-env.js'.
-     - Removed redundant/incorrect exports in 'BlockerService.js'.
 
-    [Fixed Bugs & Improvements]
-     - Added error logging to 'BlockerService.js' for URL parsing and proxy setup failures.
-     - Verified 'pomoTimerWindow' typo fix in 'TimerService.js'.
+
+{5/26/2026 at 3:00 PM}
+    [Refactored]
+     - Unified all renderer-side timers (Pomo, Repeating, Sprint, Flow) into a single 'TimerService.js'.
+     - Consolidated shared state, IPC listeners (timer-tick, timer-event), and UI initialization.
+     - Updated 'renderer.js' and 'workflows-engine.js' to use the new unified service.
+     - Deleted redundant feature files: 'pomo-timer.js', 'repeating.js', 'micro-sprint.js', and 'flow-state.js'.
+
+{5/26/2026 at 2:00 PM}
+    [Fixed Bugs]
+     - Fixed startup error where 'stopPomoStyle' was not exported from 'pomo-timer.js' but was imported in 'workflows-engine.js'. Added 'export' keyword to 'stopPomoStyle' in 'src/renderer/features/pomo-timer.js'.
+
+
 
 < [DO NOT DELETE THIS TEXT, DELETE TEXT ABOVE THIS LINE]
 (Example chunk of documentation:

@@ -113,16 +113,13 @@ if (window.electronAPI) {
         console.log('[Startup] Migration complete. Loading modules...');
 
         const [
-            theme, stats, audio, workflows, pomo, repeating, sprint, flow, integration
+            theme, stats, audio, workflows, timers, integration
         ] = await Promise.all([
             import('./ui/theme.js'),
             import('./utils/stats.js'),
             import('./utils/audio.js'),
             import('./features/workflows.js'),
-            import('./features/pomo-timer.js'),
-            import('./features/repeating.js'),
-            import('./features/micro-sprint.js'),
-            import('./features/flow-state.js'),
+            import('./features/TimerService.js'),
             import('./ui/integration.js')
         ]);
 
@@ -137,7 +134,7 @@ if (window.electronAPI) {
           const loadingText = document.getElementById('startup-loading-text');
           
           if (!startupScreen) {
-            await runInitializationSteps(theme, stats, audio, workflows, pomo, repeating, sprint, flow, integration);
+            await runInitializationSteps(theme, stats, audio, workflows, timers, integration);
             return;
           }
           
@@ -156,11 +153,11 @@ if (window.electronAPI) {
               initializeDomElements(workflows.setupWorkflowEventListeners, workflows.setupWorkflowPresetsEventListeners);
               await Promise.all([
                   theme.initTheme(), stats.initStats(), audio.initAudio(), workflows.initWorkflows(),
-                  pomo.initPomo(), repeating.initRepeating(), sprint.initSprint(), flow.initFlow(),
+                  timers.initTimerService(),
                   integration.setupIntegrationUI()
               ]);
 
-              initializeButtonListeners(repeating.initializeRepeatingButtonListeners);
+              initializeButtonListeners(() => {}); // repeating.initializeRepeatingButtonListeners is now in TimerService
               initializeCustomSoundpackListeners(
                   audio.updateCustomNotifsUI, audio.updateCustomAmbientUI, audio.updateCustomPackUI,
                   audio.updateSoundSelectors, audio.loadFileAsDataURL, audio.saveCustomSoundPack, audio.deleteCustomSoundPack
@@ -173,14 +170,14 @@ if (window.electronAPI) {
           };
           executeStepsSequentially();        };
 
-        const runInitializationSteps = async (theme, stats, audio, workflows, pomo, repeating, sprint, flow, integration) => {
+        const runInitializationSteps = async (theme, stats, audio, workflows, timers, integration) => {
             initializeDomElements(workflows.setupWorkflowEventListeners, workflows.setupWorkflowPresetsEventListeners);
             await Promise.all([
                 theme.initTheme(), stats.initStats(), audio.initAudio(), workflows.initWorkflows(),
-                pomo.initPomo(), repeating.initRepeating(), sprint.initSprint(), flow.initFlow(),
+                timers.initTimerService(),
                 integration.setupIntegrationUI()
             ]);
-            initializeButtonListeners(repeating.initializeRepeatingButtonListeners);
+            initializeButtonListeners(() => {});
             initializeCustomSoundpackListeners(
                 audio.updateCustomNotifsUI, audio.updateCustomAmbientUI, audio.updateCustomPackUI, 
                 audio.updateSoundSelectors, audio.loadFileAsDataURL, audio.saveCustomSoundPack, audio.deleteCustomSoundPack
