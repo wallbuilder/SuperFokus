@@ -90,21 +90,6 @@ if (headerTitle) {
     headerTitle.addEventListener('click', () => returnToHome(true));
 }
 
-if (window.electronAPI) {
-    window.electronAPI.on('pause-timer-from-dock', (id) => {
-        // Try to find the appropriate pause button based on the timer ID
-        let btnId = '';
-        if (id === 'pomo') btnId = 'pause-pomo-btn';
-        else if (id === 'sprint') btnId = 'pause-sprint-btn';
-        else if (id === 'repeating') btnId = 'pause-repeating-btn';
-        
-        if (btnId) {
-            const btn = document.getElementById(btnId);
-            if (btn) btn.click();
-        }
-    });
-}
-
 // Startup Logic
 (async () => {
     try {

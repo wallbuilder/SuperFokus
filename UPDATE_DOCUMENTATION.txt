@@ -10,12 +10,13 @@ Each new edit to the file that documents new changes should also list the date a
 
 
 
-{5/26/2026 at 3:00 PM}
+{5/26/2026 at 4:00 PM}
     [Refactored]
-     - Unified all renderer-side timers (Pomo, Repeating, Sprint, Flow) into a single 'TimerService.js'.
-     - Consolidated shared state, IPC listeners (timer-tick, timer-event), and UI initialization.
-     - Updated 'renderer.js' and 'workflows-engine.js' to use the new unified service.
-     - Deleted redundant feature files: 'pomo-timer.js', 'repeating.js', 'micro-sprint.js', and 'flow-state.js'.
+     - Completed the unification of renderer-side timers into 'TimerService.js'.
+     - Standardized IPC event handling for popup closures using the 'popup-closed' event.
+     - Decoupled 'workflows-state.js' from the DOM by utilizing the unified 'timerState' for duration calculations.
+     - Enhanced Pomo sequence editing with high-precision 'secs' vs 'mins' validation.
+     - Hardened all UI references with null-safe checks to ensure startup stability.
 
 {5/26/2026 at 2:00 PM}
     [Fixed Bugs]

@@ -5,7 +5,7 @@ import { sharedState } from '../utils/state.js';
 import { showOSNotification } from '../utils/notifications.js';
 import { customAlert } from '../ui/modals.js';
 import { recordFocusSession } from '../utils/stats.js';
-import { formatTime, setInputsLocked, toggleStartStopButton, escapeHtml } from '../utils/ui-helpers.js';
+import { formatTime as uiFormatTime, setInputsLocked, toggleStartStopButton, escapeHtml } from '../utils/ui-helpers.js';
 
 /**
  * Unified Timer Service (Renderer)
@@ -161,8 +161,12 @@ function setupGlobalListeners() {
 
     ipcRenderer.on('pause-timer-from-dock', (id) => pauseTimer(id));
     ipcRenderer.on('start-flow-state-from-dock', () => { if (!timerState.flow.isFlowRunning) startFlow(); });
-    ipcRenderer.on('pomo-popup-closed', () => { if (timerState.pomo.isPomoRunning) stopPomo(); });
-    ipcRenderer.on('flow-popup-closed', () => { if (timerState.flow.isFlowRunning) stopFlow(); });
+    
+    // Unified popup closure handling
+    ipcRenderer.on('popup-closed', () => {
+        if (timerState.pomo.isPomoRunning) stopPomo();
+        if (timerState.flow.isFlowRunning) stopFlow();
+    });
 
     ipcRenderer.on('start-next-phase', () => {
         if (sharedState.isWorkflowRunning) {
@@ -206,9 +210,26 @@ function initPomoUI(customPresets) {
             if (idx === null) return;
             if (e.target.tagName === 'INPUT') {
                 let val = parseInt(e.target.value, 10) || 1;
+                const unitSelect = pomoUI.sequenceList.querySelector(`select[data-index="${idx}"]`);
+                if (unitSelect && unitSelect.value === 'secs' && val >= 60) {
+                    val = 59;
+                    e.target.value = val;
+                }
                 updatePomoSequenceDuration(idx, val);
             } else if (e.target.tagName === 'SELECT') {
-                updatePomoSequenceDuration(idx, undefined, e.target.value);
+                const newUnit = e.target.value;
+                updatePomoSequenceDuration(idx, undefined, newUnit);
+                if (newUnit === 'secs') {
+                    const input = pomoUI.sequenceList.querySelector(`input[data-index="${idx}"]`);
+                    if (input) {
+                        let val = parseInt(input.value, 10) || 1;
+                        if (val >= 60) {
+                            val = 59;
+                            input.value = val;
+                            updatePomoSequenceDuration(idx, val);
+                        }
+                    }
+                }
             }
         });
         pomoUI.sequenceList.addEventListener('click', (e) => {
@@ -226,15 +247,17 @@ function initPomoUI(customPresets) {
 
     const deleteBtn = document.getElementById('delete-pomo-preset-btn');
     if (deleteBtn) deleteBtn.addEventListener('click', () => {
-        const val = pomoUI.presetsSelect.value;
+        const val = pomoUI.presetsSelect ? pomoUI.presetsSelect.value : '';
         if (val.startsWith('custom-preset-')) {
             const key = val.replace('custom-preset-', '');
             if (confirm(`Are you sure you want to delete preset "${key}"?`)) {
                 delete customPresets[key];
                 store.set('customPomoPresets', customPresets);
                 updatePomoPresetOptions(customPresets);
-                pomoUI.presetsSelect.value = 'custom';
-                pomoUI.presetsSelect.dispatchEvent(new Event('change'));
+                if (pomoUI.presetsSelect) {
+                    pomoUI.presetsSelect.value = 'custom';
+                    pomoUI.presetsSelect.dispatchEvent(new Event('change'));
+                }
             }
         }
     });
@@ -245,25 +268,30 @@ function initPomoUI(customPresets) {
     const confirmBtn = document.getElementById('confirm-save-preset-btn');
     const cancelBtn = document.getElementById('cancel-save-preset-btn');
 
-    if (saveBtn) saveBtn.addEventListener('click', () => {
-        if (timerState.pomo.pomoSequence.length === 0) { customAlert('Add phases to sequence before saving.'); return; }
-        saveContainer.style.display = 'flex';
-        nameInput.focus();
-    });
+    if (saveBtn && saveContainer) {
+        saveBtn.addEventListener('click', () => {
+            if (timerState.pomo.pomoSequence.length === 0) { customAlert('Add phases to sequence before saving.'); return; }
+            saveContainer.style.display = 'flex';
+            if (nameInput) nameInput.focus();
+        });
+    }
 
-    if (confirmBtn) confirmBtn.addEventListener('click', () => {
-        const name = nameInput.value;
-        if (name && name.trim()) {
-            customPresets[name.trim()] = { sequence: JSON.parse(JSON.stringify(timerState.pomo.pomoSequence)), repeats: pomoUI.repeatsInput.value };
-            store.set('customPomoPresets', customPresets);
-            updatePomoPresetOptions(customPresets);
-            pomoUI.presetsSelect.value = `custom-preset-${name.trim()}`;
-            nameInput.value = '';
-            saveContainer.style.display = 'none';
-        }
-    });
+    if (confirmBtn && saveContainer && nameInput) {
+        confirmBtn.addEventListener('click', () => {
+            const name = nameInput.value;
+            if (name && name.trim()) {
+                const repeats = pomoUI.repeatsInput ? pomoUI.repeatsInput.value : 1;
+                customPresets[name.trim()] = { sequence: JSON.parse(JSON.stringify(timerState.pomo.pomoSequence)), repeats: repeats };
+                store.set('customPomoPresets', customPresets);
+                updatePomoPresetOptions(customPresets);
+                if (pomoUI.presetsSelect) pomoUI.presetsSelect.value = `custom-preset-${name.trim()}`;
+                nameInput.value = '';
+                saveContainer.style.display = 'none';
+            }
+        });
+    }
 
-    if (cancelBtn) cancelBtn.addEventListener('click', () => { nameInput.value = ''; saveContainer.style.display = 'none'; });
+    if (cancelBtn && saveContainer && nameInput) cancelBtn.addEventListener('click', () => { nameInput.value = ''; saveContainer.style.display = 'none'; });
 
     document.addEventListener('click', (e) => { if (e.target.id === 'pause-pomo-btn') pauseTimer('pomo'); });
     if (pomoUI.continueBtn) pomoUI.continueBtn.addEventListener('click', startPomoPhase);
@@ -370,11 +398,18 @@ export function stopPomo() {
     ipcRenderer.send('close-timer-window'); ipcRenderer.send('close-popup'); ipcRenderer.send('close-fullscreen');
 }
 
+function formatTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
 function updatePomoDisplay(notifyWindow = false) {
     const { pomo } = timerState;
     if (pomoUI.timeLeft) pomoUI.timeLeft.innerText = formatTime(pomo.pomoTimer);
     const currentPhase = pomo.isPomoRunning ? pomo.activePomoSequence[pomo.currentPhaseIndex] : pomo.pomoSequence[0];
-    if (pomoUI.statusText) pomoUI.statusText.innerText = currentPhase ? (currentPhase.type === 'work' ? 'Work Session' : 'Break Time') : 'Finished';
+    const status = currentPhase ? (currentPhase.type === 'work' ? 'Work Session' : 'Break Time') : 'Finished';
+    if (pomoUI.statusText) pomoUI.statusText.innerText = status;
     
     const nextIdx = pomo.currentPhaseIndex + 1;
     let nextText = '--';
@@ -393,7 +428,7 @@ function updatePomoDisplay(notifyWindow = false) {
 
     if (notifyWindow) {
         const total = currentPhase ? (currentPhase.totalSeconds || (currentPhase.duration * (currentPhase.unit === 'secs' ? 1 : 60))) : 1;
-        ipcRenderer.send('update-timer-window', { phase: pomoUI.statusText.innerText, timeLeft: formatTime(pomo.pomoTimer), percent: (pomo.pomoTimer / total) * 100 });
+        ipcRenderer.send('update-timer-window', { phase: status, timeLeft: formatTime(pomo.pomoTimer), percent: (pomo.pomoTimer / total) * 100 });
     }
 }
 
@@ -418,7 +453,10 @@ function handlePomoPresetChange(val, customPresets) {
     else if (val === 'homework') timerState.pomo.pomoSequence = [{ type: 'work', duration: 45 }, { type: 'break', duration: 15 }];
     else if (val.startsWith('custom-preset-')) {
         const key = val.replace('custom-preset-', '');
-        if (customPresets[key]) timerState.pomo.pomoSequence = JSON.parse(JSON.stringify(customPresets[key].sequence || customPresets[key]));
+        if (customPresets[key]) {
+            timerState.pomo.pomoSequence = JSON.parse(JSON.stringify(customPresets[key].sequence || customPresets[key]));
+            if (customPresets[key].repeats !== undefined && pomoUI.repeatsInput) pomoUI.repeatsInput.value = customPresets[key].repeats;
+        }
     }
     renderPomoSequence();
 }
@@ -439,8 +477,8 @@ function initRepeatingUI(presets) {
     if (repeatingUI.infiniteCheckbox) {
         repeatingUI.infiniteCheckbox.addEventListener('change', (e) => {
             const roundsContainer = document.getElementById('rounds-container'); const status = document.getElementById('infinite-status');
-            if (e.target.checked) { if (roundsContainer) roundsContainer.classList.add('hidden'); status.style.display = 'block'; }
-            else { if (roundsContainer) roundsContainer.classList.remove('hidden'); status.style.display = 'none'; }
+            if (e.target.checked) { if (roundsContainer) roundsContainer.classList.add('hidden'); if (status) status.style.display = 'block'; }
+            else { if (roundsContainer) roundsContainer.classList.remove('hidden'); if (status) status.style.display = 'none'; }
         });
     }
 
@@ -455,12 +493,15 @@ function initRepeatingUI(presets) {
 
     const deleteBtn = document.getElementById('delete-repeating-preset-btn');
     if (deleteBtn) deleteBtn.addEventListener('click', () => {
-        const val = repeatingUI.presetsSelect.value;
+        const val = repeatingUI.presetsSelect ? repeatingUI.presetsSelect.value : '';
         if (val.startsWith('custom-preset-')) {
             const key = val.replace('custom-preset-', '');
             if (confirm(`Delete preset "${escapeHtml(key)}"?`)) {
                 delete presets[key]; store.set('repeatingPresets', presets); updateRepeatingPresetOptions(presets);
-                repeatingUI.presetsSelect.value = 'custom'; repeatingUI.presetsSelect.dispatchEvent(new Event('change'));
+                if (repeatingUI.presetsSelect) {
+                    repeatingUI.presetsSelect.value = 'custom';
+                    repeatingUI.presetsSelect.dispatchEvent(new Event('change'));
+                }
             }
         }
     });
@@ -471,29 +512,39 @@ function initRepeatingUI(presets) {
     const confirmBtn = document.getElementById('confirm-save-repeating-preset-btn');
     const cancelBtn = document.getElementById('cancel-save-repeating-preset-btn');
 
-    if (saveBtn) saveBtn.addEventListener('click', () => { if (repeatingUI.infiniteCheckbox.checked) { customAlert("No infinite presets."); return; } container.style.display = 'flex'; nameInput.focus(); });
-    if (confirmBtn) confirmBtn.addEventListener('click', () => {
+    if (saveBtn && container) saveBtn.addEventListener('click', () => { if (repeatingUI.infiniteCheckbox && repeatingUI.infiniteCheckbox.checked) { customAlert("No infinite presets."); return; } container.style.display = 'flex'; if (nameInput) nameInput.focus(); });
+    if (confirmBtn && container && nameInput) confirmBtn.addEventListener('click', () => {
         const name = nameInput.value;
         if (name && name.trim()) {
-            presets[name.trim()] = { intervalMins: repeatingUI.intervalInput.value, intervalSecs: repeatingUI.intervalSecsInput.value, rounds: repeatingUI.roundsInput.value, message: repeatingUI.messageInput.value };
+            presets[name.trim()] = {
+                intervalMins: repeatingUI.intervalInput ? repeatingUI.intervalInput.value : 0,
+                intervalSecs: repeatingUI.intervalSecsInput ? repeatingUI.intervalSecsInput.value : 0,
+                rounds: repeatingUI.roundsInput ? repeatingUI.roundsInput.value : 5,
+                message: repeatingUI.messageInput ? repeatingUI.messageInput.value : ''
+            };
             store.set('repeatingPresets', presets); updateRepeatingPresetOptions(presets);
-            repeatingUI.presetsSelect.value = `custom-preset-${name.trim()}`; nameInput.value = ''; container.style.display = 'none';
+            if (repeatingUI.presetsSelect) repeatingUI.presetsSelect.value = `custom-preset-${name.trim()}`;
+            nameInput.value = ''; container.style.display = 'none';
         }
     });
-    if (cancelBtn) cancelBtn.addEventListener('click', () => { nameInput.value = ''; container.style.display = 'none'; });
+    if (cancelBtn && container && nameInput) cancelBtn.addEventListener('click', () => { nameInput.value = ''; container.style.display = 'none'; });
     document.addEventListener('click', (e) => { if (e.target.closest('#pause-repeating-btn')) pauseTimer('repeating'); });
 }
 
 function handleRepeatingPresetChange(val, presets) {
-    document.getElementById('delete-repeating-preset-btn').style.display = val.startsWith('custom-preset-') ? 'block' : 'none';
-    if (val === 'concentration') { repeatingUI.intervalInput.value = 0; repeatingUI.intervalSecsInput.value = 30; repeatingUI.roundsInput.value = 5; repeatingUI.messageInput.value = "Stay focused!"; }
-    else if (val === 'high-intensity') { repeatingUI.intervalInput.value = 0; repeatingUI.intervalSecsInput.value = 20; repeatingUI.roundsInput.value = 10; repeatingUI.messageInput.value = "Push!"; }
-    else if (val === 'quick-work') { repeatingUI.intervalInput.value = 1; repeatingUI.intervalSecsInput.value = 0; repeatingUI.roundsInput.value = 5; repeatingUI.messageInput.value = "Stay on task."; }
+    const delBtn = document.getElementById('delete-repeating-preset-btn');
+    if (delBtn) delBtn.style.display = val.startsWith('custom-preset-') ? 'block' : 'none';
+    if (val === 'concentration') { if (repeatingUI.intervalInput) repeatingUI.intervalInput.value = 0; if (repeatingUI.intervalSecsInput) repeatingUI.intervalSecsInput.value = 30; if (repeatingUI.roundsInput) repeatingUI.roundsInput.value = 5; if (repeatingUI.messageInput) repeatingUI.messageInput.value = "Stay focused!"; }
+    else if (val === 'high-intensity') { if (repeatingUI.intervalInput) repeatingUI.intervalInput.value = 0; if (repeatingUI.intervalSecsInput) repeatingUI.intervalSecsInput.value = 20; if (repeatingUI.roundsInput) repeatingUI.roundsInput.value = 10; if (repeatingUI.messageInput) repeatingUI.messageInput.value = "Push!"; }
+    else if (val === 'quick-work') { if (repeatingUI.intervalInput) repeatingUI.intervalInput.value = 1; if (repeatingUI.intervalSecsInput) repeatingUI.intervalSecsInput.value = 0; if (repeatingUI.roundsInput) repeatingUI.roundsInput.value = 5; if (repeatingUI.messageInput) repeatingUI.messageInput.value = "Stay on task."; }
     else if (val.startsWith('custom-preset-')) {
         const key = val.replace('custom-preset-', '');
         if (presets[key]) {
-            const d = presets[key]; repeatingUI.intervalInput.value = d.intervalMins || 0; repeatingUI.intervalSecsInput.value = d.intervalSecs || 0;
-            repeatingUI.roundsInput.value = d.rounds || 5; repeatingUI.messageInput.value = d.message || '';
+            const d = presets[key];
+            if (repeatingUI.intervalInput) repeatingUI.intervalInput.value = d.intervalMins || 0;
+            if (repeatingUI.intervalSecsInput) repeatingUI.intervalSecsInput.value = d.intervalSecs || 0;
+            if (repeatingUI.roundsInput) repeatingUI.roundsInput.value = d.rounds || 5;
+            if (repeatingUI.messageInput) repeatingUI.messageInput.value = d.message || '';
         }
     }
 }
@@ -508,11 +559,15 @@ function handleRepeatingEvent(payload) {
 }
 
 export function startRepeating() {
-    const { repeating } = timerState; const total = (parseInt(repeatingUI.intervalInput.value) * 60) + parseInt(repeatingUI.intervalSecsInput.value || 0);
-    const rounds = parseInt(repeatingUI.roundsInput.value) || 1; const isInf = repeatingUI.infiniteCheckbox.checked;
+    const { repeating } = timerState;
+    const intervalMins = repeatingUI.intervalInput ? parseInt(repeatingUI.intervalInput.value) : 0;
+    const intervalSecs = repeatingUI.intervalSecsInput ? parseInt(repeatingUI.intervalSecsInput.value) : 0;
+    const total = (intervalMins * 60) + (intervalSecs || 0);
+    const rounds = repeatingUI.roundsInput ? parseInt(repeatingUI.roundsInput.value) : 1;
+    const isInf = repeatingUI.infiniteCheckbox ? repeatingUI.infiniteCheckbox.checked : false;
     if (total <= 0) { customAlert('Valid interval pls.'); return; }
     repeating.currentRepeatingTotalSeconds = total; repeating.isRepeatingRunning = true; repeating.isRepeatingPaused = false;
-    repeating.currentRounds = isInf ? Infinity : rounds; repeating.repeatingTimer = total;
+    repeating.currentRounds = isInf ? Infinity : (rounds || 1); repeating.repeatingTimer = total;
     toggleStartStopButton(repeatingUI.startBtn); setInputsLocked('config-repeating-reminders', true);
     if (repeatingUI.timerDisplay) repeatingUI.timerDisplay.classList.remove('hidden');
     if (repeatingUI.pauseBtn) { repeatingUI.pauseBtn.style.display = 'block'; repeatingUI.pauseBtn.innerText = 'Pause \u23F8'; }
@@ -521,10 +576,13 @@ export function startRepeating() {
 
 function handleRepeatingComplete() {
     const { repeating } = timerState; playChime(); showOSNotification('end');
-    ipcRenderer.send('show-popup', { message: repeatingUI.messageInput.value, closeDelay: (parseInt(repeatingUI.autocloseInput.value) || 10) * 1000, type: 'Repeating Reminder', isAutoclose: true });
+    const msg = repeatingUI.messageInput ? repeatingUI.messageInput.value : '';
+    const autoclose = repeatingUI.autocloseInput ? parseInt(repeatingUI.autocloseInput.value) : 10;
+    ipcRenderer.send('show-popup', { message: msg, closeDelay: (autoclose || 10) * 1000, type: 'Repeating Reminder', isAutoclose: true });
     recordFocusSession(Math.round(repeating.currentRepeatingTotalSeconds / 60), 'Repeating Reminder');
-    if (!repeatingUI.infiniteCheckbox.checked) repeating.currentRounds--;
-    if (repeating.currentRounds <= 0 && !repeatingUI.infiniteCheckbox.checked) {
+    const isInf = repeatingUI.infiniteCheckbox ? repeatingUI.infiniteCheckbox.checked : false;
+    if (!isInf) repeating.currentRounds--;
+    if (repeating.currentRounds <= 0 && !isInf) {
         stopRepeating(); if (sharedState.isWorkflowRunning) setTimeout(() => sharedState.triggerNextWorkflowBlock?.(), 500);
     } else {
         repeating.repeatingTimer = repeating.currentRepeatingTotalSeconds; updateRepeatingDisplay();
@@ -541,7 +599,10 @@ export function stopRepeating() {
 
 function updateRepeatingDisplay() {
     if (repeatingUI.timeLeft) repeatingUI.timeLeft.innerText = formatTime(timerState.repeating.repeatingTimer);
-    if (repeatingUI.roundsLeft) repeatingUI.roundsLeft.innerText = repeatingUI.infiniteCheckbox.checked ? 'Infinite rounds remaining.' : `Rounds remaining: ${timerState.repeating.currentRounds}`;
+    if (repeatingUI.roundsLeft) {
+        const isInf = repeatingUI.infiniteCheckbox ? repeatingUI.infiniteCheckbox.checked : false;
+        repeatingUI.roundsLeft.innerText = isInf ? 'Infinite rounds remaining.' : `Rounds remaining: ${timerState.repeating.currentRounds}`;
+    }
 }
 
 function updateRepeatingPresetOptions(presets) {
@@ -559,12 +620,15 @@ function initSprintUI(presets, autostart) {
 
     const delBtn = document.getElementById('delete-sprint-preset-btn');
     if (delBtn) delBtn.addEventListener('click', () => {
-        const val = sprintUI.presetsSelect.value;
+        const val = sprintUI.presetsSelect ? sprintUI.presetsSelect.value : '';
         if (val.startsWith('custom-preset-')) {
             const k = val.replace('custom-preset-', '');
             if (confirm(`Delete "${escapeHtml(k)}"?`)) {
                 delete presets[k]; store.set('sprintPresets', presets); updateSprintPresetOptions(presets);
-                sprintUI.presetsSelect.value = 'custom'; sprintUI.presetsSelect.dispatchEvent(new Event('change'));
+                if (sprintUI.presetsSelect) {
+                    sprintUI.presetsSelect.value = 'custom';
+                    sprintUI.presetsSelect.dispatchEvent(new Event('change'));
+                }
             }
         }
     });
@@ -575,16 +639,22 @@ function initSprintUI(presets, autostart) {
     const confirmBtn = document.getElementById('confirm-save-sprint-preset-btn');
     const cancelBtn = document.getElementById('cancel-save-sprint-preset-btn');
 
-    if (saveBtn) saveBtn.addEventListener('click', () => { container.style.display = 'flex'; nameInput.focus(); });
-    if (confirmBtn) confirmBtn.addEventListener('click', () => {
+    if (saveBtn && container) saveBtn.addEventListener('click', () => { container.style.display = 'flex'; if (nameInput) nameInput.focus(); });
+    if (confirmBtn && container && nameInput) confirmBtn.addEventListener('click', () => {
         const n = nameInput.value;
         if (n && n.trim()) {
-            presets[n.trim()] = { durationVal: sprintUI.durationSelect.value, customMins: sprintUI.customDurationInput?.value, tasks: sprintUI.tasksInput.value, autostart: sprintUI.autostartCheckbox.checked };
+            presets[n.trim()] = {
+                durationVal: sprintUI.durationSelect ? sprintUI.durationSelect.value : '5',
+                customMins: sprintUI.customDurationInput ? sprintUI.customDurationInput.value : null,
+                tasks: sprintUI.tasksInput ? sprintUI.tasksInput.value : '',
+                autostart: sprintUI.autostartCheckbox ? sprintUI.autostartCheckbox.checked : false
+            };
             store.set('sprintPresets', presets); updateSprintPresetOptions(presets);
-            sprintUI.presetsSelect.value = `custom-preset-${n.trim()}`; nameInput.value = ''; container.style.display = 'none';
+            if (sprintUI.presetsSelect) sprintUI.presetsSelect.value = `custom-preset-${n.trim()}`;
+            nameInput.value = ''; container.style.display = 'none';
         }
     });
-    if (cancelBtn) cancelBtn.addEventListener('click', () => { nameInput.value = ''; container.style.display = 'none'; });
+    if (cancelBtn && container && nameInput) cancelBtn.addEventListener('click', () => { nameInput.value = ''; container.style.display = 'none'; });
 
     if (sprintUI.startBtn) sprintUI.startBtn.addEventListener('click', () => { if (!timerState.sprint.isSprintRunning) startSprint(); else { stopSprint(); document.getElementById('stop-workflow-btn')?.click(); } });
     if (sprintUI.stopBtn) sprintUI.stopBtn.addEventListener('click', () => { stopSprint(); document.getElementById('stop-workflow-btn')?.click(); });
@@ -593,11 +663,18 @@ function initSprintUI(presets, autostart) {
 }
 
 function handleSprintPresetChange(val, presets) {
-    document.getElementById('delete-sprint-preset-btn').style.display = val.startsWith('custom-preset-') ? 'block' : 'none';
-    if (val === 'quick-chores') { sprintUI.durationSelect.value = '5'; sprintUI.tasksInput.value = "Clean\nEmail\nStretch"; sprintUI.autostartCheckbox.checked = true; }
+    const delBtn = document.getElementById('delete-sprint-preset-btn');
+    if (delBtn) delBtn.style.display = val.startsWith('custom-preset-') ? 'block' : 'none';
+    if (val === 'quick-chores') { if (sprintUI.durationSelect) sprintUI.durationSelect.value = '5'; if (sprintUI.tasksInput) sprintUI.tasksInput.value = "Clean\nEmail\nStretch"; if (sprintUI.autostartCheckbox) sprintUI.autostartCheckbox.checked = true; }
     else if (val.startsWith('custom-preset-')) {
         const k = val.replace('custom-preset-', '');
-        if (presets[k]) { const d = presets[k]; sprintUI.durationSelect.value = d.durationVal; if (d.durationVal === 'custom') sprintUI.customDurationInput.value = d.customMins; sprintUI.tasksInput.value = d.tasks; sprintUI.autostartCheckbox.checked = !!d.autostart; }
+        if (presets[k]) {
+            const d = presets[k];
+            if (sprintUI.durationSelect) { sprintUI.durationSelect.value = d.durationVal; sprintUI.durationSelect.dispatchEvent(new Event('change')); }
+            if (d.durationVal === 'custom' && sprintUI.customDurationInput) sprintUI.customDurationInput.value = d.customMins;
+            if (sprintUI.tasksInput) sprintUI.tasksInput.value = d.tasks;
+            if (sprintUI.autostartCheckbox) sprintUI.autostartCheckbox.checked = !!d.autostart;
+        }
     }
 }
 
@@ -606,31 +683,38 @@ function handleSprintEvent(payload) { if (payload.event === 'stopped') { timerSt
 
 export function startSprint() {
     const { sprint } = timerState; if (sprint.isSprintRunning) return;
-    const raw = sprintUI.tasksInput.value.split('\n').map(t => t.trim()).filter(Boolean); sprint.sprintTasks = raw.length > 0 ? raw : ['Unnamed Sprint'];
-    sprint.currentSprintTaskIndex = 0; sprint.sprintDurationSeconds = (sprintUI.durationSelect.value === 'custom' ? parseInt(sprintUI.customDurationInput.value) : parseInt(sprintUI.durationSelect.value)) * 60;
-    sprint.isSprintRunning = true; sprintUI.startBtn.style.display = 'none'; sprintUI.stopBtn.style.display = 'block';
-    setInputsLocked('config-micro-sprint', true); sprintUI.timerDisplay.classList.remove('hidden');
+    const raw = sprintUI.tasksInput ? sprintUI.tasksInput.value.split('\n').map(t => t.trim()).filter(Boolean) : [];
+    sprint.sprintTasks = raw.length > 0 ? raw : ['Unnamed Sprint'];
+    sprint.currentSprintTaskIndex = 0;
+    let mins = 5;
+    if (sprintUI.durationSelect) {
+        mins = (sprintUI.durationSelect.value === 'custom' && sprintUI.customDurationInput) ? (parseInt(sprintUI.customDurationInput.value) || 5) : (parseInt(sprintUI.durationSelect.value) || 5);
+    }
+    sprint.sprintDurationSeconds = mins * 60;
+    sprint.isSprintRunning = true; if (sprintUI.startBtn) sprintUI.startBtn.style.display = 'none'; if (sprintUI.stopBtn) sprintUI.stopBtn.style.display = 'block';
+    setInputsLocked('config-micro-sprint', true); if (sprintUI.timerDisplay) sprintUI.timerDisplay.classList.remove('hidden');
     ipcRenderer.send('open-timer-window', 'sprint'); startNextSprintTask();
 }
 
 function startNextSprintTask() {
     const { sprint } = timerState; if (sprint.currentSprintTaskIndex >= sprint.sprintTasks.length) { stopSprint(); return; }
-    sprintUI.nextBtn.style.display = 'none'; sprintUI.skipBtn.style.display = 'block';
+    if (sprintUI.nextBtn) sprintUI.nextBtn.style.display = 'none'; if (sprintUI.skipBtn) sprintUI.skipBtn.style.display = 'block';
     sprint.sprintTimerSeconds = sprint.sprintDurationSeconds; updateSprintDisplay();
     ipcRenderer.send('start-timer', { id: 'sprint', seconds: sprint.sprintTimerSeconds });
 }
 
 function handleSprintComplete() {
     const { sprint } = timerState; playChime('session-complete'); showOSNotification('end'); recordFocusSession(Math.round(sprint.sprintDurationSeconds / 60), 'Micro-Task Sprint');
-    if (sprintUI.autostartCheckbox.checked) {
+    const auto = sprintUI.autostartCheckbox ? sprintUI.autostartCheckbox.checked : false;
+    if (auto) {
         setTimeout(() => { sprint.currentSprintTaskIndex++; if (sprint.currentSprintTaskIndex >= sprint.sprintTasks.length) stopSprint(); else startNextSprintTask(); }, 2000);
-    } else { sprintUI.nextBtn.style.display = 'block'; sprintUI.skipBtn.style.display = 'block'; }
+    } else { if (sprintUI.nextBtn) sprintUI.nextBtn.style.display = 'block'; if (sprintUI.skipBtn) sprintUI.skipBtn.style.display = 'block'; }
 }
 
 export function stopSprint() {
     timerState.sprint.isSprintRunning = false; ipcRenderer.send('stop-timer', 'sprint'); ipcRenderer.send('close-timer-window');
-    sprintUI.startBtn.style.display = 'block'; sprintUI.stopBtn.style.display = 'none'; setInputsLocked('config-micro-sprint', false);
-    sprintUI.timerDisplay.classList.add('hidden'); sprintUI.nextBtn.style.display = 'none'; sprintUI.skipBtn.style.display = 'none';
+    if (sprintUI.startBtn) sprintUI.startBtn.style.display = 'block'; if (sprintUI.stopBtn) sprintUI.stopBtn.style.display = 'none'; setInputsLocked('config-micro-sprint', false);
+    if (sprintUI.timerDisplay) sprintUI.timerDisplay.classList.add('hidden'); if (sprintUI.nextBtn) sprintUI.nextBtn.style.display = 'none'; if (sprintUI.skipBtn) sprintUI.skipBtn.style.display = 'none';
 }
 
 function updateSprintDisplay() {
@@ -655,18 +739,19 @@ function initFlowUI() {
 }
 
 export function startFlow() {
-    const { flow } = timerState; flow.isFlowRunning = true; flowUI.startBtn.style.display = 'none'; flowUI.stopBtn.style.display = 'block';
-    setInputsLocked('config-flow-state', true); flowUI.timerDisplay.classList.remove('hidden');
+    const { flow } = timerState; flow.isFlowRunning = true; if (flowUI.startBtn) flowUI.startBtn.style.display = 'none'; if (flowUI.stopBtn) flowUI.stopBtn.style.display = 'block';
+    setInputsLocked('config-flow-state', true); if (flowUI.timerDisplay) flowUI.timerDisplay.classList.remove('hidden');
     flow.flowStartTime = Date.now(); flow.currentFlowElapsed = 0;
-    const mins = parseInt(flowUI.chimeIntervalInput.value) || 0; const secs = parseInt(flowUI.chimeIntervalSecsInput.value) || 0;
-    flow.totalChimeIntervalSeconds = (mins * 60) + secs; flow.nextChimeSeconds = flow.totalChimeIntervalSeconds || 0;
+    const mins = flowUI.chimeIntervalInput ? parseInt(flowUI.chimeIntervalInput.value) : 0;
+    const secs = flowUI.chimeIntervalSecsInput ? parseInt(flowUI.chimeIntervalSecsInput.value) : 0;
+    flow.totalChimeIntervalSeconds = (mins * 60) + (secs || 0); flow.nextChimeSeconds = flow.totalChimeIntervalSeconds || 0;
     updateFlowDisplay(0); ipcRenderer.send('open-timer-window', 'flow'); ipcRenderer.send('start-timer', { id: 'flow', seconds: 86400 });
 }
 
 export function stopFlow() {
     const { flow } = timerState; if (!flow.isFlowRunning) return;
-    flow.isFlowRunning = false; flowUI.startBtn.style.display = 'block'; flowUI.stopBtn.style.display = 'none';
-    setInputsLocked('config-flow-state', false); flowUI.timerDisplay.classList.add('hidden');
+    flow.isFlowRunning = false; if (flowUI.startBtn) flowUI.startBtn.style.display = 'block'; if (flowUI.stopBtn) flowUI.stopBtn.style.display = 'none';
+    setInputsLocked('config-flow-state', false); if (flowUI.timerDisplay) flowUI.timerDisplay.classList.add('hidden');
     ipcRenderer.send('stop-timer', 'flow'); ipcRenderer.send('close-timer-window');
     const elapsed = Math.round(flow.currentFlowElapsed / 60); if (elapsed > 0) recordFocusSession(elapsed, 'Flow State');
 }
@@ -694,12 +779,12 @@ export function pauseTimer(id) {
     const isPaused = (id === 'pomo') ? target.isPomoPaused : (id === 'repeating') ? target.isRepeatingPaused : false;
     if (!isPaused) {
         ipcRenderer.send('pause-timer', id);
-        if (id === 'pomo') { target.isPomoPaused = true; pomoUI.timerDisplay.classList.add('paused'); pomoUI.pauseBtn.innerText = 'Resume \u25B6\uFE0F'; }
-        else if (id === 'repeating') { target.isRepeatingPaused = true; repeatingUI.timerDisplay.classList.add('paused'); repeatingUI.pauseBtn.innerText = 'Resume \u25B6\uFE0F'; }
+        if (id === 'pomo') { target.isPomoPaused = true; if (pomoUI.timerDisplay) pomoUI.timerDisplay.classList.add('paused'); if (pomoUI.pauseBtn) pomoUI.pauseBtn.innerText = 'Resume \u25B6\uFE0F'; }
+        else if (id === 'repeating') { target.isRepeatingPaused = true; if (repeatingUI.timerDisplay) repeatingUI.timerDisplay.classList.add('paused'); if (repeatingUI.pauseBtn) repeatingUI.pauseBtn.innerText = 'Resume \u25B6\uFE0F'; }
     } else {
         ipcRenderer.send('resume-timer', id);
-        if (id === 'pomo') { target.isPomoPaused = false; pomoUI.timerDisplay.classList.remove('paused'); pomoUI.pauseBtn.innerText = 'Pause \u23F8'; }
-        else if (id === 'repeating') { target.isRepeatingPaused = false; repeatingUI.timerDisplay.classList.remove('paused'); repeatingUI.pauseBtn.innerText = 'Pause \u23F8'; }
+        if (id === 'pomo') { target.isPomoPaused = false; if (pomoUI.timerDisplay) pomoUI.timerDisplay.classList.remove('paused'); if (pomoUI.pauseBtn) pomoUI.pauseBtn.innerText = 'Pause \u23F8'; }
+        else if (id === 'repeating') { target.isRepeatingPaused = false; if (repeatingUI.timerDisplay) repeatingUI.timerDisplay.classList.remove('paused'); if (repeatingUI.pauseBtn) repeatingUI.pauseBtn.innerText = 'Pause \u23F8'; }
     }
 }
 
@@ -714,6 +799,6 @@ export function setPresetAndStart(type, presetKey) {
     let select = (type === 'pomo') ? pomoUI.presetsSelect : (type === 'repeating') ? repeatingUI.presetsSelect : (type === 'sprint') ? sprintUI.presetsSelect : null;
     if (select) { select.value = presetKey; select.dispatchEvent(new Event('change')); }
     if (type === 'pomo') startPomo();
-    else if (type === 'repeating') { repeatingUI.roundsInput.value = 1; startRepeating(); }
+    else if (type === 'repeating') { if (repeatingUI.roundsInput) repeatingUI.roundsInput.value = 1; startRepeating(); }
     else if (type === 'sprint') startSprint();
 }

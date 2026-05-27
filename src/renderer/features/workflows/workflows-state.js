@@ -1,5 +1,6 @@
 import { store } from '../../utils/storage.js';
 import { escapeHtml } from '../../utils/ui-helpers.js';
+import { timerState } from '../TimerService.js';
 
 // Centralized Workflow State
 export const workflowState = {
@@ -74,7 +75,7 @@ export async function getPresetDetails(type, presetKey) {
         } else if (presetKey && presetKey.startsWith('custom-preset-')) {
             const key = presetKey.replace('custom-preset-', '');
             if (customPresets[key]) {
-                seq = customPresets[key];
+                seq = customPresets[key].sequence || customPresets[key];
                 details.displayName = `Custom: ${escapeHtml(key)}`;
             }
         }
@@ -87,8 +88,7 @@ export async function getPresetDetails(type, presetKey) {
         const sprintPresets = await store.get('sprintPresets', {});
         if (presetKey === 'custom') {
             details.displayName = 'Custom Sprint';
-            const sprintDurationSelect = document.getElementById('sprint-duration');
-            details.duration = sprintDurationSelect ? (parseInt(sprintDurationSelect.value, 10) || 15) : 15;
+            details.duration = timerState.sprint.sprintDurationSeconds / 60 || 15;
         } else if (presetKey && presetKey.startsWith('custom-preset-')) {
             const key = presetKey.replace('custom-preset-', '');
             if (sprintPresets[key]) {
@@ -101,28 +101,25 @@ export async function getPresetDetails(type, presetKey) {
         const repeatingPresets = await store.get('repeatingPresets', {});
         if (presetKey === 'custom') {
             details.displayName = 'Custom Reminders';
-            const reminderIntervalInput = document.getElementById('reminder-interval');
-            const reminderIntervalSecondsInput = document.getElementById('reminder-interval-seconds');
-            const reminderRoundsInput = document.getElementById('reminder-rounds');
-            const intervalMins = reminderIntervalInput ? (parseInt(reminderIntervalInput.value, 10) || 0) : 0;
-            const intervalSecs = reminderIntervalSecondsInput ? (parseInt(reminderIntervalSecondsInput.value, 10) || 0) : 0;
-            const rounds = reminderRoundsInput ? (parseInt(reminderRoundsInput.value, 10) || 1) : 1;
-            details.interval = { mins: intervalMins, secs: intervalSecs };
+            const total = timerState.repeating.currentRepeatingTotalSeconds;
+            const rounds = timerState.repeating.currentRounds === Infinity ? 1 : timerState.repeating.currentRounds;
+            details.interval = { mins: Math.floor(total / 60), secs: total % 60 };
             details.rounds = rounds;
-            details.duration = Math.round(((intervalMins * 60 + intervalSecs) * rounds) / 60);
+            details.duration = Math.round((total * rounds) / 60);
         } else if (presetKey && presetKey.startsWith('custom-preset-')) {
-        const key = presetKey.replace('custom-preset-', '');
-        if (repeatingPresets[key]) {
-            details.displayName = `Custom: ${escapeHtml(key)}`;
-            details.interval = { 
-                mins: repeatingPresets[key].intervalMins || 0, 
-                secs: repeatingPresets[key].intervalSecs || 0 
-            };
-            details.rounds = repeatingPresets[key].rounds || 1;
-            const minsTotal = details.interval.mins;
-            const secsTotal = details.interval.secs;
-            details.duration = Math.round(((minsTotal * 60 + secsTotal) * details.rounds) / 60);
-        }        }
+            const key = presetKey.replace('custom-preset-', '');
+            if (repeatingPresets[key]) {
+                details.displayName = `Custom: ${escapeHtml(key)}`;
+                details.interval = { 
+                    mins: repeatingPresets[key].intervalMins || 0, 
+                    secs: repeatingPresets[key].intervalSecs || 0 
+                };
+                details.rounds = repeatingPresets[key].rounds || 1;
+                const minsTotal = details.interval.mins;
+                const secsTotal = details.interval.secs;
+                details.duration = Math.round(((minsTotal * 60 + secsTotal) * details.rounds) / 60);
+            }
+        }
     }
 
     return details;
@@ -141,20 +138,14 @@ export async function calculateBlockDuration(block) {
         const details = await getPresetDetails(block.type, block.presetKey);
         baseMins = details.duration || 0;
     } else {
-        // Fallback to old behavior for blocks without presetKey
+        // Fallback to unified timerState for blocks without presetKey
         if (block.type === 'pomo') {
-            baseMins = 60; // Safe fallback since pomoSequence is undefined
+            const seq = timerState.pomo.pomoSequence;
+            baseMins = seq.reduce((acc, p) => acc + (p.unit === 'secs' ? p.duration/60 : p.duration), 0);
         } else if (block.type === 'sprint') {
-            const sprintDurationSelect = document.getElementById('sprint-duration');
-            const customSprintDurationInput = document.getElementById('custom-sprint-duration');
-            let dur = sprintDurationSelect ? sprintDurationSelect.value : '15';
-            baseMins = dur === 'custom' ? (customSprintDurationInput ? (parseInt(customSprintDurationInput.value, 10) || 20) : 20) : parseInt(dur, 10);
+            baseMins = timerState.sprint.sprintDurationSeconds / 60 || 5;
         } else if (block.type === 'repeating') {
-            const reminderIntervalInput = document.getElementById('reminder-interval');
-            const reminderIntervalSecondsInput = document.getElementById('reminder-interval-seconds');
-            const intervalMins = reminderIntervalInput ? (parseInt(reminderIntervalInput.value, 10) || 0) : 0;
-            const intervalSecs = reminderIntervalSecondsInput ? (parseInt(reminderIntervalSecondsInput.value, 10) || 0) : 0;
-            baseMins = (intervalMins * 60 + intervalSecs) / 60; // Workflow variant: 1 round duration
+            baseMins = timerState.repeating.currentRepeatingTotalSeconds / 60 || 1;
         }
     }
     
