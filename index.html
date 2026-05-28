@@ -397,6 +397,16 @@
         align-items: center;
         justify-content: center;
       }
+      .mask-icon {
+        display: inline-block;
+        background-color: currentColor;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+      }
       .pomo-icon {
         width: 40px; height: 40px;
         background: white;
@@ -1123,10 +1133,10 @@
           <span class="icon pomo-icon">✓</span> Pomo Style
         </button>
         <button class="home-btn" data-mode="micro-sprint">
-          <span class="icon">🗎</span> Micro-Task Sprint
+          <span class="icon mask-icon" style="-webkit-mask-image: url('assets/micro-sprint.png'); mask-image: url('assets/micro-sprint.png'); height: 1em; width: 1em;"></span> Micro-Task Sprint
         </button>
         <button class="home-btn" data-mode="flow-state">
-          <span class="icon">⏱</span> Flow State Stopwatch
+          <span class="icon mask-icon" style="-webkit-mask-image: url('assets/flow-state.png'); mask-image: url('assets/flow-state.png'); height: 1em; width: 1em;"></span> Flow State Stopwatch
         </button>
         <button class="home-btn" data-mode="health-mode">
           <span class="icon">♡</span> Health Mode
