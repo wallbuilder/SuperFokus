@@ -9,6 +9,7 @@ out/
 electron-data/
 
 # IDEs and editors
+.vs/
 .vscode/
 .idea/
 *.swp

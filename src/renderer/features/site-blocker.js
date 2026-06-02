@@ -1,6 +1,6 @@
 import { ipcRenderer } from '../utils/ipc.js';
+import { store } from '../utils/storage.js';
 
-// --- Blocker State ---
 export const blockerState = {
     isBlockerActive: false,
     blockerMode: 'block',
@@ -9,157 +9,109 @@ export const blockerState = {
     urls: []
 };
 
-// --- Site Blocker ---
-const saveBlockerBtn = document.getElementById('save-blocker-btn');
-const clearBlockerBtn = document.getElementById('clear-blocker-btn');
-const clearBlockerModalBtn = document.getElementById('clear-blocker-modal-btn');
-const siteBlockerMode = document.getElementById('site-blocker-mode');
-const domainListInput = document.getElementById('domain-list');
-const urlListInput = document.getElementById('url-list');
-const siteBlockerEnabled = document.getElementById('site-blocker-enabled');
-const siteBlockerAlwaysRun = document.getElementById('site-blocker-always-run');
+let elements = {};
 
-// Removed work in progress block
+export async function initSiteBlocker() {
+    elements = {
+        saveBtn: document.getElementById('save-blocker-btn'),
+        clearBtn: document.getElementById('clear-blocker-btn'),
+        modeSelect: document.getElementById('site-blocker-mode'),
+        domainInput: document.getElementById('domain-list'),
+        urlInput: document.getElementById('url-list'),
+        enabledCheck: document.getElementById('site-blocker-enabled'),
+        alwaysRunCheck: document.getElementById('site-blocker-always-run'),
+        statusDisplay: document.getElementById('blocker-status-display'),
+        proxyMsg: document.getElementById('proxy-message'),
+        blockMsg: document.getElementById('block-message')
+    };
 
-// Helper function to safely normalize URLs via main process utility
-function safeNormalizeHost(urlStr) {
-    if (!urlStr) return '';
-    return ipcRenderer.normalizeHost(urlStr) || urlStr.trim();
-}
+    if (!elements.saveBtn) return;
 
-// Show/hide mode messages based on selection
-if (siteBlockerMode) {
-    siteBlockerMode.addEventListener('change', () => {
-        const proxyMsg = document.getElementById('proxy-message');
-        const blockMsg = document.getElementById('block-message');
-        if (siteBlockerMode.value === 'allow') {
-            if (proxyMsg) proxyMsg.style.display = 'block';
-            if (blockMsg) blockMsg.style.display = 'none';
-        } else {
-            if (proxyMsg) proxyMsg.style.display = 'none';
-            if (blockMsg) blockMsg.style.display = 'block';
-        }
-    });
-}
+    // Load saved state
+    const saved = await store.get('blocker-rules');
+    if (saved) {
+        blockerState.isBlockerActive = saved.active || false;
+        blockerState.blockerMode = saved.mode || 'block';
+        blockerState.alwaysRun = saved.alwaysRun || false;
+        blockerState.domains = saved.domains || [];
+        blockerState.urls = saved.urls || [];
 
-function updateBlocker() {
-    if (!siteBlockerMode || !domainListInput || !siteBlockerEnabled) return;
-
-    blockerState.blockerMode = siteBlockerMode.value;
-    const rawDomains = domainListInput.value.split('\n').map(s => s.trim()).filter(Boolean);
-    const rawUrls = urlListInput ? urlListInput.value.split('\n').map(s => s.trim()).filter(Boolean) : [];
-    blockerState.isBlockerActive = siteBlockerEnabled.checked;
-    blockerState.alwaysRun = siteBlockerAlwaysRun ? siteBlockerAlwaysRun.checked : false;
-    blockerState.urls = rawUrls;
-
-    const domainSet = new Set();
-
-    function addBlockingHost(host) {
-        if (!host) return;
-        host = host.toLowerCase();
-        domainSet.add(host);
-        if (!host.startsWith('www.')) {
-            domainSet.add(`www.${host}`);
-        } else {
-            const root = host.replace(/^www\./, '');
-            if (root) domainSet.add(root);
-        }
+        if (elements.enabledCheck) elements.enabledCheck.checked = blockerState.isBlockerActive;
+        if (elements.modeSelect) elements.modeSelect.value = blockerState.blockerMode;
+        if (elements.alwaysRunCheck) elements.alwaysRunCheck.checked = blockerState.alwaysRun;
+        if (elements.domainInput) elements.domainInput.value = (saved.rawDomains || []).join('\\n');
+        if (elements.urlInput) elements.urlInput.value = (saved.rawUrls || []).join('\\n');
+        
+        updateUIVisibility();
     }
 
-    rawDomains.forEach(d => {
-        const host = safeNormalizeHost(d);
-        if (host) addBlockingHost(host);
-    });
+    elements.modeSelect.addEventListener('change', updateUIVisibility);
+    elements.saveBtn.addEventListener('click', saveAndApply);
+    elements.clearBtn.addEventListener('click', clearAll);
+    if (elements.enabledCheck) elements.enabledCheck.addEventListener('change', saveAndApply);
+    if (elements.alwaysRunCheck) elements.alwaysRunCheck.addEventListener('change', saveAndApply);
 
-    rawUrls.forEach(u => {
-        const host = safeNormalizeHost(u);
-        if (host) addBlockingHost(host);
-    });
+    ipcRenderer.on('blocker-status', (msg) => updateStatus(msg, '#2ecc71'));
+    ipcRenderer.on('blocker-error', (err) => updateStatus(err, '#e74c3c'));
+}
 
-    blockerState.domains = Array.from(domainSet).sort();
+function updateUIVisibility() {
+    if (!elements.modeSelect) return;
+    const isAllow = elements.modeSelect.value === 'allow';
+    if (elements.proxyMsg) elements.proxyMsg.style.display = isAllow ? 'block' : 'none';
+    if (elements.blockMsg) elements.blockMsg.style.display = isAllow ? 'none' : 'block';
+}
+
+function updateStatus(msg, color) {
+    if (elements.statusDisplay) {
+        elements.statusDisplay.innerText = msg;
+        elements.statusDisplay.style.color = color;
+    }
+}
+
+async function saveAndApply() {
+    const rawDomains = elements.domainInput.value.split('\\n').map(s => s.trim()).filter(Boolean);
+    const rawUrls = elements.urlInput ? elements.urlInput.value.split('\\n').map(s => s.trim()).filter(Boolean) : [];
     
-    // Validation
-    if (blockerState.isBlockerActive && blockerState.domains.length === 0) {
-        alert('⚠️ No domains entered! Please add domains/URLs to block before enabling.');
-        siteBlockerEnabled.checked = false;
-        blockerState.isBlockerActive = false;
+    blockerState.isBlockerActive = elements.enabledCheck.checked;
+    blockerState.blockerMode = elements.modeSelect.value;
+    blockerState.alwaysRun = elements.alwaysRunCheck ? elements.alwaysRunCheck.checked : false;
+
+    if (blockerState.isBlockerActive && rawDomains.length === 0) {
+        alert('Please enter at least one domain.');
+        elements.enabledCheck.checked = false;
         return;
     }
 
-    console.log('[Blocker]', {mode: blockerState.blockerMode, active: blockerState.isBlockerActive, domainCount: blockerState.domains.length, domains: blockerState.domains});
-    ipcRenderer.send('update-blocker-rules', { 
-        mode: blockerState.blockerMode, 
-        domains: blockerState.domains, 
-        urls: blockerState.urls, 
-        active: blockerState.isBlockerActive, 
-        alwaysRun: blockerState.alwaysRun 
+    const domainSet = new Set();
+    rawDomains.forEach(d => {
+        const host = ipcRenderer.normalizeHost(d) || d.toLowerCase();
+        domainSet.add(host);
+        if (!host.startsWith('www.')) domainSet.add('www.' + host);
+        else domainSet.add(host.replace(/^www\\./, ''));
     });
+
+    blockerState.domains = Array.from(domainSet).sort();
+    blockerState.urls = rawUrls;
+
+    const rules = {
+        active: blockerState.isBlockerActive,
+        mode: blockerState.blockerMode,
+        alwaysRun: blockerState.alwaysRun,
+        domains: blockerState.domains,
+        urls: blockerState.urls,
+        rawDomains,
+        rawUrls
+    };
+
+    ipcRenderer.send('update-blocker-rules', rules);
+    
+    elements.saveBtn.innerText = 'Saved & Applied';
+    setTimeout(() => { elements.saveBtn.innerText = 'Save & Apply Blocker'; }, 2000);
 }
 
-
-if (saveBlockerBtn) {
-    saveBlockerBtn.addEventListener('click', () => {
-        if (siteBlockerEnabled) siteBlockerEnabled.checked = true;
-        updateBlocker();
-        saveBlockerBtn.innerText = 'Saved and Applied';
-        saveBlockerBtn.style.background = '#e74c3c';
-        setTimeout(() => {
-            saveBlockerBtn.innerText = 'Save & Apply Blocker';
-            saveBlockerBtn.style.background = '#3498db';
-        }, 2000);
-    });
-}
-
-function handleClearBlocks(btn) {
-    if (confirm('Are you sure you want to clear all SuperFokus block entries from your system hosts file?')) {
+function clearAll() {
+    if (confirm('Clear all SuperFokus block entries?')) {
         ipcRenderer.send('clear-all-blocks');
-        const oldText = btn.innerText;
-        const oldBg = btn.style.background;
-        btn.innerText = 'Cleared!';
-        btn.style.background = '#2ecc71';
-        setTimeout(() => {
-            btn.innerText = oldText;
-            btn.style.background = oldBg;
-        }, 2000);
     }
 }
-
-if (clearBlockerBtn) {
-    clearBlockerBtn.addEventListener('click', () => handleClearBlocks(clearBlockerBtn));
-}
-
-if (clearBlockerModalBtn) {
-    clearBlockerModalBtn.addEventListener('click', () => handleClearBlocks(clearBlockerModalBtn));
-}
-
-// Sync blocker state to main if it should always run
-if (siteBlockerEnabled) siteBlockerEnabled.addEventListener('change', updateBlocker);
-if (siteBlockerAlwaysRun) siteBlockerAlwaysRun.addEventListener('change', updateBlocker);
-
-// --- IPC Listeners for Blocker Status ---
-ipcRenderer.on('blocker-status', (msg) => {
-    console.log('[Blocker Status]', msg);
-    const statusEl = document.getElementById('blocker-status-display');
-    if (statusEl) {
-        statusEl.innerText = msg;
-        statusEl.style.color = '#2ecc71';
-    }
-});
-
-ipcRenderer.on('blocker-error', (err) => {
-    console.error('[Blocker Error]', err);
-    const statusEl = document.getElementById('blocker-status-display');
-    if (statusEl) {
-        statusEl.innerText = `⚠️ Error: ${err}`;
-        statusEl.style.color = '#e74c3c';
-    }
-});
-
-ipcRenderer.on('startup-cleanup-failed', (err) => {
-    console.warn('[Startup Cleanup] Failed to clear zombie blocks:', err);
-    const statusEl = document.getElementById('blocker-status-display');
-    if (statusEl) {
-        statusEl.innerText = `⚠️ Startup Warning: Old blocks could not be cleared. ${err}`;
-        statusEl.style.color = '#f39c12';
-    }
-});

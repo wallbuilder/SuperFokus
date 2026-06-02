@@ -1,3 +1,4 @@
+import { initSiteBlocker } from "./features/site-blocker.js";
 import { store, migrateStore } from './utils/storage.js';
 import { initializeDomElements, initializeButtonListeners, initializeCustomSoundpackListeners } from './dom-init.js';
 
@@ -139,7 +140,7 @@ if (headerTitle) {
               await Promise.all([
                   theme.initTheme(), stats.initStats(), audio.initAudio(), workflows.initWorkflows(),
                   timers.initTimerService(),
-                  integration.setupIntegrationUI()
+                  integration.setupIntegrationUI(), initSiteBlocker()
               ]);
 
               initializeButtonListeners(() => {}); // repeating.initializeRepeatingButtonListeners is now in TimerService
@@ -160,7 +161,7 @@ if (headerTitle) {
             await Promise.all([
                 theme.initTheme(), stats.initStats(), audio.initAudio(), workflows.initWorkflows(),
                 timers.initTimerService(),
-                integration.setupIntegrationUI()
+                integration.setupIntegrationUI(), initSiteBlocker()
             ]);
             initializeButtonListeners(() => {});
             initializeCustomSoundpackListeners(
