@@ -1,4 +1,5 @@
 const { ipcMain, app, Notification } = require('electron');
+const path = require('path');
 const windowManager = require('./WindowManager');
 
 let store = null;
@@ -44,7 +45,12 @@ async function init() {
         if (!windowManager.isOriginSafe(event)) return;
         if (store && typeof dataObj === 'object') {
             for (const [key, value] of Object.entries(dataObj)) {
-                store.set(key, value);
+                try {
+                    validateStoreValue(key, value);
+                    store.set(key, value);
+                } catch (err) {
+                    console.error('[IpcMainHandlers] Store validation error for key ' + key + ':', err.message);
+                }
             }
         }
     });

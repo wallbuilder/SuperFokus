@@ -8,22 +8,6 @@ Each new edit to the file that documents new changes should also list the date a
 (Note: You must list ALL changes, including small ones. No detail is too small).
 [DO NOT DELETE THIS TEXT, DELETE TEXT BELOW THIS LINE] >
 
-
-
-{5/26/2026 at 4:00 PM}
-    [Refactored]
-     - Completed the unification of renderer-side timers into 'TimerService.js'.
-     - Standardized IPC event handling for popup closures using the 'popup-closed' event.
-     - Decoupled 'workflows-state.js' from the DOM by utilizing the unified 'timerState' for duration calculations.
-     - Enhanced Pomo sequence editing with high-precision 'secs' vs 'mins' validation.
-     - Hardened all UI references with null-safe checks to ensure startup stability.
-
-{5/26/2026 at 2:00 PM}
-    [Fixed Bugs]
-     - Fixed startup error where 'stopPomoStyle' was not exported from 'pomo-timer.js' but was imported in 'workflows-engine.js'. Added 'export' keyword to 'stopPomoStyle' in 'src/renderer/features/pomo-timer.js'.
-
-
-
 < [DO NOT DELETE THIS TEXT, DELETE TEXT ABOVE THIS LINE]
 (Example chunk of documentation:
 {1/1/2025 at 12:00 PM}

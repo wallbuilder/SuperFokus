@@ -465,13 +465,13 @@ class WindowManager {
             this.popupWindow
         ];
 
-        // Optimization: Only send timer updates to visible windows to reduce IPC spam
-        const isTimerChannel = channel === 'timer-tick' || channel.startsWith('timer-');
+        // Optimization: Only send timer ticks to visible windows to reduce IPC spam
+        const isTimerTickChannel = channel === 'timer-tick';
 
         windows.forEach(win => {
             if (win && !win.isDestroyed()) {
                 // Skip sending timer ticks to hidden windows
-                if (isTimerChannel && !win.isVisible()) {
+                if (isTimerTickChannel && !win.isVisible()) {
                     return;
                 }
                 win.webContents.send(channel, ...args);

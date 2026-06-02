@@ -23,7 +23,7 @@ const helperPath = app.isPackaged
 let blocksApplied = false;
 
 function runElevated(command, commandArgs, callback) {
-    const allowedCommands = ['clear', 'apply-file'];
+    const allowedCommands = ['clear', 'apply-file', 'set-mac-proxy'];
     if (!allowedCommands.includes(command)) {
         if (callback) callback(new Error('Unauthorized command'));
         return;
@@ -77,7 +77,7 @@ function startProxy(allowedHosts, allowedUrls) {
         }
         if (hostAllowed) {
             const serverSocket = net.connect(port, host, () => {
-                clientSocket.write('HTTP/1.1 200 Connection Established\\r\\n\\r\\n');
+                clientSocket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
                 serverSocket.write(head);
                 serverSocket.pipe(clientSocket);
                 clientSocket.pipe(serverSocket);
@@ -106,13 +106,9 @@ function stopProxy() {
 function setMacProxy(enable) {
     if (process.platform !== 'darwin') return;
     const services = ['Wi-Fi', 'Ethernet', 'Thunderbolt Bridge'];
-    services.forEach(service => {
-        if (enable) {
-            exec(`networksetup -setwebproxy "${service}" 127.0.0.1 8080 && networksetup -setwebproxystate "${service}" on`);
-            exec(`networksetup -setsecurewebproxy "${service}" 127.0.0.1 8080 && networksetup -setsecurewebproxystate "${service}" on`);
-        } else {
-            exec(`networksetup -setwebproxystate "${service}" off`);
-            exec(`networksetup -setsecurewebproxystate "${service}" off`);
+    runElevated('set-mac-proxy', [{ enable, services }], (error) => {
+        if (error) {
+            console.error('[BlockerService] Mac proxy elevation failed:', error.message);
         }
     });
 }
@@ -224,4 +220,4 @@ function cleanup(callback) {
     return false;
 }
 
-module.exports = { init, cleanup, runElevated, getBlocksApplied: () => blocksApplied };
+module.exports = { init, cleanup, runElevated, stopProxy, setMacProxy, getBlocksApplied: () => blocksApplied };

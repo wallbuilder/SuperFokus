@@ -85,6 +85,11 @@ app.whenReady().then(async () => {
         // If possible, clear blocks un-elevated or just exit to prevent zombie processes.
         if (blockerService) {
             try { blockerService.stopProxy(); } catch (e) {}
+            try { 
+                if (process.platform === 'darwin') {
+                    blockerService.setMacProxy(false); 
+                }
+            } catch (e) {}
         }
         process.exit(1);
     });

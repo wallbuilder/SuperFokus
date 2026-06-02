@@ -46,17 +46,44 @@ function flushDnsCache() {
     });
 }
 
+async function backupHostsFile() {
+    try {
+        const backupPath = HOSTS_FILE + '.fokus.bak';
+        // Only create backup if it doesn't exist to preserve the original state
+        if (!fsSync.existsSync(backupPath)) {
+            const content = await fs.readFile(HOSTS_FILE, 'utf-8');
+            await fs.writeFile(backupPath, content, 'utf-8');
+        }
+    } catch (e) {
+        console.error('Failed to create hosts backup:', e.message);
+    }
+}
+
+async function setMacProxyAsync(enable, service = 'Wi-Fi') {
+    return new Promise((resolve, reject) => {
+        const cmd = enable 
+            ? `networksetup -setwebproxy "${service}" 127.0.0.1 8080 && networksetup -setwebproxystate "${service}" on && networksetup -setsecurewebproxy "${service}" 127.0.0.1 8080 && networksetup -setsecurewebproxystate "${service}" on`
+            : `networksetup -setwebproxystate "${service}" off && networksetup -setsecurewebproxystate "${service}" off`;
+        
+        exec(cmd, (error) => {
+            if (error) reject(error);
+            else resolve();
+        });
+    });
+}
+
 async function clearBlocksAsync(retries = 3) {
     let attempts = 0;
     while (attempts < retries) {
         try {
             if (!fsSync.existsSync(HOSTS_FILE)) throw new Error('Hosts file not found');
+            await backupHostsFile();
             let content = await fs.readFile(HOSTS_FILE, 'utf-8');
             const startIndex = content.indexOf(START_MARKER);
             const endIndex = content.indexOf(END_MARKER);
             if (startIndex !== -1 && endIndex !== -1) {
-                content = content.substring(0, startIndex).trimEnd() + \"\n\" + content.substring(endIndex + END_MARKER.length).trimStart();
-                await fs.writeFile(HOSTS_FILE, content.trim() + \"\n\", 'utf-8');
+                content = content.substring(0, startIndex).trimEnd() + "\n" + content.substring(endIndex + END_MARKER.length).trimStart();
+                await fs.writeFile(HOSTS_FILE, content.trim() + "\n", 'utf-8');
             }
             await flushDnsCache();
             return { success: true };
@@ -84,21 +111,22 @@ async function applyBlocksAsync(domains, retries = 3) {
     let attempts = 0;
     while (attempts < retries) {
         try {
+            await backupHostsFile();
             let content = await fs.readFile(HOSTS_FILE, 'utf-8');
             const startIndex = content.indexOf(START_MARKER);
             const endIndex = content.indexOf(END_MARKER);
             if (startIndex !== -1 && endIndex !== -1) {
-                content = content.substring(0, startIndex).trimEnd() + \"\n\" + content.substring(endIndex + END_MARKER.length).trimStart();
+                content = content.substring(0, startIndex).trimEnd() + "\n" + content.substring(endIndex + END_MARKER.length).trimStart();
             }
             content = content.trimEnd();
             if (validatedDomains.length > 0) {
-                content += \"\n\n\" + START_MARKER + \"\n\";
+                content += "\n\n" + START_MARKER + "\n";
                 validatedDomains.forEach(d => {
-                    content += \"0.0.0.0 \" + d + \"\n::1 \" + d + \"\n\";
+                    content += "0.0.0.0 " + d + "\n::1 " + d + "\n";
                 });
-                content += END_MARKER + \"\n\";
+                content += END_MARKER + "\n";
             }
-            await fs.writeFile(HOSTS_FILE, content.trim() + \"\n\", 'utf-8');
+            await fs.writeFile(HOSTS_FILE, content.trim() + "\n", 'utf-8');
             await flushDnsCache();
             return { success: true, count: validatedDomains.length };
         } catch (e) {
@@ -126,6 +154,12 @@ async function applyBlocksAsync(domains, retries = 3) {
         else if (action === 'apply-file') {
             const domains = JSON.parse(await fs.readFile(commandArgs[0], 'utf-8'));
             await applyBlocksAsync(domains);
+        }
+        else if (action === 'set-mac-proxy') {
+            const { enable, services } = commandArgs[0];
+            for (const service of services) {
+                await setMacProxyAsync(enable, service);
+            }
         }
         process.exit(0);
     } catch (e) {
