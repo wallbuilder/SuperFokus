@@ -65,6 +65,7 @@ app.whenReady().then(async () => {
 
     if (process.platform === 'darwin') {
         try { app.dock.setIcon(path.join(__dirname, '../../assets/fokusicon.png')); } catch (e) {}
+        require('./services/MacOptimizationService').init(windowManager.mainWindow);
     }
 
     // Startup Cleanup
