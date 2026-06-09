@@ -169,6 +169,13 @@ function renderSequence() {
     });
 }
 
+export function updateSequenceDuration(idx, val, unit) {
+    if (idx >= 0 && idx < pomoState.pomoSequence.length) {
+        if (val !== undefined) pomoState.pomoSequence[idx].duration = val;
+        if (unit !== undefined) pomoState.pomoSequence[idx].unit = unit;
+    }
+}
+
 if (sequenceListEl) {
     sequenceListEl.addEventListener('change', (e) => {
         if (e.target.tagName === 'INPUT' && e.target.type === 'number') {
@@ -180,13 +187,13 @@ if (sequenceListEl) {
                     val = 59;
                     e.target.value = val;
                 }
-                pomoState.pomoSequence[idx].duration = val;
+                updateSequenceDuration(idx, val);
             }
         } else if (e.target.tagName === 'SELECT') {
             const idx = e.target.getAttribute('data-index');
             if (idx !== null) {
                 const newUnit = e.target.value;
-                pomoState.pomoSequence[idx].unit = newUnit;
+                updateSequenceDuration(idx, undefined, newUnit);
                 if (newUnit === 'secs') {
                     const input = sequenceListEl.querySelector(`input[data-index="${idx}"]`);
                     if (input) {
@@ -194,7 +201,7 @@ if (sequenceListEl) {
                         if (val >= 60) {
                             val = 59;
                             input.value = val;
-                            pomoState.pomoSequence[idx].duration = val;
+                            updateSequenceDuration(idx, val);
                         }
                     }
                 }
@@ -284,41 +291,46 @@ function updatePomoDisplay(notifyWindow = false) {
 
     if (notifyWindow) {
         const totalSecs = currentPhase ? getPhaseSecs(currentPhase) : 1;
+        const percent = currentPhase ? (pomoState.pomoTimer / totalSecs) * 100 : 0;
+        const phaseName = currentPhase ? (currentPhase.type === 'work' ? 'Work Session' : 'Break Time') : 'Finished';
+        
         ipcRenderer.send('update-timer-window', {
-            phase: pomoStatusText ? pomoStatusText.innerText : '',
+            phase: phaseName,
             timeLeft: formatTime(pomoState.pomoTimer),
-            percent: currentPhase ? (pomoState.pomoTimer / totalSecs) * 100 : 0
+            percent: percent
         });
     }
 }
 
-ipcRenderer.on('timer-tick', (data) => {
-    if (data.id === 'pomo') {
+ipcRenderer.on('timer-tick', (batchedTicks) => {
+    const data = batchedTicks.find(t => t.id === 'pomo');
+    if (data) {
         pomoState.pomoTimer = data.remaining;
         updatePomoDisplay(true);
     }
 });
 
-ipcRenderer.on('timer-started-pomo', (data) => {
-    // Ticks are handled by timer-tick event
+ipcRenderer.on('request-initial-timer-update', (type) => {
+    if (type === 'pomo' && pomoState.isPomoRunning) {
+        updatePomoDisplay(true);
+    }
 });
 
-ipcRenderer.on('timer-paused-pomo', (remainingSeconds) => {
-    pomoState.pomoTimer = remainingSeconds;
-    updatePomoDisplay();
-});
-
-ipcRenderer.on('timer-resumed-pomo', (data) => {
-    // Ticks are handled by timer-tick event
-});
-
-ipcRenderer.on('timer-stopped-pomo', () => {
-    pomoState.pomoTimer = 0;
-    updatePomoDisplay();
-});
-
-ipcRenderer.on('timer-complete-pomo', () => {
-    handlePhaseEnd();
+ipcRenderer.on('timer-event', (payload) => {
+    if (payload.type !== 'pomo') return;
+    switch(payload.event) {
+        case 'paused':
+            pomoState.pomoTimer = payload.data;
+            updatePomoDisplay();
+            break;
+        case 'stopped':
+            pomoState.pomoTimer = 0;
+            updatePomoDisplay();
+            break;
+        case 'complete':
+            handlePhaseEnd();
+            break;
+    }
 });
 
 function startPomoPhase() {
@@ -354,21 +366,8 @@ function startPomoPhase() {
 
 function handlePhaseEnd() {
     const finishedPhase = pomoState.activePomoSequence[pomoState.currentPhaseIndex];
-    if (finishedPhase.type === 'work') {
-        playChime('break-start');
-        showOSNotification('end');
-        recordFocusSession(Math.round(finishedPhase.totalSeconds / 60), 'Pomo Work');
-    } else {
-        playChime('session-start');
-        showOSNotification('start');
-    }
     
-    ipcRenderer.send('close-popup');
-    ipcRenderer.send('close-fullscreen');
-    
-    pomoState.currentPhaseIndex++;
-    
-    if (pomoState.currentPhaseIndex >= pomoState.activePomoSequence.length && (!pomoInfiniteCheckbox || !pomoInfiniteCheckbox.checked) && pomoState.currentRepeatCount + 1 >= pomoState.totalRepeatsPlanned) {
+    if (pomoState.currentPhaseIndex >= pomoState.activePomoSequence.length - 1 && (!pomoInfiniteCheckbox || !pomoInfiniteCheckbox.checked) && pomoState.currentRepeatCount + 1 >= pomoState.totalRepeatsPlanned) {
         playChime('session-complete');
         showOSNotification('end');
         stopPomoStyle();
@@ -376,7 +375,21 @@ function handlePhaseEnd() {
             setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
         }
         return;
+    } else {
+        if (finishedPhase.type === 'work') {
+            playChime('break-start');
+            showOSNotification('end');
+            recordFocusSession(Math.round(finishedPhase.totalSeconds / 60), 'Pomo Work');
+        } else {
+            playChime('session-start');
+            showOSNotification('start');
+        }
     }
+
+    ipcRenderer.send('close-popup');
+    ipcRenderer.send('close-fullscreen');
+    
+    pomoState.currentPhaseIndex++;
 
     if (pomoAutostartCheckbox && pomoAutostartCheckbox.checked) {
         startPomoPhase();
@@ -487,5 +500,12 @@ ipcRenderer.on('start-next-phase', () => {
     }
 });
 
-export { stopPomoStyle, startPomoPhase };
+export function setPresetAndStart(presetKey) {
+    const select = document.getElementById('pomo-presets');
+    if (select) {
+        select.value = presetKey;
+        select.dispatchEvent(new Event('change'));
+    }
+    startPomoStyle();
+}
 

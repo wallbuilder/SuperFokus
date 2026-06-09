@@ -2,6 +2,12 @@ import { store } from '../storage.js';
 import { customSoundPacks, soundPacks } from './audio-definitions.js';
 
 export async function loadFileAsDataURL(file) {
+    if (window.electronAPI) {
+        const arrayBuffer = await file.arrayBuffer();
+        const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        const filePath = await window.electronAPI.invoke('save-audio-file', fileName, arrayBuffer);
+        return filePath;
+    }
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (event) => resolve(event.target.result);
@@ -47,6 +53,15 @@ export async function deleteCustomSoundPack(packName) {
     }
 
     if (confirm(`Are you sure you want to delete the custom soundpack "${packName}"?`)) {
+        if (window.electronAPI) {
+            const pack = customSoundPacks[packName];
+            if (pack.notifs) pack.notifs.forEach(n => {
+                if (n.src && n.src.startsWith('file://')) window.electronAPI.invoke('delete-audio-file', n.src);
+            });
+            if (pack.ambient) pack.ambient.forEach(a => {
+                if (a.src && a.src.startsWith('file://')) window.electronAPI.invoke('delete-audio-file', a.src);
+            });
+        }
         // Remove from main soundPacks object
         delete soundPacks[packName];
         // Remove from customSoundPacks

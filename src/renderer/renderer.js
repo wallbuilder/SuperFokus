@@ -112,6 +112,7 @@ if (headerTitle) {
             import('./features/site-blocker.js')
         ]);
 
+
         const initApp = async () => {
           console.log('[Startup] Initializing App UI...');
           if (window.electronAPI && window.electronAPI.platform === 'darwin') {
@@ -135,37 +136,28 @@ if (headerTitle) {
 
           let currentStep = 0;
           const executeStepsSequentially = async () => {
-            while (currentStep < steps.length) {
-              const step = steps[currentStep];
-              if (loadingBar) loadingBar.style.width = step.progress + '%';
-              if (loadingText) loadingText.innerText = step.text;
-              
-              if (currentStep === 1) {
-                  initializeDomElements(workflows.setupWorkflowEventListeners, workflows.setupWorkflowPresetsEventListeners);
-                  await Promise.all([
-                      theme.initTheme(), stats.initStats(), audio.initAudio(), workflows.initWorkflows(),
-                      pomo.initPomo(), repeating.initRepeating(), sprint.initSprint(), flow.initFlow(),
-                      integration.setupIntegrationUI()
-                  ]);
-              } else if (currentStep === 2) {
-                  initializeButtonListeners(repeating.initializeRepeatingButtonListeners);
-                  initializeCustomSoundpackListeners(
-                      audio.updateCustomNotifsUI, audio.updateCustomAmbientUI, audio.updateCustomPackUI, 
-                      audio.updateSoundSelectors, audio.loadFileAsDataURL, audio.saveCustomSoundPack, audio.deleteCustomSoundPack
-                  );
-                  await stats.updateStatsUI();
-                  stats.renderChart();
-              }
-              currentStep++;
-              await new Promise(r => setTimeout(r, 0));
-            }
-            setTimeout(() => {
+              if (loadingBar) loadingBar.style.width = '100%';
+              if (loadingText) loadingText.innerText = 'Starting SuperFokus...';
+
+              initializeDomElements(workflows.setupWorkflowEventListeners, workflows.setupWorkflowPresetsEventListeners);
+              await Promise.all([
+                  theme.initTheme(), stats.initStats(), audio.initAudio(), workflows.initWorkflows(),
+                  pomo.initPomo(), repeating.initRepeating(), sprint.initSprint(), flow.initFlow(),
+                  integration.setupIntegrationUI()
+              ]);
+
+              initializeButtonListeners(repeating.initializeRepeatingButtonListeners);
+              initializeCustomSoundpackListeners(
+                  audio.updateCustomNotifsUI, audio.updateCustomAmbientUI, audio.updateCustomPackUI,
+                  audio.updateSoundSelectors, audio.loadFileAsDataURL, audio.saveCustomSoundPack, audio.deleteCustomSoundPack
+              );
+              await stats.updateStatsUI();
+              stats.renderChart();
+
               startupScreen.style.opacity = '0';
               setTimeout(() => { startupScreen.style.display = 'none'; }, 400);
-            }, 0);
           };
-          executeStepsSequentially();
-        };
+          executeStepsSequentially();        };
 
         const runInitializationSteps = async (theme, stats, audio, workflows, pomo, repeating, sprint, flow, integration) => {
             initializeDomElements(workflows.setupWorkflowEventListeners, workflows.setupWorkflowPresetsEventListeners);
