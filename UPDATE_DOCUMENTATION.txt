@@ -9,63 +9,6 @@ Each new edit to the file that documents new changes should also list the date a
 [DO NOT DELETE THIS TEXT, DELETE TEXT BELOW THIS LINE] >
 ~ (< spacer)
 ~
-{May 23, 2026 at 12:00 PM}
-    [Fixed Bugs]
-     - Fixed an issue where the Pause button would become disabled (unclickable with a "not allowed" cursor) while a timer was running. Updated `setInputsLocked` in `src/renderer/utils/ui-helpers.js` to ensure elements with ID, class, or text containing "pause" remain unlocked.
-
-{May 23, 2026 at 12:05 PM}
-    [Added New Features]
-     - Updated the Credits modal in `index.html` to include a new "Sound Assets" section.
-     - Added specific links and credits for the Mechanical sound pack (mech-notif-1, mech-notif-2, mech-notif-3) sourced from Pixabay.
-
-{May 23, 2026 at 12:10 PM}
-    [Added New Features]
-     - Refined the "Sound Assets" section in the Credits modal.
-     - Added credit for the "Classic Pack" as being computer-generated via the built-in JavaScript / Web Audio API synthesizer.
-     - Added a placeholder for the "Nature Pack" credits.
-     - Simplified the "Mechanical Pack" header by removing the "(via Pixabay)" text.
-
-{May 23, 2026 at 12:15 PM}
-    [Added New Features]
-     - Updated the Mechanical Pack credits in the modal to display full Pixabay URLs instead of descriptive labels.
-     - Added `word-break: break-all;` to the credit links to ensure they wrap correctly on smaller screens.
-
-{May 23, 2026 at 12:20 PM}
-    [Fixed Bugs]
-     - Fixed an issue in `src/renderer/features/site-blocker.js` where the "Save & Apply Blocker" button would fail silently. Replaced the invalid `ipcRenderer.normalizeHost` call with inline URL parsing logic to prevent exceptions that interrupted the save process.
-     - Ensured Site Blocker now correctly saves, shows visual feedback, and triggers the elevated admin prompt.
-
-{May 23, 2026 at 12:25 PM}
-    [Added New Features]
-     - Re-implemented the unsaved changes warning for the Site Blocker to prevent accidental loss of edits.
-     - Disabled auto-saving when toggling the active switch. Changes are now only applied when explicitly clicking the Save button.
-
-{May 23, 2026 at 12:30 PM}
-    [Fixed Bugs]
-     - Synced Site Blocker unsaved state with the global `window.hasUnsavedChanges` variable so the app triggers the same warning popup used by the Themes menu.
-     - Fixed an issue where "Allow Only" mode didn't take effect immediately on Windows. Added a PowerShell script execution using `InternetSetOption` to force the system to refresh its proxy cache instantly.
-
-{May 23, 2026 at 12:35 PM}
-    [Fixed Bugs]
-     - Re-implemented `setMacProxy` in `BlockerService.js` to correctly elevate `networksetup` commands via `sudo-prompt` instead of standard `exec`, fixing "Allow Only" failing silently on macOS. Added a DNS cache flush to make the block instant.
-     - Added a global capture event listener in `site-blocker.js` to guarantee the unsaved changes popup intercepts navigation clicks, preventing accidental exit without saving.
-
-{May 23, 2026 at 12:40 PM}
-    [Fixed Bugs]
-     - Fixed an issue where entering a specific URL (like `www.youtube.com/shorts`) into the Site Blocker would incorrectly block the entire domain. Removed the logic in `site-blocker.js` that forcibly extracted hostnames from URLs to add to the domain blocklist.
-     - Upgraded the BlockerService proxy to support 'block' mode. It now properly filters specific URL paths for HTTP traffic, and intelligently ignores HTTPS tunnel blocks for specific URLs to prevent entire domains from being restricted accidentally.
-     - Added Electron `webRequest` interception to accurately block specific URLs natively within the app's internal browser sessions.
-
-{May 23, 2026 at 12:45 PM}
-    [Fixed Bugs]
-     - Refactored `BlockerService.js` to ensure the elevated admin prompt consistently appears when saving the Site Blocker with only specific URLs and no domains. 
-     - Added callback sequencing to `setMacProxy` to prevent concurrent `sudo-prompt` collisions and ensure the UI status updates only after the user has successfully authenticated.
-
-{May 23, 2026 at 12:50 PM}
-    [Fixed Bugs]
-     - Fixed a critical silent failure in `BlockerService.js` where `webRequest.onBeforeRequest(null, ...)` would throw an internal `TypeError`, halting the save process and preventing the admin prompt/terminal output from triggering. Safely wrapped URL interception logic in `try...catch` blocks and properly cleared listeners.
-~
-~
 < [DO NOT DELETE THIS TEXT, DELETE TEXT ABOVE THIS LINE]
 (Example chunk of documentation:
 {1/1/2025 at 12:00 PM}
