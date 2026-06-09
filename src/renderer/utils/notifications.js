@@ -5,9 +5,10 @@ export async function triggerHTML5Notification(title, body) {
     // Attempt via main process native module
     if (ipcRenderer) {
         ipcRenderer.send('show-os-notification', { title, body });
+        return; // Prioritize OS-level native notifications
     }
 
-    // Attempt via renderer HTML5 API (acts as a highly reliable fallback in dev mode)
+    // Fallback to renderer HTML5 API if IPC is unavailable
     if (!('Notification' in window)) {
         console.warn('This environment does not support desktop notifications');
         return;

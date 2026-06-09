@@ -1,4 +1,5 @@
 const { ipcMain, app, Notification } = require('electron');
+const path = require('path');
 const windowManager = require('./WindowManager');
 
 let store = null;
@@ -12,19 +13,44 @@ async function initStore() {
     }
 }
 
+const MAX_STORE_VALUE_SIZE = 1024 * 1024; // 1MB limit
+
+function validateStoreValue(key, value) {
+    if (!key || typeof key !== 'string') {
+        throw new Error('Store key must be a non-empty string');
+    }
+    
+    const serialized = JSON.stringify(value);
+    if (serialized.length > MAX_STORE_VALUE_SIZE) {
+        throw new Error(`Store value for key "${key}" exceeds maximum size of ${MAX_STORE_VALUE_SIZE} bytes`);
+    }
+    
+    return true;
+}
+
 async function init() {
     await initStore();
 
     ipcMain.on('store-set', (event, key, value) => {
         if (!windowManager.isOriginSafe(event)) return;
-        if (store) store.set(key, value);
+        try {
+            validateStoreValue(key, value);
+            if (store) store.set(key, value);
+        } catch (err) {
+            console.error('[IpcMainHandlers] Store validation error:', err.message);
+        }
     });
 
     ipcMain.on('store-set-multiple', (event, dataObj) => {
         if (!windowManager.isOriginSafe(event)) return;
         if (store && typeof dataObj === 'object') {
             for (const [key, value] of Object.entries(dataObj)) {
-                store.set(key, value);
+                try {
+                    validateStoreValue(key, value);
+                    store.set(key, value);
+                } catch (err) {
+                    console.error('[IpcMainHandlers] Store validation error for key ' + key + ':', err.message);
+                }
             }
         }
     });
@@ -91,9 +117,10 @@ async function init() {
 
     ipcMain.handle('save-audio-file', async (event, fileName, arrayBuffer) => {
         if (!windowManager.isOriginSafe(event)) return null;
+        const safeFileName = path.basename(fileName);
         const soundsDir = path.join(app.getPath('userData'), 'sounds');
         await require('fs').promises.mkdir(soundsDir, { recursive: true });
-        const filePath = path.join(soundsDir, fileName);
+        const filePath = path.join(soundsDir, safeFileName);
         await require('fs').promises.writeFile(filePath, Buffer.from(arrayBuffer));
         return `file://${filePath.replace(/\\/g, '/')}`;
     });

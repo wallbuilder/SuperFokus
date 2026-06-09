@@ -79,31 +79,23 @@ app.whenReady().then(async () => {
         require('./services/MacOptimizationService').init(windowManager.mainWindow);
     }
 
-    // Startup Cleanup
-    console.log('[Main Process] Calling runElevated for startup cleanup...');
-    blockerService.runElevated('clear', [], (error) => {
-        if (error) {
-            console.log('[Startup] Failsafe check failed: ', error.message);
-            if (windowManager.mainWindow && !windowManager.mainWindow.isDestroyed()) {
-                windowManager.mainWindow.webContents.send('startup-cleanup-failed', error.message);
-            }
-        } else {
-            console.log('[Startup] Checked and cleared zombie blocks.');
-        }
-    });
-
     process.on('uncaughtException', (err) => {
         console.error('CRITICAL UNCAUGHT EXCEPTION:', err);
         // Do not use runElevated with UAC prompt on crash.
         // If possible, clear blocks un-elevated or just exit to prevent zombie processes.
         if (blockerService) {
             try { blockerService.stopProxy(); } catch (e) {}
+            try { 
+                if (process.platform === 'darwin') {
+                    blockerService.setMacProxy(false); 
+                }
+            } catch (e) {}
         }
         process.exit(1);
     });
 
     app.on('activate', () => {
-        if (require('electron').BrowserWindow.getAllWindows().length === 0) {
+        if (!windowManager.mainWindow || windowManager.mainWindow.isDestroyed()) {
             windowManager.createWindow();
         } else {
             windowManager.mainWindow.show();

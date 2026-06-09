@@ -465,18 +465,17 @@ class WindowManager {
             this.popupWindow
         ];
 
-        const targetTimerId = (channel === 'timer-tick' || channel.startsWith('timer-')) ? args[0]?.id || args[0] : null;
+        // Optimization: Only send timer ticks to visible windows to reduce IPC spam
+        const isTimerTickChannel = channel === 'timer-tick';
 
         windows.forEach(win => {
             if (win && !win.isDestroyed()) {
+                // Skip sending timer ticks to hidden windows
+                if (isTimerTickChannel && !win.isVisible()) {
+                    return;
+                }
                 win.webContents.send(channel, ...args);
             }
-        });
-    }
-}
-
-module.exports = new WindowManager();
-
         });
     }
 }

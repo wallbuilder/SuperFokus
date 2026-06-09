@@ -1,4 +1,4 @@
-const { _electron: electron } = require('@playwright/test');
+﻿const { _electron: electron } = require('@playwright/test');
 const { test, expect } = require('@playwright/test');
 
 let electronApp;
@@ -19,18 +19,18 @@ test.afterAll(async () => {
 
 test('Site Blocker activates without errors', async () => {
   // Navigate to the site blocker section (assuming a button or link with this ID)
-  await window.click('#open-site-blocker-modal');
+  await window.click('[data-modal="modal-site-blocker"]');
 
   // Toggle the site blocker switch
-  await window.click('#site-blocker-toggle');
+  await window.click('#site-blocker-enabled');
 
   // Add a domain to the block list
-  await window.fill('#blocker-domain-input', 'example.com');
+  await window.fill('#domain-list', 'example.com');
 
   // Click the save button
-  await window.click('#save-blocker-rules');
+  await window.click('#save-blocker-btn');
 
-  // No explicit assertion, the test will pass if no uncaught exceptions are thrown
-  // during the activation process.
-  await expect(true).toBe(true);
+  // Assertion that the status display contains 'Domains blocked'
+  const statusDisplay = await window.locator('#blocker-status-display');
+  await expect(statusDisplay).toContainText('Domains blocked');
 });

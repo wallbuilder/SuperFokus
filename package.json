@@ -13,9 +13,9 @@
     "dist:mac": "electron-builder --mac",
     "build": "npm run build:native",
     "build:native": "napi build --platform --release --package bridge --manifest-path src/native/Cargo.toml",
-    "prestart": "npm run build",
-    "pretest": "npm run build",
-    "predist": "npm run build"
+    "prestart": "",
+    "pretest": "",
+    "predist": ""
   },
   "build": {
     "appId": "com.superfokus.app",

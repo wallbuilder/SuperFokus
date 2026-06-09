@@ -123,7 +123,7 @@ if (headerTitle) {
           const loadingText = document.getElementById('startup-loading-text');
           
           if (!startupScreen) {
-            await runInitializationSteps(theme, stats, audio, workflows, pomo, repeating, sprint, flow, integration);
+            await runInitializationSteps(theme, stats, audio, workflows, pomo, repeating, sprint, flow, integration, siteBlocker);
             return;
           }
           
@@ -143,10 +143,10 @@ if (headerTitle) {
               await Promise.all([
                   theme.initTheme(), stats.initStats(), audio.initAudio(), workflows.initWorkflows(),
                   pomo.initPomo(), repeating.initRepeating(), sprint.initSprint(), flow.initFlow(),
-                  integration.setupIntegrationUI()
+                  integration.setupIntegrationUI(), siteBlocker.initSiteBlocker()
               ]);
 
-              initializeButtonListeners(repeating.initializeRepeatingButtonListeners);
+              initializeButtonListeners(repeating.initializeRepeatingButtonListeners); 
               initializeCustomSoundpackListeners(
                   audio.updateCustomNotifsUI, audio.updateCustomAmbientUI, audio.updateCustomPackUI,
                   audio.updateSoundSelectors, audio.loadFileAsDataURL, audio.saveCustomSoundPack, audio.deleteCustomSoundPack
@@ -157,14 +157,15 @@ if (headerTitle) {
               startupScreen.style.opacity = '0';
               setTimeout(() => { startupScreen.style.display = 'none'; }, 400);
           };
-          executeStepsSequentially();        };
+          executeStepsSequentially();
+        };
 
-        const runInitializationSteps = async (theme, stats, audio, workflows, pomo, repeating, sprint, flow, integration) => {
+        const runInitializationSteps = async (theme, stats, audio, workflows, pomo, repeating, sprint, flow, integration, siteBlocker) => {
             initializeDomElements(workflows.setupWorkflowEventListeners, workflows.setupWorkflowPresetsEventListeners);
             await Promise.all([
                 theme.initTheme(), stats.initStats(), audio.initAudio(), workflows.initWorkflows(),
                 pomo.initPomo(), repeating.initRepeating(), sprint.initSprint(), flow.initFlow(),
-                integration.setupIntegrationUI()
+                integration.setupIntegrationUI(), siteBlocker.initSiteBlocker()
             ]);
             initializeButtonListeners(repeating.initializeRepeatingButtonListeners);
             initializeCustomSoundpackListeners(

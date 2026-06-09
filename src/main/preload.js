@@ -24,7 +24,8 @@ const ALLOWED_SEND_CHANNELS = [
     'start-health-mode',
     'stop-health-mode',
     'store-set',
-    'store-set-multiple'
+    'store-set-multiple',
+    'store-delete'
 ];
 
 // Whitelist of channels the renderer can LISTEN to from the main process
@@ -41,7 +42,9 @@ const ALLOWED_ON_CHANNELS = [
     'start-next-phase',
     'blocker-status',
     'blocker-error',
-    'timer-event'
+    'timer-event',
+    'start-flow-state-from-dock',
+    'pause-timer-from-dock'
 ];
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -62,6 +65,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
         } else {
             console.warn(`Blocked unauthorized IPC listener registration on channel: ${channel}`);
             return () => {};
+        }
+    },
+    off: (channel, wrappedFunc) => {
+        if (ALLOWED_ON_CHANNELS.includes(channel)) {
+            if (wrappedFunc) {
+                ipcRenderer.removeListener(channel, wrappedFunc);
+            }
+        } else {
+            console.warn(`Blocked unauthorized IPC listener removal on channel: ${channel}`);
         }
     },
     invoke: (channel, ...args) => {

@@ -130,10 +130,10 @@ function init() {
         if (breakOrPomoRunning || justOpened) return;
 
         windowManager.forceKillFullscreen();
-        if (windowManager.pomoTimerWindow && !windowManager.pomoTimerWindow.isDestroyed() && windowManager.pomoTimerWindow.isVisible()) {
-            windowManager.pomoTimerWindow.show();
-            windowManager.pomoTimerWindow.focus();
-            windowManager.pomoTimerWindow.setAlwaysOnTop(true);
+        if (windowManager.timerWindow && !windowManager.timerWindow.isDestroyed() && windowManager.timerWindow.isVisible()) {
+            windowManager.timerWindow.show();
+            windowManager.timerWindow.focus();
+            windowManager.timerWindow.setAlwaysOnTop(true);
         }
     });
 }
