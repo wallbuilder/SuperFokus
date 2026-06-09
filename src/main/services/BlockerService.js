@@ -48,14 +48,26 @@ function runElevated(command, commandArgs, callback) {
         if (callback) callback(error, stdout, stderr);
     });
     }
-function startProxy(allowedHosts, allowedUrls) {
+
+function refreshWindowsProxy() {
+    if (process.platform === 'win32') {
+        const psScript = `Add-Type -TypeDefinition 'using System.Runtime.InteropServices; public class WinInet { [DllImport("wininet.dll", SetLastError = true)] public static extern bool InternetSetOption(IntPtr hInternet, int dwOption, IntPtr lpBuffer, int dwBufferLength); }'; [WinInet]::InternetSetOption([IntPtr]::Zero, 39, [IntPtr]::Zero, 0); [WinInet]::InternetSetOption([IntPtr]::Zero, 37, [IntPtr]::Zero, 0);`;
+        exec(`powershell -WindowStyle Hidden -Command "${psScript}"`, (err) => {
+            if (err) console.error('[Proxy] Failed to refresh Windows proxy:', err);
+        });
+    }
+}
+
+function startProxy(targetHosts, targetUrls, mode = 'allow') {
     if (proxyServer) proxyServer.close();
 
-    const parsedAllowedUrls = [];
-    if (allowedUrls) {
-        allowedUrls.forEach(urlStr => {
+    const parsedUrls = [];
+    if (targetUrls) {
+        targetUrls.forEach(urlStr => {
             try {
-                parsedAllowedUrls.push(new URL(urlStr));
+                let formatted = urlStr;
+                if (!/^https?:\/\//i.test(formatted)) formatted = 'https://' + formatted;
+                parsedUrls.push(new URL(formatted));
             } catch (e) {}
         });
     }
@@ -63,50 +75,77 @@ function startProxy(allowedHosts, allowedUrls) {
     proxyServer = http.createServer((req, res) => {
         const host = (req.headers.host || '').split(':')[0].toLowerCase();
         const fullUrl = `http://${host}${req.url}`;
-        const hostAllowed = allowedHosts.has(host) || allowedHosts.has('www.' + host) ||
+        const isHostMatch = targetHosts.has(host) || targetHosts.has('www.' + host) ||
                           host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
 
-        let urlAllowed = false;
-        if (!hostAllowed) {
-            try {
-                const requested = new URL(fullUrl);
-                urlAllowed = parsedAllowedUrls.some(allowed => {
-                    return allowed.hostname === requested.hostname &&
-                           requested.pathname.startsWith(allowed.pathname);
-                });
-            } catch (e) {}
-        }
+        let isUrlMatch = false;
+        try {
+            const requested = new URL(fullUrl);
+            isUrlMatch = parsedUrls.some(target => {
+                return target.hostname === requested.hostname &&
+                       requested.pathname.startsWith(target.pathname);
+            });
+        } catch (e) {}
 
-        if (hostAllowed || urlAllowed) {
-            res.writeHead(200, {'Content-Type': 'text/html'});
-            res.end('<html><body><h1>✓ Allowed by SuperFokus</h1></body></html>');
+        if (mode === 'allow') {
+            if (isHostMatch || isUrlMatch) {
+                res.writeHead(200, {'Content-Type': 'text/html'});
+                res.end('<html><body><h1>✓ Allowed by SuperFokus</h1></body></html>');
+            } else {
+                res.writeHead(503, {'Content-Type': 'text/html'});
+                res.end('<html><body style="font-family:Arial;margin:50px;background:#f8d7da;"><h1>⚠️ Service Unavailable</h1><p>This service is temporarily not operational during your focus session.</p></body></html>');
+            }
         } else {
-            res.writeHead(503, {'Content-Type': 'text/html'});
-            res.end('<html><body style="font-family:Arial;margin:50px;background:#f8d7da;"><h1>⚠️ Service Unavailable</h1><p>This service is temporarily not operational during your focus session.</p></body></html>');
+            // Block mode
+            if (targetHosts.has(host) || targetHosts.has('www.' + host) || isUrlMatch) {
+                res.writeHead(403, {'Content-Type': 'text/html'});
+                res.end('<html><body style="font-family:Arial;margin:50px;background:#f8d7da;"><h1>⚠️ Blocked by SuperFokus</h1><p>This URL is restricted during your focus session.</p></body></html>');
+            } else {
+                // Transparent proxy pass-through for unblocked HTTP traffic
+                const options = { hostname: host, port: 80, path: req.url, method: req.method, headers: req.headers };
+                const proxyReq = http.request(options, (proxyRes) => {
+                    res.writeHead(proxyRes.statusCode, proxyRes.headers);
+                    proxyRes.pipe(res);
+                });
+                proxyReq.on('error', () => { res.writeHead(502); res.end(); });
+                req.pipe(proxyReq);
+            }
         }
     });
 
     proxyServer.on('connect', (req, clientSocket, head) => {
         const host = req.url.split(':')[0].toLowerCase();
         const port = req.url.split(':')[1] || 443;
-        let hostAllowed = allowedHosts.has(host) || allowedHosts.has('www.' + host) ||
+        
+        let isHostMatch = targetHosts.has(host) || targetHosts.has('www.' + host) ||
                           host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
 
-        if (!hostAllowed) {
-            hostAllowed = parsedAllowedUrls.some(allowed => {
-                return allowed.hostname === host || allowed.hostname === 'www.' + host || 'www.' + allowed.hostname === host;
-            });
+        let isUrlHostMatch = parsedUrls.some(target => target.hostname === host || target.hostname === 'www.' + host || 'www.' + target.hostname === host);
+
+        let allowConnection = false;
+        
+        if (mode === 'allow') {
+            allowConnection = isHostMatch || isUrlHostMatch;
+        } else {
+            // In block mode, if the whole host is blocked, deny connection.
+            // If only the URL matches the host, we MUST allow connection here (because we cannot see HTTPS paths), 
+            // so we don't accidentally break the entire domain for the user.
+            allowConnection = !(targetHosts.has(host) || targetHosts.has('www.' + host));
         }
 
-        if (hostAllowed) {
+        if (allowConnection) {
             const serverSocket = net.connect(port, host, () => {
                 clientSocket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
                 serverSocket.write(head);
                 serverSocket.pipe(clientSocket);
                 clientSocket.pipe(serverSocket);
             });
-            serverSocket.on('error', () => { try { clientSocket.end(); } catch (e) {} });
-            clientSocket.on('error', () => { try { serverSocket.end(); } catch (e) {} });
+            serverSocket.on('error', () => { 
+                try { clientSocket.end(); } catch (e) {} 
+            });
+            clientSocket.on('error', () => { 
+                try { serverSocket.end(); } catch (e) {} 
+            });
         } else {
             clientSocket.end('HTTP/1.1 403 Forbidden\r\n\r\n');
         }
@@ -115,7 +154,9 @@ function startProxy(allowedHosts, allowedUrls) {
     proxyServer.listen(8080, '127.0.0.1', () => {
         console.log('✓ SuperFokus proxy server listening on localhost:8080');
         if (process.platform === 'win32') {
-            exec('reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /t REG_DWORD /d 1 /f && reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyServer /t REG_SZ /d 127.0.0.1:8080 /f');
+            exec('reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /t REG_DWORD /d 1 /f && reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyServer /t REG_SZ /d 127.0.0.1:8080 /f', (err) => {
+                if (!err) refreshWindowsProxy();
+            });
         }
     });
 }
@@ -125,22 +166,36 @@ function stopProxy() {
         proxyServer.close();
         proxyServer = null;
         if (process.platform === 'win32') {
-            exec('reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /t REG_DWORD /d 0 /f');
+            exec('reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /t REG_DWORD /d 0 /f', (err) => {
+                if (!err) refreshWindowsProxy();
+            });
         }
     }
 }
 
-function setMacProxy(enable) {
-    if (process.platform !== 'darwin') return;
+function setMacProxy(enable, callback) {
+    if (process.platform !== 'darwin') {
+        if (callback) callback();
+        return;
+    }
     const services = ['Wi-Fi', 'Ethernet', 'Thunderbolt Bridge'];
+    let script = '';
+
     services.forEach(service => {
         if (enable) {
-            exec(`networksetup -setwebproxy "${service}" 127.0.0.1 8080 && networksetup -setwebproxystate "${service}" on`);
-            exec(`networksetup -setsecurewebproxy "${service}" 127.0.0.1 8080 && networksetup -setsecurewebproxystate "${service}" on`);
+            script += `networksetup -setwebproxy "${service}" 127.0.0.1 8080; networksetup -setwebproxystate "${service}" on; networksetup -setsecurewebproxy "${service}" 127.0.0.1 8080; networksetup -setsecurewebproxystate "${service}" on; `;
         } else {
-            exec(`networksetup -setwebproxystate "${service}" off`);
-            exec(`networksetup -setsecurewebproxystate "${service}" off`);
+            script += `networksetup -setwebproxystate "${service}" off; networksetup -setsecurewebproxystate "${service}" off; `;
         }
+    });
+    
+    // Flush DNS cache to ensure immediate effect on macOS
+    script += 'dscacheutil -flushcache; killall -HUP mDNSResponder;';
+    
+    sudo.exec(script, { name: 'SuperFokus' }, (error) => {
+        if (error) console.error('[Mac Proxy Error]', error);
+        else console.log('[Mac Proxy] Proxy settings applied and DNS flushed.');
+        if (callback) callback(error);
     });
 }
 
@@ -161,13 +216,41 @@ function init() {
             rules.urls.forEach(url => allUrls.add(url.trim()));
         }
 
-        if (rules.mode === 'allow' && rules.active && allHosts.size > 0) {
-            startProxy(allHosts, allUrls);
-            if (process.platform === 'darwin') setMacProxy(true);
-            if (windowManager.mainWindow && !windowManager.mainWindow.isDestroyed()) {
-                windowManager.mainWindow.webContents.send('blocker-status', '✓ Allow-only mode ACTIVE.');
+        // Electron internal Request interception to flawlessly block URLs within internal app windows
+        const { session } = require('electron');
+        if (session && session.defaultSession) {
+            try {
+                // Safely clear any existing URL interceptor
+                session.defaultSession.webRequest.onBeforeRequest(null);
+            } catch (e) {
+                console.error('[WebRequest Reset Error]', e);
             }
-        } else if (rules.mode === 'block' && rules.active && allHosts.size > 0) {
+        }
+
+        if (rules.mode === 'allow' && rules.active && (allHosts.size > 0 || allUrls.size > 0)) {
+            startProxy(allHosts, allUrls, 'allow');
+            setMacProxy(true, () => {
+                if (windowManager.mainWindow && !windowManager.mainWindow.isDestroyed()) {
+                    windowManager.mainWindow.webContents.send('blocker-status', '✓ Allow-only mode ACTIVE.');
+                }
+            });
+        } else if (rules.mode === 'block' && rules.active && (allHosts.size > 0 || allUrls.size > 0)) {
+            if (allUrls.size > 0 && session && session.defaultSession) {
+                const urlFilters = Array.from(allUrls).map(u => {
+                    let cleaned = u.trim();
+                    if (!cleaned.endsWith('*')) cleaned += '*'; // Ensures paths are correctly intercepted
+                    return cleaned;
+                });
+                try {
+                    session.defaultSession.webRequest.onBeforeRequest({ urls: urlFilters }, (details, callback) => {
+                        callback({ cancel: true });
+                    });
+                } catch (e) {
+                    console.error('[WebRequest Apply Error]', e);
+                }
+            }
+
+            // Always write file and runElevated to trigger expected admin prompt and sync state
             const domains = Array.from(allHosts);
             const tempPath = path.join(app.getPath('userData'), 'fokus_domains.json');
             fs.promises.writeFile(tempPath, JSON.stringify(domains))
@@ -175,9 +258,21 @@ function init() {
                     runElevated('apply-file', [tempPath], (error) => {
                         if (error) {
                             if (windowManager.mainWindow && !windowManager.mainWindow.isDestroyed()) windowManager.mainWindow.webContents.send('blocker-error', error.message);
+                            return; // Halt if admin prompt canceled
+                        } 
+                        
+                        blocksApplied = domains.length > 0;
+                        
+                        if (allUrls.size > 0) {
+                            startProxy(allHosts, allUrls, 'block');
+                            setMacProxy(true, () => {
+                                if (windowManager.mainWindow && !windowManager.mainWindow.isDestroyed()) windowManager.mainWindow.webContents.send('blocker-status', 'Domains & URLs blocked successfully');
+                            });
                         } else {
-                            blocksApplied = true;
-                            if (windowManager.mainWindow && !windowManager.mainWindow.isDestroyed()) windowManager.mainWindow.webContents.send('blocker-status', 'Domains blocked successfully');
+                            stopProxy();
+                            setMacProxy(false, () => {
+                                if (windowManager.mainWindow && !windowManager.mainWindow.isDestroyed()) windowManager.mainWindow.webContents.send('blocker-status', 'Domains blocked successfully');
+                            });
                         }
                     });
                 })
@@ -186,26 +281,31 @@ function init() {
                 });
         } else {
             stopProxy();
-            if (process.platform === 'darwin') setMacProxy(false);
-            if (blocksApplied) {
-                runElevated('clear', [], (error) => {
-                    if (!error) blocksApplied = false;
+            setMacProxy(false, () => {
+                if (blocksApplied) {
+                    runElevated('clear', [], (error) => {
+                        if (!error) blocksApplied = false;
+                        if (windowManager.mainWindow && !windowManager.mainWindow.isDestroyed()) windowManager.mainWindow.webContents.send('blocker-status', 'Blocks cleared');
+                    });
+                } else {
                     if (windowManager.mainWindow && !windowManager.mainWindow.isDestroyed()) windowManager.mainWindow.webContents.send('blocker-status', 'Blocks cleared');
-                });
-            }
+                }
+            });
         }
     });
 
     ipcMain.on('clear-all-blocks', (event) => {
         if (!windowManager.isOriginSafe(event)) return;
         stopProxy();
-        runElevated('clear', [], (error) => {
-            if (error) {
-                if (windowManager.mainWindow && !windowManager.mainWindow.isDestroyed()) windowManager.mainWindow.webContents.send('blocker-error', 'Failed to clear all blocks.');
-            } else {
-                blocksApplied = false;
-                if (windowManager.mainWindow && !windowManager.mainWindow.isDestroyed()) windowManager.mainWindow.webContents.send('blocker-status', 'All blocks cleared');
-            }
+        setMacProxy(false, () => {
+            runElevated('clear', [], (error) => {
+                if (error) {
+                    if (windowManager.mainWindow && !windowManager.mainWindow.isDestroyed()) windowManager.mainWindow.webContents.send('blocker-error', 'Failed to clear all blocks.');
+                } else {
+                    blocksApplied = false;
+                    if (windowManager.mainWindow && !windowManager.mainWindow.isDestroyed()) windowManager.mainWindow.webContents.send('blocker-status', 'All blocks cleared');
+                }
+            });
         });
     });
 

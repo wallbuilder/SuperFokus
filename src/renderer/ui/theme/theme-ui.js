@@ -21,6 +21,9 @@ import {
 let pendingThemeMode = 'light';
 let pendingShowHeaderToggle = true;
 let pendingColors = {};
+let pendingCustomThemeSaved = null;
+let hasPendingChanges = false;
+let activeColorsForReset = {};
 
 export async function initTheme() {
     try {
@@ -70,6 +73,7 @@ export async function initTheme() {
             }
         }
         setActiveCustomColors(activeColors);
+        activeColorsForReset = { ...activeColors };
 
         const toggleHeaderDarkModeSwitch = document.getElementById('toggle-header-dark-mode-switch');
         if (toggleHeaderDarkModeSwitch) toggleHeaderDarkModeSwitch.checked = showToggle;
@@ -98,6 +102,30 @@ function updateCustomThemeOptionsVisibility(mode) {
     }
 }
 
+function revertPendingChanges() {
+    pendingThemeMode = currentThemeMode;
+    pendingShowHeaderToggle = showHeaderDarkModeToggle;
+    pendingColors = { ...activeColorsForReset };
+    pendingCustomThemeSaved = null;
+    hasPendingChanges = false;
+
+    const themeRadioLight = document.getElementById('theme-radio-light');
+    const themeRadioDark = document.getElementById('theme-radio-dark');
+    const themeRadioCustom = document.getElementById('theme-radio-custom');
+    if (themeRadioLight) themeRadioLight.checked = (pendingThemeMode === 'light');
+    if (themeRadioDark) themeRadioDark.checked = (pendingThemeMode === 'dark');
+    if (themeRadioCustom) themeRadioCustom.checked = (pendingThemeMode === 'custom');
+    updateCustomThemeOptionsVisibility(pendingThemeMode);
+
+    const toggleHeaderDarkModeSwitch = document.getElementById('toggle-header-dark-mode-switch');
+    if (toggleHeaderDarkModeSwitch) toggleHeaderDarkModeSwitch.checked = pendingShowHeaderToggle;
+
+    for (const [id, value] of Object.entries(pendingColors)) {
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+    }
+}
+
 function setupListeners() {
     const themeToggleBtn = document.getElementById('theme-toggle');
     if (themeToggleBtn) {
@@ -106,6 +134,7 @@ function setupListeners() {
             setThemeMode(next);
             pendingThemeMode = next;
             updateCustomThemeOptionsVisibility(next);
+            hasPendingChanges = true;
         });
     }
 
@@ -113,18 +142,22 @@ function setupListeners() {
     const themeRadioDark = document.getElementById('theme-radio-dark');
     const themeRadioCustom = document.getElementById('theme-radio-custom');
 
-    if (themeRadioLight) themeRadioLight.addEventListener('change', () => { pendingThemeMode = 'light'; updateCustomThemeOptionsVisibility('light'); });
-    if (themeRadioDark) themeRadioDark.addEventListener('change', () => { pendingThemeMode = 'dark'; updateCustomThemeOptionsVisibility('dark'); });
-    if (themeRadioCustom) themeRadioCustom.addEventListener('change', () => { pendingThemeMode = 'custom'; updateCustomThemeOptionsVisibility('custom'); });
+    const markPending = () => { hasPendingChanges = true; };
+
+    if (themeRadioLight) themeRadioLight.addEventListener('change', () => { pendingThemeMode = 'light'; updateCustomThemeOptionsVisibility('light'); markPending(); });
+    if (themeRadioDark) themeRadioDark.addEventListener('change', () => { pendingThemeMode = 'dark'; updateCustomThemeOptionsVisibility('dark'); markPending(); });
+    if (themeRadioCustom) themeRadioCustom.addEventListener('change', () => { pendingThemeMode = 'custom'; updateCustomThemeOptionsVisibility('custom'); markPending(); });
 
     const colorPickers = Object.keys(CUSTOM_COLOR_MAP).map(id => document.getElementById(id));
     colorPickers.forEach(picker => {
         if (!picker) return;
         picker.addEventListener('input', (e) => {
             pendingColors[e.target.id] = e.target.value;
+            markPending();
         });
         picker.addEventListener('change', (e) => {
             pendingColors[e.target.id] = e.target.value;
+            markPending();
         });
     });
 
@@ -137,6 +170,14 @@ function setupListeners() {
                     const el = document.getElementById(id);
                     if (el) el.value = DEFAULT_CUSTOM_COLORS[id];
                 }
+                pendingCustomThemeSaved = false;
+                if (pendingThemeMode === 'custom') {
+                    pendingThemeMode = 'light';
+                    const themeRadioLight = document.getElementById('theme-radio-light');
+                    if (themeRadioLight) themeRadioLight.checked = true;
+                    updateCustomThemeOptionsVisibility('light');
+                }
+                markPending();
             }
         });
     }
@@ -145,42 +186,111 @@ function setupListeners() {
     if (toggleHeaderDarkModeSwitch) {
         toggleHeaderDarkModeSwitch.addEventListener('change', (e) => {
             pendingShowHeaderToggle = e.target.checked;
+            markPending();
         });
     }
 
     const saveThemeSettingsBtn = document.getElementById('save-theme-settings-btn');
-    if (saveThemeSettingsBtn) {
-        saveThemeSettingsBtn.addEventListener('click', () => {
-            setShowHeaderDarkModeToggle(pendingShowHeaderToggle);
+    
+    const performSave = () => {
+        setShowHeaderDarkModeToggle(pendingShowHeaderToggle);
+        
+        try {
+            store.set('showHeaderDarkModeToggle', showHeaderDarkModeToggle);
             
-            try {
-                store.set('showHeaderDarkModeToggle', showHeaderDarkModeToggle);
-                
-                // Save custom colors
-                const activeColors = {};
-                for (const [id, value] of Object.entries(pendingColors)) {
-                    store.set(id, value);
-                    const el = document.getElementById(id);
-                    if (el) el.value = value;
-                    activeColors[id] = value;
-                }
-                setActiveCustomColors(activeColors);
+            const activeColors = {};
+            for (const [id, value] of Object.entries(pendingColors)) {
+                store.set(id, value);
+                const el = document.getElementById(id);
+                if (el) el.value = value;
+                activeColors[id] = value;
+            }
+            setActiveCustomColors(activeColors);
+            activeColorsForReset = { ...activeColors };
 
-                if (pendingThemeMode === 'custom') {
-                    setIsCustomThemeSaved(true);
-                    store.set('customThemeSaved', true);
-                }
+            if (pendingCustomThemeSaved !== null) {
+                setIsCustomThemeSaved(pendingCustomThemeSaved);
+                store.set('customThemeSaved', pendingCustomThemeSaved);
+                pendingCustomThemeSaved = null;
+            }
 
-                setThemeMode(pendingThemeMode);
-                applyHeaderToggleVisibility();
+            if (pendingThemeMode === 'custom') {
+                setIsCustomThemeSaved(true);
+                store.set('customThemeSaved', true);
+            }
 
+            setThemeMode(pendingThemeMode);
+            applyHeaderToggleVisibility();
+            hasPendingChanges = false;
+
+            if (saveThemeSettingsBtn) {
                 const oldText = saveThemeSettingsBtn.innerText;
                 saveThemeSettingsBtn.innerText = 'Saved!';
                 setTimeout(() => { saveThemeSettingsBtn.innerText = oldText; }, 1500);
-            } catch (error) {
-                console.error('Error saving theme settings:', error);
-                alert('Failed to save theme settings.');
             }
-        });
+        } catch (error) {
+            console.error('Error saving theme settings:', error);
+            alert('Failed to save theme settings.');
+        }
+    };
+
+    if (saveThemeSettingsBtn) {
+        saveThemeSettingsBtn.addEventListener('click', performSave);
+    }
+
+    // Unsaved Changes Modal Setup
+    let unsavedModal = document.getElementById('unsaved-changes-modal');
+    if (!unsavedModal) {
+        unsavedModal = document.createElement('div');
+        unsavedModal.id = 'unsaved-changes-modal';
+        unsavedModal.className = 'modal-overlay';
+        unsavedModal.style.zIndex = '9999';
+        unsavedModal.innerHTML = `
+            <div class="modal-content" style="max-width: 400px; text-align: center;">
+                <h3 style="margin-top: 0;">Unsaved Changes</h3>
+                <p style="color: var(--timer-subtext); margin-bottom: 20px;">Are you sure you want to discard your changes?</p>
+                <div style="display: flex; gap: 15px; justify-content: center;">
+                    <button class="action-btn" id="unsaved-discard-btn" style="background: #e74c3c; width: auto; padding: 0.6rem 1.2rem;">Discard Changes</button>
+                    <button class="action-btn" id="unsaved-save-btn" style="background: #27ae60; width: auto; padding: 0.6rem 1.2rem;">Save Changes</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(unsavedModal);
+    }
+
+    const customizationModal = document.getElementById('modal-customization');
+    const showUnsavedChangesModal = () => {
+        unsavedModal.classList.add('active');
+    };
+
+    document.getElementById('unsaved-discard-btn').addEventListener('click', () => {
+        unsavedModal.classList.remove('active');
+        revertPendingChanges();
+        if (customizationModal) customizationModal.classList.remove('active');
+    });
+
+    document.getElementById('unsaved-save-btn').addEventListener('click', () => {
+        unsavedModal.classList.remove('active');
+        performSave();
+        if (customizationModal) customizationModal.classList.remove('active');
+    });
+
+    if (customizationModal) {
+        const closeBtn = customizationModal.querySelector('.modal-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                if (hasPendingChanges) {
+                    e.stopImmediatePropagation();
+                    showUnsavedChangesModal();
+                }
+            }, { capture: true });
+        }
+
+        customizationModal.addEventListener('click', (e) => {
+            if (e.target === customizationModal && hasPendingChanges) {
+                e.stopImmediatePropagation();
+                showUnsavedChangesModal();
+            }
+        }, { capture: true });
     }
 }

@@ -25,7 +25,7 @@ export function updateHeaderToggleButtonText() {
     themeToggleBtn.innerText = modeLabels[currentThemeMode] || 'Theme';
     
     const targetState = getNextThemeMode();
-    themeToggleBtn.title = `Change color to ${modeNames[targetState] || targetState}`;
+    themeToggleBtn.title = `Change to ${modeNames[targetState] || targetState}`;
 }
 
 export function applyTheme() {

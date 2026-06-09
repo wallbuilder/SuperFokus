@@ -295,7 +295,7 @@ function updatePomoDisplay(notifyWindow = false) {
 ipcRenderer.on('timer-tick', (data) => {
     if (data.id === 'pomo') {
         pomoState.pomoTimer = data.remaining;
-        updatePomoDisplay(false);
+        updatePomoDisplay(true);
     }
 });
 

@@ -98,7 +98,7 @@ if (headerTitle) {
         console.log('[Startup] Migration complete. Loading modules...');
 
         const [
-            theme, stats, audio, workflows, pomo, repeating, sprint, flow, integration
+            theme, stats, audio, workflows, pomo, repeating, sprint, flow, integration, siteBlocker
         ] = await Promise.all([
             import('./ui/theme.js'),
             import('./utils/stats.js'),
@@ -108,7 +108,8 @@ if (headerTitle) {
             import('./features/repeating.js'),
             import('./features/micro-sprint.js'),
             import('./features/flow-state.js'),
-            import('./ui/integration.js')
+            import('./ui/integration.js'),
+            import('./features/site-blocker.js')
         ]);
 
         const initApp = async () => {
