@@ -7,8 +7,20 @@ Before each commit, the contents of this file should be mostly discarded of, EXC
 Each new edit to the file that documents new changes should also list the date and time of implementation.
 (Note: You must list ALL changes, including small ones. No detail is too small).
 [DO NOT DELETE THIS TEXT, DELETE TEXT BELOW THIS LINE] >
-~ (< spacer)
-~
+
+{6/9/2026 at 3:15 PM}
+    [Added New Features]
+     - Implemented "Popups per Cycle" for Repeating Reminders, allowing users to configure 1-4 popups via a dropdown in the UI.
+     - Added staggered IPC messaging (300ms delays) to ensure multiple popups open cleanly without overlapping visual glitches.
+     - Integrated the popup count configuration directly into the repeating preset system, defaulting to 1 for hardcoded presets and dynamically falling back to 1 for legacy custom presets.
+     - Updated repeating-guidelines.md to explicitly document the new multi-popup configuration.
+
+    [Fixed Bugs & Optimizations]
+     - Restored accidentally missing `export function startRepeatingReminders()` signature in `repeating.js` which caused execution to fail.
+     - Created missing `TimerService.js` facade in `src/renderer/features/` to act as a unified proxy for Pomo, Sprint, and Repeating states.
+     - Exported `stopPomoStyle` from `pomo-timer.js` to align with the new unified service.
+     - Fixed `workflows-engine.js` execution crashes by providing it the newly built `TimerService.js` dependencies it was requesting.
+
 < [DO NOT DELETE THIS TEXT, DELETE TEXT ABOVE THIS LINE]
 (Example chunk of documentation:
 {1/1/2025 at 12:00 PM}

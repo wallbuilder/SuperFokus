@@ -400,7 +400,7 @@ function handlePhaseEnd() {
     }
 }
 
-function stopPomoStyle() {
+export function stopPomoStyle() {
     pomoState.isPomoRunning = false;
     pomoState.isPomoPaused = false;
     ipcRenderer.send('stop-timer', 'pomo');

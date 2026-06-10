@@ -17,6 +17,7 @@ Repeating Reminders mode is designed to provide periodic "nudges" or alerts to t
 
 3. **User Alerts:**
    - Upon completion of an interval, the application must trigger a visual popup.
+   - The user can configure "Popups per Cycle" (1 to 4) to spawn multiple popups upon completion. These must be staggered slightly (e.g., 300ms delays) to prevent UI overlap.
    - The popup should display a user-configurable message (e.g., "Time to check your posture!").
    - An optional audible chime should play alongside the popup, adhering to the user's sound pack settings.
 

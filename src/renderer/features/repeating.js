@@ -11,6 +11,7 @@ import { formatTime, setInputsLocked, toggleStartStopButton, escapeHtml } from '
 export const repeatingState = {
     repeatingTimer: 0,
     currentRounds: 0,
+    popupsCount: 1,
     isRepeatingRunning: false,
     isRepeatingPaused: false,
     currentRepeatingTotalSeconds: 0
@@ -26,6 +27,7 @@ const reminderIntervalSecondsInput = document.getElementById('reminder-interval-
 const reminderRoundsInput = document.getElementById('reminder-rounds');
 const reminderMessageInput = document.getElementById('reminder-message');
 const reminderAutocloseInput = document.getElementById('reminder-autoclose');
+const reminderPopupsCountInput = document.getElementById('reminder-popups-count');
 const repeatingTimerDisplay = document.getElementById('repeating-timer-display');
 const repeatingTimeLeft = document.getElementById('repeating-time-left');
 const repeatingRoundsLeft = document.getElementById('repeating-rounds-left');
@@ -76,12 +78,17 @@ ipcRenderer.on('timer-event', (payload) => {
             playChime();
             showOSNotification('end');
             const autocloseSecs = reminderAutocloseInput ? (parseInt(reminderAutocloseInput.value, 10) || 10) : 10;
-            ipcRenderer.send('show-popup', {
-                message: reminderMessageInput ? reminderMessageInput.value : '',
-                closeDelay: autocloseSecs * 1000,
-                type: 'Repeating Reminder',
-                isAutoclose: true
-            });
+            const popups = repeatingState.popupsCount || 1;
+            for (let i = 0; i < popups; i++) {
+                setTimeout(() => {
+                    ipcRenderer.send('show-popup', {
+                        message: reminderMessageInput ? reminderMessageInput.value : '',
+                        closeDelay: autocloseSecs * 1000,
+                        type: 'Repeating Reminder',
+                        isAutoclose: true
+                    });
+                }, i * 300);
+            }
             recordFocusSession(Math.round(repeatingState.currentRepeatingTotalSeconds / 60), 'Repeating Reminder');
             
             if (infiniteRoundsCheckbox && !infiniteRoundsCheckbox.checked) {
@@ -110,8 +117,11 @@ export function setPresetAndStart(presetKey) {
     }
     const reminderRoundsInput = document.getElementById('reminder-rounds');
     if (reminderRoundsInput) reminderRoundsInput.value = 1; // 1 round per cycle
+    if (reminderPopupsCountInput) reminderPopupsCountInput.value = 1;
     startRepeatingReminders();
 }
+
+export function startRepeatingReminders() {
     const intervalMins = parseInt(reminderIntervalInput.value, 10) || 0;
     const intervalSecs = parseInt(reminderIntervalSecondsInput.value, 10) || 0;
     const totalSeconds = (intervalMins * 60) + intervalSecs;
@@ -132,6 +142,7 @@ export function setPresetAndStart(presetKey) {
     repeatingState.isRepeatingPaused = false;
     repeatingState.currentRounds = isInfinite ? Infinity : rounds;
     repeatingState.repeatingTimer = totalSeconds;
+    repeatingState.popupsCount = reminderPopupsCountInput ? (parseInt(reminderPopupsCountInput.value, 10) || 1) : 1;
     
     toggleStartStopButton(startRepeatingBtn);
     setInputsLocked('config-repeating-reminders', true);
@@ -207,6 +218,8 @@ function updateRepeatingPresetOptions() {
 if (repeatingPresetsSelect) {
     repeatingPresetsSelect.addEventListener('change', (e) => {
         const val = e.target.value;
+        if (reminderPopupsCountInput) reminderPopupsCountInput.value = 1; // Default
+        
         if (deleteRepeatingPresetBtn) {
             deleteRepeatingPresetBtn.style.display = val.startsWith('custom-preset-') ? 'block' : 'none';
         }
@@ -233,6 +246,7 @@ if (repeatingPresetsSelect) {
                 if (reminderIntervalSecondsInput) reminderIntervalSecondsInput.value = data.intervalSecs || 0;
                 if (reminderRoundsInput) reminderRoundsInput.value = data.rounds || 5;
                 if (reminderMessageInput) reminderMessageInput.value = data.message || '';
+                if (reminderPopupsCountInput) reminderPopupsCountInput.value = data.popupsCount || 1;
             }
         }
     });
@@ -276,7 +290,8 @@ if (confirmSaveRepeatingPresetBtn) {
                 intervalMins: reminderIntervalInput ? (parseInt(reminderIntervalInput.value, 10) || 0) : 0,
                 intervalSecs: reminderIntervalSecondsInput ? (parseInt(reminderIntervalSecondsInput.value, 10) || 0) : 0,
                 rounds: reminderRoundsInput ? (parseInt(reminderRoundsInput.value, 10) || 5) : 5,
-                message: reminderMessageInput ? reminderMessageInput.value : ''
+                message: reminderMessageInput ? reminderMessageInput.value : '',
+                popupsCount: reminderPopupsCountInput ? (parseInt(reminderPopupsCountInput.value, 10) || 1) : 1
             };
             store.set('repeatingPresets', repeatingPresets);
             updateRepeatingPresetOptions();
