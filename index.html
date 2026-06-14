@@ -399,6 +399,16 @@
         align-items: center;
         justify-content: center;
       }
+      .mask-icon {
+        display: inline-block;
+        background-color: currentColor;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+      }
       .pomo-icon {
         width: 40px; height: 40px;
         background: white;
@@ -726,12 +736,15 @@
                             <input type="color" id="custom-drawer-bg" value="#ffffff" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
                         </div>
                     </div>
-                    <button class="action-btn" id="reset-theme-colors-btn" style="width: 100%; margin-top: 15px; padding: 0.6rem; background: var(--timer-bg); color: var(--text-color); border: 1px solid var(--border-color); font-size: 0.85rem;">Reset Custom Colors</button>
+                </div>
+
+                <div style="margin-top: 15px;">
+                    <button class="action-btn" id="reset-theme-colors-btn" style="width: 100%; margin-top: 0; padding: 0.6rem; background: var(--timer-bg); color: var(--text-color); border: 1px solid var(--border-color); font-size: 0.85rem;">Reset Custom Colors</button>
                 </div>
 
                 <div style="margin-top: 25px; border-top: 2px solid var(--border-color); padding-top: 15px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <div style="font-weight: 500; font-size: 1.1rem;">Toggle settings</div>
+                        <div style="font-weight: 500; font-size: 1.1rem;">Header Settings</div>
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <label class="toggle-switch" style="transform: scale(0.8);">
                                 <input type="checkbox" id="toggle-header-dark-mode-switch" checked>
@@ -740,42 +753,8 @@
                             <span style="font-size: 0.9rem; color: var(--timer-subtext);">Show header toggle</span>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 15px; align-items: center;">
-                        <div style="position: relative; flex: 1;">
-                            <button id="toggle-option-1" class="action-btn" style="margin-top: 0; background: var(--timer-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 20px; padding: 0.6rem 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Light Mode</button>
-                            <div id="dropdown-option-1" class="dropdown-option" style="position: absolute; bottom: calc(100% + 10px); left: 0; background: var(--container-bg); border: 2px solid var(--border-color); border-radius: 12px; padding: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 100; width: 180px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                    <span style="font-size: 0.9rem; font-weight: 500;">Select below ⤵</span>
-                                    <span id="close-dropdown-1" style="cursor: pointer; font-size: 0.8rem; background: var(--timer-bg); border-radius: 5px; padding: 2px 6px; border: 1px solid var(--border-color);">✕</span>
-                                </div>
-                                <select id="toggle-select-1" style="width: 100%; padding: 8px; font-size: 0.9rem; border-radius: 6px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-color);">
-                                    <option value="light">Light Mode</option>
-                                    <option value="dark">Dark Mode</option>
-                                    <option value="custom">Custom Theme</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div style="font-size: 1.5rem; color: var(--timer-subtext);">➔</div>
-                        
-                        <div style="position: relative; flex: 1;">
-                            <button id="toggle-option-2" class="action-btn" style="margin-top: 0; background: var(--timer-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 20px; padding: 0.6rem 1rem; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Dark Mode</button>
-                            <div id="dropdown-option-2" class="dropdown-option" style="position: absolute; bottom: calc(100% + 10px); left: 0; background: var(--container-bg); border: 2px solid var(--border-color); border-radius: 12px; padding: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 100; width: 180px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                    <span style="font-size: 0.9rem; font-weight: 500;">Select below ⤵</span>
-                                    <span id="close-dropdown-2" style="cursor: pointer; font-size: 0.8rem; background: var(--timer-bg); border-radius: 5px; padding: 2px 6px; border: 1px solid var(--border-color);">✕</span>
-                                </div>
-                                <select id="toggle-select-2" style="width: 100%; padding: 8px; font-size: 0.9rem; border-radius: 6px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-color);">
-                                    <option value="light">Light Mode</option>
-                                    <option value="dark" selected>Dark Mode</option>
-                                    <option value="custom">Custom Theme</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div style="flex: 1; display: flex; justify-content: flex-end;">
-                            <button id="save-toggle-settings-btn" class="action-btn" style="margin-top: 0; padding: 0.6rem 1.5rem; background: #27ae60; color: white; border-radius: 20px; border: none; width: 100%;">Save</button>
-                        </div>
+                    <div style="display: flex; justify-content: flex-end;">
+                        <button id="save-theme-settings-btn" class="action-btn" style="margin-top: 0; padding: 0.6rem 1.5rem; background: #27ae60; color: white; border-radius: 20px; border: none; width: 100%;">Save Theme Settings</button>
                     </div>
                 </div>
             </div>
@@ -1143,10 +1122,10 @@
           <span class="icon pomo-icon">✓</span> Pomo Style
         </button>
         <button class="home-btn" data-mode="micro-sprint">
-          <span class="icon">🗎</span> Micro-Task Sprint
+          <span class="icon mask-icon" style="-webkit-mask-image: url('assets/micro-sprint.png'); mask-image: url('assets/micro-sprint.png'); height: 1em; width: 1em;"></span> Micro-Task Sprint
         </button>
         <button class="home-btn" data-mode="flow-state">
-          <span class="icon">⏱</span> Flow State Stopwatch
+          <span class="icon mask-icon" style="-webkit-mask-image: url('assets/flow-state.png'); mask-image: url('assets/flow-state.png'); height: 1em; width: 1em;"></span> Flow State Stopwatch
         </button>
         <button class="home-btn" data-mode="health-mode">
           <span class="icon">♡</span> Health Mode
@@ -1242,6 +1221,15 @@
         <div class="form-group" id="rounds-container">
           <label for="reminder-rounds">Number of Rounds:</label>
           <input type="number" id="reminder-rounds" placeholder="e.g. 5" min="1">
+        </div>
+        <div class="form-group" id="popups-count-container">
+          <label for="reminder-popups-count">Popups per Cycle:</label>
+          <select id="reminder-popups-count">
+            <option value="1" selected>1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+          </select>
         </div>
         <div class="form-group">
           <label class="toggle-switch">

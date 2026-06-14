@@ -41,6 +41,9 @@ export async function getAvailablePresetsForType(type) {
     } else if (type === 'repeating') {
         const repeatingPresets = await store.get('repeatingPresets', {});
         presets.push({ key: 'custom', label: 'Custom' });
+        presets.push({ key: 'concentration', label: 'Concentration - 30s' });
+        presets.push({ key: 'high-intensity', label: 'High-Intensity - 20s' });
+        presets.push({ key: 'quick-work', label: 'Quick Work - 1m' });
         Object.keys(repeatingPresets).forEach(key => {
             presets.push({ key: `custom-preset-${key}`, label: `Custom: ${key}` });
         });
@@ -106,6 +109,21 @@ export async function getPresetDetails(type, presetKey) {
             details.interval = { mins: Math.floor(total / 60), secs: total % 60 };
             details.rounds = rounds;
             details.duration = Math.round((total * rounds) / 60);
+        } else if (presetKey === 'concentration') {
+            details.displayName = 'Concentration - 30s';
+            details.interval = { mins: 0, secs: 30 };
+            details.rounds = 1;
+            details.duration = 0.5;
+        } else if (presetKey === 'high-intensity') {
+            details.displayName = 'High-Intensity - 20s';
+            details.interval = { mins: 0, secs: 20 };
+            details.rounds = 1;
+            details.duration = 0.33;
+        } else if (presetKey === 'quick-work') {
+            details.displayName = 'Quick Work - 1m';
+            details.interval = { mins: 1, secs: 0 };
+            details.rounds = 1;
+            details.duration = 1;
         } else if (presetKey && presetKey.startsWith('custom-preset-')) {
             const key = presetKey.replace('custom-preset-', '');
             if (repeatingPresets[key]) {

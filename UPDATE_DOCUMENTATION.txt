@@ -9,24 +9,10 @@ Each new edit to the file that documents new changes should also list the date a
 [DO NOT DELETE THIS TEXT, DELETE TEXT BELOW THIS LINE] >
 
 < [DO NOT DELETE THIS TEXT, DELETE TEXT ABOVE THIS LINE]
-(Example chunk of documentation:
-{1/1/2025 at 12:00 PM}
+{6/13/2026 at 5:42 PM}
     [Fixed Bugs]
-     - Fixed critical bugs
-     - Other Example text
-
-    [Added New Features]
-     - Added new features
-     - Other Example text
-
-{1/2/2025 at 12:00 PM}
-    [Fixed Bugs]
-     - Fixed critical bugs
-     - Other example text
-
-    [Added New Features]
-     - Added new features
-     - Other example text
-
-And so on, until all the update goals have been met)
+     - Fixed Windows site blocker: resolved command line nesting quotes and chaining issues under UAC/sudo-prompt elevation.
+     - Refactored runElevated to pass env variables (ELECTRON_RUN_AS_NODE and NODE_OPTIONS) securely through options.env instead of shell chaining (&&).
+     - Split combined reg add commands in startProxy into sequential exec calls to avoid shell-dependent syntax issues on Windows.
+     - Fixed startup syntax error in micro-sprint.js: added missing export function declaration for startSprintMode.
 [DO NOT DELETE THIS TEXT] >

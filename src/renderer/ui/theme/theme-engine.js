@@ -1,29 +1,31 @@
 import { ipcRenderer } from '../../utils/ipc.js';
 import { store } from '../../utils/storage.js';
-import { CUSTOM_COLOR_MAP, modeLabels } from './theme-config.js';
+import { CUSTOM_COLOR_MAP, modeLabels, modeNames } from './theme-config.js';
 
 export let currentThemeMode = 'light';
 export let showHeaderDarkModeToggle = true;
-export let toggleState1 = 'light';
-export let toggleState2 = 'dark';
+export let isCustomThemeSaved = false;
+export let activeCustomColors = {};
 
 export function setCurrentThemeMode(val) { currentThemeMode = val; }
 export function setShowHeaderDarkModeToggle(val) { showHeaderDarkModeToggle = val; }
-export function setToggleState1(val) { toggleState1 = val; }
-export function setToggleState2(val) { toggleState2 = val; }
+export function setIsCustomThemeSaved(val) { isCustomThemeSaved = val; }
+export function setActiveCustomColors(colors) { activeCustomColors = { ...colors }; }
+
+export function getNextThemeMode() {
+    if (currentThemeMode === 'light') return 'dark';
+    if (currentThemeMode === 'dark') return isCustomThemeSaved ? 'custom' : 'light';
+    return 'light';
+}
 
 export function updateHeaderToggleButtonText() {
     const themeToggleBtn = document.getElementById('theme-toggle');
     if (!themeToggleBtn) return;
     
-    let targetState = toggleState2;
-    if (currentThemeMode === toggleState2) {
-        targetState = toggleState1;
-    } else if (currentThemeMode !== toggleState1 && currentThemeMode !== toggleState2) {
-        targetState = toggleState1;
-    }
-
-    themeToggleBtn.innerText = modeLabels[targetState] || 'Toggle Mode';
+    themeToggleBtn.innerText = modeLabels[currentThemeMode] || 'Theme';
+    
+    const targetState = getNextThemeMode();
+    themeToggleBtn.title = `Change to ${modeNames[targetState] || targetState}`;
 }
 
 export function applyTheme() {
@@ -50,12 +52,12 @@ export function applyTheme() {
 
     const customThemeOptions = document.getElementById('custom-theme-options');
     if (customThemeOptions) {
+        // Only update UI if the mode is actually applied as custom, OR if we're in the modal and a pending change is made? 
+        // We will handle modal UI separately in theme-ui.js updateCustomThemeOptionsVisibility. 
+        // But for fallback here:
         if (currentThemeMode === 'custom') {
             customThemeOptions.style.opacity = '1';
             customThemeOptions.style.pointerEvents = 'auto';
-        } else {
-            customThemeOptions.style.opacity = '0.5';
-            customThemeOptions.style.pointerEvents = 'none';
         }
     }
 
@@ -63,21 +65,21 @@ export function applyTheme() {
         document.body.classList.add('dark-mode');
     } else if (currentThemeMode === 'custom') {
         for (const [id, variable] of Object.entries(CUSTOM_COLOR_MAP)) {
-            const el = document.getElementById(id);
-            if (el) {
-                document.documentElement.style.setProperty(variable, el.value);
-                themeData.colors[variable] = el.value;
+            const val = activeCustomColors[id];
+            if (val) {
+                document.documentElement.style.setProperty(variable, val);
+                themeData.colors[variable] = val;
             }
         }
-        const h1 = document.getElementById('custom-h1-color');
-        if (h1) {
-            document.documentElement.style.setProperty('--heading-color', h1.value);
-            themeData.colors['--heading-color'] = h1.value;
+        const h1Val = activeCustomColors['custom-h1-color'];
+        if (h1Val) {
+            document.documentElement.style.setProperty('--heading-color', h1Val);
+            themeData.colors['--heading-color'] = h1Val;
         }
-        const bg2 = document.getElementById('custom-bg2-color');
-        if (bg2) {
-            document.documentElement.style.setProperty('--modal-bg', bg2.value);
-            themeData.colors['--modal-bg'] = bg2.value;
+        const bg2Val = activeCustomColors['custom-bg2-color'];
+        if (bg2Val) {
+            document.documentElement.style.setProperty('--modal-bg', bg2Val);
+            themeData.colors['--modal-bg'] = bg2Val;
         }
     }
 

@@ -1,31 +1,35 @@
 import { store } from '../../utils/storage.js';
 import { 
     DEFAULT_CUSTOM_COLORS, 
-    CUSTOM_COLOR_MAP, 
-    modeNames 
+    CUSTOM_COLOR_MAP
 } from './theme-config.js';
 import { 
     currentThemeMode,
     setCurrentThemeMode,
     showHeaderDarkModeToggle,
     setShowHeaderDarkModeToggle,
-    toggleState1,
-    setToggleState1,
-    toggleState2,
-    setToggleState2,
+    isCustomThemeSaved,
+    setIsCustomThemeSaved,
+    getNextThemeMode,
+    setActiveCustomColors,
     applyTheme, 
     applyHeaderToggleVisibility, 
     setThemeMode,
     updateHeaderToggleButtonText
 } from './theme-engine.js';
 
-let pendingToggleState1 = 'light';
-let pendingToggleState2 = 'dark';
+let pendingThemeMode = 'light';
 let pendingShowHeaderToggle = true;
+let pendingColors = {};
+let pendingCustomThemeSaved = null;
+let hasPendingChanges = false;
+let activeColorsForReset = {};
 
 export async function initTheme() {
     try {
         const mode = await store.get('themeMode', 'light');
+        const customSaved = await store.get('customThemeSaved', false);
+        setIsCustomThemeSaved(customSaved);
         
         if (!document.getElementById('modal-theme-style')) {
             const style = document.createElement('style');
@@ -45,15 +49,9 @@ export async function initTheme() {
         }
 
         setCurrentThemeMode(mode);
+        pendingThemeMode = mode;
         const showToggle = await store.get('showHeaderDarkModeToggle', true);
         setShowHeaderDarkModeToggle(showToggle);
-        const s1 = await store.get('toggleState1', 'light');
-        setToggleState1(s1);
-        const s2 = await store.get('toggleState2', 'dark');
-        setToggleState2(s2);
-        
-        pendingToggleState1 = s1;
-        pendingToggleState2 = s2;
         pendingShowHeaderToggle = showToggle;
 
         const themeRadioLight = document.getElementById('theme-radio-light');
@@ -64,28 +62,24 @@ export async function initTheme() {
         if (themeRadioDark && mode === 'dark') themeRadioDark.checked = true;
         if (themeRadioCustom && mode === 'custom') themeRadioCustom.checked = true;
 
+        const activeColors = {};
         for (const id of Object.keys(CUSTOM_COLOR_MAP)) {
             const el = document.getElementById(id);
+            const savedValue = await store.get(id, DEFAULT_CUSTOM_COLORS[id]);
+            pendingColors[id] = savedValue;
+            activeColors[id] = savedValue;
             if (el) {
-                const savedValue = await store.get(id, DEFAULT_CUSTOM_COLORS[id]);
                 el.value = savedValue;
             }
         }
+        setActiveCustomColors(activeColors);
+        activeColorsForReset = { ...activeColors };
 
-        const toggleSelect1 = document.getElementById('toggle-select-1');
-        const toggleSelect2 = document.getElementById('toggle-select-2');
         const toggleHeaderDarkModeSwitch = document.getElementById('toggle-header-dark-mode-switch');
-        
-        if (toggleSelect1) toggleSelect1.value = s1;
-        if (toggleSelect2) toggleSelect2.value = s2;
         if (toggleHeaderDarkModeSwitch) toggleHeaderDarkModeSwitch.checked = showToggle;
         
-        const toggleOption1Btn = document.getElementById('toggle-option-1');
-        const toggleOption2Btn = document.getElementById('toggle-option-2');
-        if (toggleOption1Btn) toggleOption1Btn.innerText = modeNames[s1];
-        if (toggleOption2Btn) toggleOption2Btn.innerText = modeNames[s2];
-
         setupListeners();
+        updateCustomThemeOptionsVisibility(mode);
         applyTheme();
         applyHeaderToggleVisibility();
     } catch (error) {
@@ -95,17 +89,52 @@ export async function initTheme() {
     }
 }
 
+function updateCustomThemeOptionsVisibility(mode) {
+    const customThemeOptions = document.getElementById('custom-theme-options');
+    if (customThemeOptions) {
+        if (mode === 'custom') {
+            customThemeOptions.style.opacity = '1';
+            customThemeOptions.style.pointerEvents = 'auto';
+        } else {
+            customThemeOptions.style.opacity = '0.5';
+            customThemeOptions.style.pointerEvents = 'none';
+        }
+    }
+}
+
+function revertPendingChanges() {
+    pendingThemeMode = currentThemeMode;
+    pendingShowHeaderToggle = showHeaderDarkModeToggle;
+    pendingColors = { ...activeColorsForReset };
+    pendingCustomThemeSaved = null;
+    hasPendingChanges = false;
+
+    const themeRadioLight = document.getElementById('theme-radio-light');
+    const themeRadioDark = document.getElementById('theme-radio-dark');
+    const themeRadioCustom = document.getElementById('theme-radio-custom');
+    if (themeRadioLight) themeRadioLight.checked = (pendingThemeMode === 'light');
+    if (themeRadioDark) themeRadioDark.checked = (pendingThemeMode === 'dark');
+    if (themeRadioCustom) themeRadioCustom.checked = (pendingThemeMode === 'custom');
+    updateCustomThemeOptionsVisibility(pendingThemeMode);
+
+    const toggleHeaderDarkModeSwitch = document.getElementById('toggle-header-dark-mode-switch');
+    if (toggleHeaderDarkModeSwitch) toggleHeaderDarkModeSwitch.checked = pendingShowHeaderToggle;
+
+    for (const [id, value] of Object.entries(pendingColors)) {
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+    }
+}
+
 function setupListeners() {
     const themeToggleBtn = document.getElementById('theme-toggle');
     if (themeToggleBtn) {
         themeToggleBtn.addEventListener('click', () => {
-            let targetState = toggleState2;
-            if (currentThemeMode === toggleState2) {
-                targetState = toggleState1;
-            } else if (currentThemeMode !== toggleState1 && currentThemeMode !== toggleState2) {
-                targetState = toggleState1;
-            }
-            setThemeMode(targetState);
+            const next = getNextThemeMode();
+            setThemeMode(next);
+            pendingThemeMode = next;
+            updateCustomThemeOptionsVisibility(next);
+            hasPendingChanges = true;
         });
     }
 
@@ -113,35 +142,42 @@ function setupListeners() {
     const themeRadioDark = document.getElementById('theme-radio-dark');
     const themeRadioCustom = document.getElementById('theme-radio-custom');
 
-    if (themeRadioLight) themeRadioLight.addEventListener('change', () => setThemeMode('light'));
-    if (themeRadioDark) themeRadioDark.addEventListener('change', () => setThemeMode('dark'));
-    if (themeRadioCustom) themeRadioCustom.addEventListener('change', () => setThemeMode('custom'));
+    const markPending = () => { hasPendingChanges = true; };
+
+    if (themeRadioLight) themeRadioLight.addEventListener('change', () => { pendingThemeMode = 'light'; updateCustomThemeOptionsVisibility('light'); markPending(); });
+    if (themeRadioDark) themeRadioDark.addEventListener('change', () => { pendingThemeMode = 'dark'; updateCustomThemeOptionsVisibility('dark'); markPending(); });
+    if (themeRadioCustom) themeRadioCustom.addEventListener('change', () => { pendingThemeMode = 'custom'; updateCustomThemeOptionsVisibility('custom'); markPending(); });
 
     const colorPickers = Object.keys(CUSTOM_COLOR_MAP).map(id => document.getElementById(id));
     colorPickers.forEach(picker => {
         if (!picker) return;
-        picker.addEventListener('input', () => {
-            if (currentThemeMode === 'custom') applyTheme();
+        picker.addEventListener('input', (e) => {
+            pendingColors[e.target.id] = e.target.value;
+            markPending();
         });
         picker.addEventListener('change', (e) => {
-            store.set(e.target.id, e.target.value);
+            pendingColors[e.target.id] = e.target.value;
+            markPending();
         });
     });
 
     const resetThemeColorsBtn = document.getElementById('reset-theme-colors-btn');
     if (resetThemeColorsBtn) {
-        resetThemeColorsBtn.addEventListener('click', async () => {
+        resetThemeColorsBtn.addEventListener('click', () => {
             if (confirm('Are you sure you want to revert back to the default custom colors?')) {
-                try {
-                    for (const id of Object.keys(DEFAULT_CUSTOM_COLORS)) {
-                        store.delete(id);
-                        const el = document.getElementById(id);
-                        if (el) el.value = DEFAULT_CUSTOM_COLORS[id];
-                    }
-                    if (currentThemeMode === 'custom') applyTheme();
-                } catch (error) {
-                    console.error('Error resetting custom theme colors:', error);
+                for (const id of Object.keys(DEFAULT_CUSTOM_COLORS)) {
+                    pendingColors[id] = DEFAULT_CUSTOM_COLORS[id];
+                    const el = document.getElementById(id);
+                    if (el) el.value = DEFAULT_CUSTOM_COLORS[id];
                 }
+                pendingCustomThemeSaved = false;
+                if (pendingThemeMode === 'custom') {
+                    pendingThemeMode = 'light';
+                    const themeRadioLight = document.getElementById('theme-radio-light');
+                    if (themeRadioLight) themeRadioLight.checked = true;
+                    updateCustomThemeOptionsVisibility('light');
+                }
+                markPending();
             }
         });
     }
@@ -150,77 +186,111 @@ function setupListeners() {
     if (toggleHeaderDarkModeSwitch) {
         toggleHeaderDarkModeSwitch.addEventListener('change', (e) => {
             pendingShowHeaderToggle = e.target.checked;
+            markPending();
         });
     }
 
-    const toggleOption1Btn = document.getElementById('toggle-option-1');
-    const dropdownOption1 = document.getElementById('dropdown-option-1');
-    const closeDropdown1Btn = document.getElementById('close-dropdown-1');
-    const toggleSelect1 = document.getElementById('toggle-select-1');
+    const saveThemeSettingsBtn = document.getElementById('save-theme-settings-btn');
+    
+    const performSave = () => {
+        setShowHeaderDarkModeToggle(pendingShowHeaderToggle);
+        
+        try {
+            store.set('showHeaderDarkModeToggle', showHeaderDarkModeToggle);
+            
+            const activeColors = {};
+            for (const [id, value] of Object.entries(pendingColors)) {
+                store.set(id, value);
+                const el = document.getElementById(id);
+                if (el) el.value = value;
+                activeColors[id] = value;
+            }
+            setActiveCustomColors(activeColors);
+            activeColorsForReset = { ...activeColors };
 
-    const toggleOption2Btn = document.getElementById('toggle-option-2');
-    const dropdownOption2 = document.getElementById('dropdown-option-2');
-    const closeDropdown2Btn = document.getElementById('close-dropdown-2');
-    const toggleSelect2 = document.getElementById('toggle-select-2');
+            if (pendingCustomThemeSaved !== null) {
+                setIsCustomThemeSaved(pendingCustomThemeSaved);
+                store.set('customThemeSaved', pendingCustomThemeSaved);
+                pendingCustomThemeSaved = null;
+            }
 
-    const setupDropdown = (btn, dropdown, closeBtn, select, pendingStateKey) => {
-        if (!btn || !dropdown) return;
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            dropdown.classList.toggle('active');
-            document.querySelectorAll('.dropdown-option').forEach(d => {
-                if (d !== dropdown) d.classList.remove('active');
-            });
-        });
-        if (closeBtn) {
-            closeBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                dropdown.classList.remove('active');
-            });
-        }
-        if (select) {
-            select.addEventListener('change', (e) => {
-                if (pendingStateKey === 1) pendingToggleState1 = e.target.value;
-                else pendingToggleState2 = e.target.value;
-                btn.innerText = modeNames[e.target.value];
-            });
+            if (pendingThemeMode === 'custom') {
+                setIsCustomThemeSaved(true);
+                store.set('customThemeSaved', true);
+            }
+
+            setThemeMode(pendingThemeMode);
+            applyHeaderToggleVisibility();
+            hasPendingChanges = false;
+
+            if (saveThemeSettingsBtn) {
+                const oldText = saveThemeSettingsBtn.innerText;
+                saveThemeSettingsBtn.innerText = 'Saved!';
+                setTimeout(() => { saveThemeSettingsBtn.innerText = oldText; }, 1500);
+            }
+        } catch (error) {
+            console.error('Error saving theme settings:', error);
+            alert('Failed to save theme settings.');
         }
     };
 
-    setupDropdown(toggleOption1Btn, dropdownOption1, closeDropdown1Btn, toggleSelect1, 1);
-    setupDropdown(toggleOption2Btn, dropdownOption2, closeDropdown2Btn, toggleSelect2, 2);
-
-    const saveToggleSettingsBtn = document.getElementById('save-toggle-settings-btn');
-    if (saveToggleSettingsBtn) {
-        saveToggleSettingsBtn.addEventListener('click', async () => {
-            setToggleState1(pendingToggleState1);
-            setToggleState2(pendingToggleState2);
-            setShowHeaderDarkModeToggle(pendingShowHeaderToggle);
-            
-            try {
-                store.set('toggleState1', toggleState1);
-                store.set('toggleState2', toggleState2);
-                store.set('showHeaderDarkModeToggle', showHeaderDarkModeToggle);
-                
-                updateHeaderToggleButtonText();
-                applyHeaderToggleVisibility();
-
-                const oldText = saveToggleSettingsBtn.innerText;
-                saveToggleSettingsBtn.innerText = 'Saved!';
-                setTimeout(() => { saveToggleSettingsBtn.innerText = oldText; }, 1500);
-            } catch (error) {
-                console.error('Error saving toggle settings:', error);
-                alert('Failed to save toggle settings.');
-            }
-        });
+    if (saveThemeSettingsBtn) {
+        saveThemeSettingsBtn.addEventListener('click', performSave);
     }
 
-    document.addEventListener('click', (e) => {
-        if (dropdownOption1 && dropdownOption1.classList.contains('active') && !toggleOption1Btn.contains(e.target) && !dropdownOption1.contains(e.target)) {
-            dropdownOption1.classList.remove('active');
-        }
-        if (dropdownOption2 && dropdownOption2.classList.contains('active') && !toggleOption2Btn.contains(e.target) && !dropdownOption2.contains(e.target)) {
-            dropdownOption2.classList.remove('active');
-        }
+    // Unsaved Changes Modal Setup
+    let unsavedModal = document.getElementById('unsaved-changes-modal');
+    if (!unsavedModal) {
+        unsavedModal = document.createElement('div');
+        unsavedModal.id = 'unsaved-changes-modal';
+        unsavedModal.className = 'modal-overlay';
+        unsavedModal.style.zIndex = '9999';
+        unsavedModal.innerHTML = `
+            <div class="modal-content" style="max-width: 400px; text-align: center;">
+                <h3 style="margin-top: 0;">Unsaved Changes</h3>
+                <p style="color: var(--timer-subtext); margin-bottom: 20px;">Are you sure you want to discard your changes?</p>
+                <div style="display: flex; gap: 15px; justify-content: center;">
+                    <button class="action-btn" id="unsaved-discard-btn" style="background: #e74c3c; width: auto; padding: 0.6rem 1.2rem;">Discard Changes</button>
+                    <button class="action-btn" id="unsaved-save-btn" style="background: #27ae60; width: auto; padding: 0.6rem 1.2rem;">Save Changes</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(unsavedModal);
+    }
+
+    const customizationModal = document.getElementById('modal-customization');
+    const showUnsavedChangesModal = () => {
+        unsavedModal.classList.add('active');
+    };
+
+    document.getElementById('unsaved-discard-btn').addEventListener('click', () => {
+        unsavedModal.classList.remove('active');
+        revertPendingChanges();
+        if (customizationModal) customizationModal.classList.remove('active');
     });
+
+    document.getElementById('unsaved-save-btn').addEventListener('click', () => {
+        unsavedModal.classList.remove('active');
+        performSave();
+        if (customizationModal) customizationModal.classList.remove('active');
+    });
+
+    if (customizationModal) {
+        const closeBtn = customizationModal.querySelector('.modal-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                if (hasPendingChanges) {
+                    e.stopImmediatePropagation();
+                    showUnsavedChangesModal();
+                }
+            }, { capture: true });
+        }
+
+        customizationModal.addEventListener('click', (e) => {
+            if (e.target === customizationModal && hasPendingChanges) {
+                e.stopImmediatePropagation();
+                showUnsavedChangesModal();
+            }
+        }, { capture: true });
+    }
 }

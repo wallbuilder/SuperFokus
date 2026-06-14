@@ -1,4 +1,3 @@
-import { initSiteBlocker } from "./features/site-blocker.js";
 import { store, migrateStore } from './utils/storage.js';
 import { initializeDomElements, initializeButtonListeners, initializeCustomSoundpackListeners } from './dom-init.js';
 
@@ -99,14 +98,18 @@ if (headerTitle) {
         console.log('[Startup] Migration complete. Loading modules...');
 
         const [
-            theme, stats, audio, workflows, timers, integration
+            theme, stats, audio, workflows, pomo, repeating, sprint, flow, integration, siteBlocker
         ] = await Promise.all([
             import('./ui/theme.js'),
             import('./utils/stats.js'),
             import('./utils/audio.js'),
             import('./features/workflows.js'),
-            import('./features/TimerService.js'),
-            import('./ui/integration.js')
+            import('./features/pomo-timer.js'),
+            import('./features/repeating.js'),
+            import('./features/micro-sprint.js'),
+            import('./features/flow-state.js'),
+            import('./ui/integration.js'),
+            import('./features/site-blocker.js')
         ]);
 
 
@@ -120,7 +123,7 @@ if (headerTitle) {
           const loadingText = document.getElementById('startup-loading-text');
           
           if (!startupScreen) {
-            await runInitializationSteps(theme, stats, audio, workflows, timers, integration);
+            await runInitializationSteps(theme, stats, audio, workflows, pomo, repeating, sprint, flow, integration, siteBlocker);
             return;
           }
           
@@ -139,11 +142,11 @@ if (headerTitle) {
               initializeDomElements(workflows.setupWorkflowEventListeners, workflows.setupWorkflowPresetsEventListeners);
               await Promise.all([
                   theme.initTheme(), stats.initStats(), audio.initAudio(), workflows.initWorkflows(),
-                  timers.initTimerService(),
-                  integration.setupIntegrationUI(), initSiteBlocker()
+                  pomo.initPomo(), repeating.initRepeating(), sprint.initSprint(), flow.initFlow(),
+                  integration.setupIntegrationUI(), siteBlocker.initSiteBlocker()
               ]);
 
-              initializeButtonListeners(() => {}); // repeating.initializeRepeatingButtonListeners is now in TimerService
+              initializeButtonListeners(repeating.initializeRepeatingButtonListeners); 
               initializeCustomSoundpackListeners(
                   audio.updateCustomNotifsUI, audio.updateCustomAmbientUI, audio.updateCustomPackUI,
                   audio.updateSoundSelectors, audio.loadFileAsDataURL, audio.saveCustomSoundPack, audio.deleteCustomSoundPack
@@ -154,16 +157,17 @@ if (headerTitle) {
               startupScreen.style.opacity = '0';
               setTimeout(() => { startupScreen.style.display = 'none'; }, 400);
           };
-          executeStepsSequentially();        };
+          executeStepsSequentially();
+        };
 
-        const runInitializationSteps = async (theme, stats, audio, workflows, timers, integration) => {
+        const runInitializationSteps = async (theme, stats, audio, workflows, pomo, repeating, sprint, flow, integration, siteBlocker) => {
             initializeDomElements(workflows.setupWorkflowEventListeners, workflows.setupWorkflowPresetsEventListeners);
             await Promise.all([
                 theme.initTheme(), stats.initStats(), audio.initAudio(), workflows.initWorkflows(),
-                timers.initTimerService(),
-                integration.setupIntegrationUI(), initSiteBlocker()
+                pomo.initPomo(), repeating.initRepeating(), sprint.initSprint(), flow.initFlow(),
+                integration.setupIntegrationUI(), siteBlocker.initSiteBlocker()
             ]);
-            initializeButtonListeners(() => {});
+            initializeButtonListeners(repeating.initializeRepeatingButtonListeners);
             initializeCustomSoundpackListeners(
                 audio.updateCustomNotifsUI, audio.updateCustomAmbientUI, audio.updateCustomPackUI, 
                 audio.updateSoundSelectors, audio.loadFileAsDataURL, audio.saveCustomSoundPack, audio.deleteCustomSoundPack

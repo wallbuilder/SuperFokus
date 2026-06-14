@@ -70,10 +70,19 @@ ipcRenderer.on('timer-tick', (batchedTicks) => {
 ipcRenderer.on('init-timer', (type) => {
     currentType = type;
     setThemeColor(type);
-    if (type === 'pomo') labelDisplay.innerText = 'Work Session';
-    else if (type === 'sprint') labelDisplay.innerText = 'Sprint Task';
-    else if (type === 'flow') labelDisplay.innerText = 'Flow State';
-    else if (type === 'break') labelDisplay.innerText = 'Break Time';
+    if (type === 'pomo') {
+        labelDisplay.innerText = 'Work Session';
+        document.title = 'Pomo Timer';
+    } else if (type === 'sprint') {
+        labelDisplay.innerText = 'Sprint Task';
+        document.title = 'Micro-Sprint Timer';
+    } else if (type === 'flow') {
+        labelDisplay.innerText = 'Flow State';
+        document.title = 'Flow State Timer';
+    } else if (type === 'break') {
+        labelDisplay.innerText = 'Break Time';
+        document.title = 'Break Timer';
+    }
     
     ipcRenderer.send('request-initial-timer-update', type);
 });

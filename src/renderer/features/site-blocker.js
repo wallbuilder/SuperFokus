@@ -10,6 +10,13 @@ export const blockerState = {
 };
 
 let elements = {};
+let hasUnsavedBlockerChanges = false;
+
+function markBlockerUnsaved() {
+    hasUnsavedBlockerChanges = true;
+    window.hasUnsavedChanges = true; 
+    window.dispatchEvent(new CustomEvent('blocker-unsaved-change'));
+}
 
 export async function initSiteBlocker() {
     elements = {
@@ -39,17 +46,58 @@ export async function initSiteBlocker() {
         if (elements.enabledCheck) elements.enabledCheck.checked = blockerState.isBlockerActive;
         if (elements.modeSelect) elements.modeSelect.value = blockerState.blockerMode;
         if (elements.alwaysRunCheck) elements.alwaysRunCheck.checked = blockerState.alwaysRun;
-        if (elements.domainInput) elements.domainInput.value = (saved.rawDomains || []).join('\\n');
-        if (elements.urlInput) elements.urlInput.value = (saved.rawUrls || []).join('\\n');
+        if (elements.domainInput) elements.domainInput.value = (saved.rawDomains || []).join('\n');
+        if (elements.urlInput) elements.urlInput.value = (saved.rawUrls || []).join('\n');
         
         updateUIVisibility();
     }
 
-    elements.modeSelect.addEventListener('change', updateUIVisibility);
+    elements.modeSelect.addEventListener('change', () => {
+        updateUIVisibility();
+        markBlockerUnsaved();
+    });
+    
     elements.saveBtn.addEventListener('click', saveAndApply);
     elements.clearBtn.addEventListener('click', clearAll);
-    if (elements.enabledCheck) elements.enabledCheck.addEventListener('change', saveAndApply);
-    if (elements.alwaysRunCheck) elements.alwaysRunCheck.addEventListener('change', saveAndApply);
+    
+    if (elements.enabledCheck) elements.enabledCheck.addEventListener('change', markBlockerUnsaved);
+    if (elements.alwaysRunCheck) elements.alwaysRunCheck.addEventListener('change', markBlockerUnsaved);
+    if (elements.domainInput) elements.domainInput.addEventListener('input', markBlockerUnsaved);
+    if (elements.urlInput) elements.urlInput.addEventListener('input', markBlockerUnsaved);
+
+    // Global interception for exiting with unsaved changes
+    document.addEventListener('click', (e) => {
+        if (!hasUnsavedBlockerChanges) return;
+        
+        const isExitButton = e.target.closest('.close-btn') || 
+                             e.target.closest('.sidebar-item') || 
+                             e.target.closest('.back-btn') || 
+                             e.target.closest('[onclick*="close"]') ||
+                             e.target.closest('[data-dismiss]');
+        
+        const isInsideBlocker = e.target.closest('#site-blocker-container') || 
+                                e.target.closest('.site-blocker-content');
+
+        if (isExitButton && !isInsideBlocker) {
+            if (typeof window.showUnsavedModal === 'function') {
+                e.preventDefault();
+                e.stopPropagation();
+                window.showUnsavedModal(() => {
+                    hasUnsavedBlockerChanges = false;
+                    window.hasUnsavedChanges = false;
+                    e.target.click();
+                });
+            } else {
+                if (!confirm('You have unsaved changes in the Site Blocker. Are you sure you want to leave without saving?')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                } else {
+                    hasUnsavedBlockerChanges = false;
+                    window.hasUnsavedChanges = false;
+                }
+            }
+        }
+    }, true);
 
     ipcRenderer.on('blocker-status', (msg) => updateStatus(msg, '#2ecc71'));
     ipcRenderer.on('blocker-error', (err) => updateStatus(err, '#e74c3c'));
@@ -69,30 +117,62 @@ function updateStatus(msg, color) {
     }
 }
 
+function safeNormalizeHost(urlStr) {
+    if (!urlStr) return '';
+    const cleaned = urlStr.trim();
+    if (!cleaned) return '';
+
+    let hostname = null;
+    try {
+        let url = cleaned;
+        if (!/^https?:\/\//i.test(url)) url = `http://${url}`;
+        hostname = new URL(url).hostname.toLowerCase();
+    } catch (e) {
+        hostname = cleaned.replace(/^https?:\/\//i, '').split(/[\/?#]/)[0].toLowerCase();
+    }
+
+    if (!hostname) return cleaned;
+    hostname = hostname.split(':')[0];
+    if (hostname === 'localhost') return '';
+    if (hostname.endsWith('.')) hostname = hostname.slice(0, -1);
+
+    return hostname || cleaned;
+}
+
 async function saveAndApply() {
-    const rawDomains = elements.domainInput.value.split('\\n').map(s => s.trim()).filter(Boolean);
-    const rawUrls = elements.urlInput ? elements.urlInput.value.split('\\n').map(s => s.trim()).filter(Boolean) : [];
+    const rawDomains = elements.domainInput.value.split('\n').map(s => s.trim()).filter(Boolean);
+    const rawUrls = elements.urlInput ? elements.urlInput.value.split('\n').map(s => s.trim()).filter(Boolean) : [];
     
     blockerState.isBlockerActive = elements.enabledCheck.checked;
     blockerState.blockerMode = elements.modeSelect.value;
     blockerState.alwaysRun = elements.alwaysRunCheck ? elements.alwaysRunCheck.checked : false;
 
-    if (blockerState.isBlockerActive && rawDomains.length === 0) {
-        alert('Please enter at least one domain.');
-        elements.enabledCheck.checked = false;
-        return;
-    }
-
     const domainSet = new Set();
     rawDomains.forEach(d => {
-        const host = ipcRenderer.normalizeHost(d) || d.toLowerCase();
-        domainSet.add(host);
-        if (!host.startsWith('www.')) domainSet.add('www.' + host);
-        else domainSet.add(host.replace(/^www\\./, ''));
+        const host = safeNormalizeHost(d);
+        if (host) {
+            domainSet.add(host);
+            if (!host.startsWith('www.')) domainSet.add('www.' + host);
+            else domainSet.add(host.replace(/^www\./, ''));
+        }
     });
 
     blockerState.domains = Array.from(domainSet).sort();
-    blockerState.urls = rawUrls;
+    
+    blockerState.urls = [];
+    rawUrls.forEach(u => {
+        let val = u.trim();
+        if (!val) return;
+        if (!/^https?:\/\//i.test(val)) val = 'https://' + val;
+        blockerState.urls.push(val);
+    });
+
+    if (blockerState.isBlockerActive && blockerState.domains.length === 0 && blockerState.urls.length === 0) {
+        alert('⚠️ No domains or URLs entered! Please add items to block before enabling.');
+        elements.enabledCheck.checked = false;
+        blockerState.isBlockerActive = false;
+        return;
+    }
 
     const rules = {
         active: blockerState.isBlockerActive,
@@ -106,12 +186,19 @@ async function saveAndApply() {
 
     ipcRenderer.send('update-blocker-rules', rules);
     
+    hasUnsavedBlockerChanges = false;
+    window.hasUnsavedChanges = false;
+
     elements.saveBtn.innerText = 'Saved & Applied';
-    setTimeout(() => { elements.saveBtn.innerText = 'Save & Apply Blocker'; }, 2000);
+    elements.saveBtn.style.background = '#e74c3c';
+    setTimeout(() => { 
+        elements.saveBtn.innerText = 'Save & Apply Blocker'; 
+        elements.saveBtn.style.background = '#3498db';
+    }, 2000);
 }
 
 function clearAll() {
-    if (confirm('Clear all SuperFokus block entries?')) {
+    if (confirm('Are you sure you want to clear all SuperFokus block entries from your system?')) {
         ipcRenderer.send('clear-all-blocks');
     }
 }
