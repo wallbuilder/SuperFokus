@@ -97,10 +97,13 @@ ipcRenderer.on('update-timer-window', (data) => {
 ipcRenderer.on('set-theme', (themeData) => {
     // Reset any previous custom styles
     document.body.classList.remove('dark-mode');
+    document.body.classList.remove('cyber-green-mode');
     document.documentElement.style.cssText = '';
 
     if (themeData.mode === 'dark') {
         document.body.classList.add('dark-mode');
+    } else if (themeData.mode === 'cyber-green') {
+        document.body.classList.add('cyber-green-mode');
     } else if (themeData.mode === 'custom' && themeData.colors) {
         for (const [variable, value] of Object.entries(themeData.colors)) {
             document.documentElement.style.setProperty(variable, value);

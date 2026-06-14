@@ -75,6 +75,103 @@
         --drawer-bg: #1a1a2e;
       }
 
+      body.cyber-green-mode {
+        background-color: var(--container-bg);
+        --bg-grad-1: #000000;
+        --bg-grad-2: #000000;
+        --text-color: #00ff66;
+        --header-grad-1: #000000;
+        --header-grad-2: #000000;
+        --container-bg: #121212;
+        --heading-color: #00ff66;
+        --header-title-color: #00ff66;
+        --h1-color: #00ff66;
+        --h2-color: #00ff66;
+        --h3-color: #00ff66;
+        --border-color: #00ff66;
+        --input-border: #00ff66;
+        --input-bg: #000000;
+        --timer-bg: #000000;
+        --timer-text: #00ff66;
+        --timer-subtext: #00cc55;
+        --drawer-bg: #121212;
+        --overlay-bg: rgba(0, 0, 0, 0.95);
+      }
+
+      body.cyber-green-mode * {
+        color: #00ff66 !important;
+        border-color: #00ff66 !important;
+      }
+
+      body.cyber-green-mode button,
+      body.cyber-green-mode .action-btn,
+      body.cyber-green-mode .home-btn,
+      body.cyber-green-mode .tab-btn {
+        background: #000000 !important;
+        background-color: #000000 !important;
+        color: #00ff66 !important;
+        border: none !important;
+        box-shadow: inset 0 0 0 2px #00ff66 !important;
+      }
+
+      body.cyber-green-mode button:hover,
+      body.cyber-green-mode .action-btn:hover,
+      body.cyber-green-mode .home-btn:hover,
+      body.cyber-green-mode .tab-btn:hover {
+        box-shadow: inset 0 0 0 2px #00ff66, 0 0 10px rgba(0, 255, 102, 0.5) !important;
+        transform: translateY(-2px);
+      }
+
+      body.cyber-green-mode .hamburger-btn {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+
+      body.cyber-green-mode .hamburger-btn:hover {
+        background: rgba(0, 255, 102, 0.1) !important;
+        box-shadow: none !important;
+        transform: scale(1.1) !important;
+      }
+
+      body.cyber-green-mode .slider {
+        box-sizing: border-box !important;
+        background: #000000 !important;
+        border: 2px solid #00ff66 !important;
+      }
+
+      body.cyber-green-mode .slider:before {
+        box-sizing: border-box !important;
+        background: #00ff66 !important;
+        left: 1px !important;
+        bottom: 1px !important;
+      }
+
+      body.cyber-green-mode .toggle-switch input:checked + .slider {
+        background: #00ff66 !important;
+      }
+
+      body.cyber-green-mode .toggle-switch input:checked + .slider:before {
+        background: #000000 !important;
+      }
+
+      body.cyber-green-mode .pomo-icon {
+        background: #00ff66 !important;
+        color: #000000 !important;
+      }
+
+      body.cyber-green-mode input,
+      body.cyber-green-mode select,
+      body.cyber-green-mode textarea {
+        background-color: #000000 !important;
+        border: 1px solid #00ff66 !important;
+        color: #00ff66 !important;
+      }
+
+      body.cyber-green-mode ::placeholder {
+        color: #008833 !important;
+      }
+
       /* Paused State Styling */
       .timer-display.paused, #pomo-timer-display.paused, #repeating-timer-display.paused {
         opacity: 0.6;
@@ -262,6 +359,7 @@
       .container h1 { color: var(--h1-color, var(--text-color)); }
       h2, h3 { font-weight: 500; }
       h2 { color: var(--h2-color, var(--heading-color)); margin-top: 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; }
+      body.cyber-green-mode #dashboard-subtitle, #dashboard-subtitle { border-bottom: none !important; }
       h3 { color: var(--h3-color, var(--heading-color)); }
       .form-group { margin-bottom: 1.5rem; }
       label { display: block; margin-bottom: 0.6rem; font-weight: 500; font-size: 0.95rem; }
@@ -674,8 +772,10 @@
                             </label>
                             
                             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                <input type="radio" name="theme-selection" value="custom" id="theme-radio-custom" style="width: auto; margin: 0;">
-                                <span>Custom Theme (create below)</span>
+                                <input type="radio" name="theme-selection" value="cyber-green" id="theme-radio-cyber-green" style="width: auto; margin: 0;">
+                                <span>Cyber - Green</span>
+                                <input type="radio" name="theme-selection" value="cyber-green" id="theme-radio-cyber-green" style="width: auto; margin: 0;">
+                                <span>Cyber - Green</span>
                             </label>
                         </div>
                     </div>
@@ -688,59 +788,6 @@
                     </div>
                 </div>
 
-                <div id="custom-theme-options" style="margin-top: 25px; padding-top: 20px; border-top: 2px solid var(--border-color); opacity: 0.5; pointer-events: none; transition: opacity 0.3s;">
-                    <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--timer-subtext); margin-bottom: 15px;">Custom Theme Creator</h3>
-                    <div style="display: flex; gap: 15px; align-items: flex-start; flex-wrap: wrap;">
-                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">MAIN<br>color</label>
-                            <input type="color" id="custom-main-color" value="#6a11cb" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
-                        </div>
-                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">ACCENT<br>color</label>
-                            <input type="color" id="custom-accent-color" value="#2575fc" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
-                        </div>
-                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">HEADER TEXT<br>color</label>
-                            <input type="color" id="custom-header-title-color" value="#ffffff" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
-                        </div>
-                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">HEADING 1<br>color</label>
-                            <input type="color" id="custom-h1-color" value="#2c3e50" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
-                        </div>
-                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">HEADING 2<br>color</label>
-                            <input type="color" id="custom-h2-color" value="#2c3e50" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
-                        </div>
-                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">HEADING 3<br>color</label>
-                            <input type="color" id="custom-h3-color" value="#2c3e50" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
-                        </div>
-                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">NORMAL<br>text</label>
-                            <input type="color" id="custom-text-color" value="#4a4a4a" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
-                        </div>
-                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">BG 1 START<br>color</label>
-                            <input type="color" id="custom-bg1-color" value="#f5f7fa" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
-                        </div>
-                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">BG 1 END<br>(GRADIENT)</label>
-                            <input type="color" id="custom-bg1-grad-color" value="#c3cfe2" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
-                        </div>
-                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">BG 2 COLOR<br>(CONTAINER)</label>
-                            <input type="color" id="custom-bg2-color" value="#ffffff" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
-                        </div>
-                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">SIDEBAR<br>color</label>
-                            <input type="color" id="custom-drawer-bg" value="#ffffff" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
-                        </div>
-                    </div>
-                </div>
-
-                <div style="margin-top: 15px;">
-                    <button class="action-btn" id="reset-theme-colors-btn" style="width: 100%; margin-top: 0; padding: 0.6rem; background: var(--timer-bg); color: var(--text-color); border: 1px solid var(--border-color); font-size: 0.85rem;">Reset Custom Colors</button>
-                </div>
 
                 <div style="margin-top: 25px; border-top: 2px solid var(--border-color); padding-top: 15px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">

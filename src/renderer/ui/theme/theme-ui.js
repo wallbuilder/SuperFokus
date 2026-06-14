@@ -1,17 +1,10 @@
 import { store } from '../../utils/storage.js';
 import { 
-    DEFAULT_CUSTOM_COLORS, 
-    CUSTOM_COLOR_MAP
-} from './theme-config.js';
-import { 
     currentThemeMode,
     setCurrentThemeMode,
     showHeaderDarkModeToggle,
     setShowHeaderDarkModeToggle,
-    isCustomThemeSaved,
-    setIsCustomThemeSaved,
     getNextThemeMode,
-    setActiveCustomColors,
     applyTheme, 
     applyHeaderToggleVisibility, 
     setThemeMode,
@@ -20,16 +13,11 @@ import {
 
 let pendingThemeMode = 'light';
 let pendingShowHeaderToggle = true;
-let pendingColors = {};
-let pendingCustomThemeSaved = null;
 let hasPendingChanges = false;
-let activeColorsForReset = {};
 
 export async function initTheme() {
     try {
         const mode = await store.get('themeMode', 'light');
-        const customSaved = await store.get('customThemeSaved', false);
-        setIsCustomThemeSaved(customSaved);
         
         if (!document.getElementById('modal-theme-style')) {
             const style = document.createElement('style');
@@ -56,30 +44,16 @@ export async function initTheme() {
 
         const themeRadioLight = document.getElementById('theme-radio-light');
         const themeRadioDark = document.getElementById('theme-radio-dark');
-        const themeRadioCustom = document.getElementById('theme-radio-custom');
+        const themeRadioCyberGreen = document.getElementById('theme-radio-cyber-green');
 
         if (themeRadioLight && mode === 'light') themeRadioLight.checked = true;
         if (themeRadioDark && mode === 'dark') themeRadioDark.checked = true;
-        if (themeRadioCustom && mode === 'custom') themeRadioCustom.checked = true;
-
-        const activeColors = {};
-        for (const id of Object.keys(CUSTOM_COLOR_MAP)) {
-            const el = document.getElementById(id);
-            const savedValue = await store.get(id, DEFAULT_CUSTOM_COLORS[id]);
-            pendingColors[id] = savedValue;
-            activeColors[id] = savedValue;
-            if (el) {
-                el.value = savedValue;
-            }
-        }
-        setActiveCustomColors(activeColors);
-        activeColorsForReset = { ...activeColors };
+        if (themeRadioCyberGreen && mode === 'cyber-green') themeRadioCyberGreen.checked = true;
 
         const toggleHeaderDarkModeSwitch = document.getElementById('toggle-header-dark-mode-switch');
         if (toggleHeaderDarkModeSwitch) toggleHeaderDarkModeSwitch.checked = showToggle;
         
         setupListeners();
-        updateCustomThemeOptionsVisibility(mode);
         applyTheme();
         applyHeaderToggleVisibility();
     } catch (error) {
@@ -89,41 +63,20 @@ export async function initTheme() {
     }
 }
 
-function updateCustomThemeOptionsVisibility(mode) {
-    const customThemeOptions = document.getElementById('custom-theme-options');
-    if (customThemeOptions) {
-        if (mode === 'custom') {
-            customThemeOptions.style.opacity = '1';
-            customThemeOptions.style.pointerEvents = 'auto';
-        } else {
-            customThemeOptions.style.opacity = '0.5';
-            customThemeOptions.style.pointerEvents = 'none';
-        }
-    }
-}
-
 function revertPendingChanges() {
     pendingThemeMode = currentThemeMode;
     pendingShowHeaderToggle = showHeaderDarkModeToggle;
-    pendingColors = { ...activeColorsForReset };
-    pendingCustomThemeSaved = null;
     hasPendingChanges = false;
 
     const themeRadioLight = document.getElementById('theme-radio-light');
     const themeRadioDark = document.getElementById('theme-radio-dark');
-    const themeRadioCustom = document.getElementById('theme-radio-custom');
+    const themeRadioCyberGreen = document.getElementById('theme-radio-cyber-green');
     if (themeRadioLight) themeRadioLight.checked = (pendingThemeMode === 'light');
     if (themeRadioDark) themeRadioDark.checked = (pendingThemeMode === 'dark');
-    if (themeRadioCustom) themeRadioCustom.checked = (pendingThemeMode === 'custom');
-    updateCustomThemeOptionsVisibility(pendingThemeMode);
+    if (themeRadioCyberGreen) themeRadioCyberGreen.checked = (pendingThemeMode === 'cyber-green');
 
     const toggleHeaderDarkModeSwitch = document.getElementById('toggle-header-dark-mode-switch');
     if (toggleHeaderDarkModeSwitch) toggleHeaderDarkModeSwitch.checked = pendingShowHeaderToggle;
-
-    for (const [id, value] of Object.entries(pendingColors)) {
-        const el = document.getElementById(id);
-        if (el) el.value = value;
-    }
 }
 
 function setupListeners() {
@@ -133,54 +86,19 @@ function setupListeners() {
             const next = getNextThemeMode();
             setThemeMode(next);
             pendingThemeMode = next;
-            updateCustomThemeOptionsVisibility(next);
             hasPendingChanges = true;
         });
     }
 
     const themeRadioLight = document.getElementById('theme-radio-light');
     const themeRadioDark = document.getElementById('theme-radio-dark');
-    const themeRadioCustom = document.getElementById('theme-radio-custom');
+    const themeRadioCyberGreen = document.getElementById('theme-radio-cyber-green');
 
     const markPending = () => { hasPendingChanges = true; };
 
-    if (themeRadioLight) themeRadioLight.addEventListener('change', () => { pendingThemeMode = 'light'; updateCustomThemeOptionsVisibility('light'); markPending(); });
-    if (themeRadioDark) themeRadioDark.addEventListener('change', () => { pendingThemeMode = 'dark'; updateCustomThemeOptionsVisibility('dark'); markPending(); });
-    if (themeRadioCustom) themeRadioCustom.addEventListener('change', () => { pendingThemeMode = 'custom'; updateCustomThemeOptionsVisibility('custom'); markPending(); });
-
-    const colorPickers = Object.keys(CUSTOM_COLOR_MAP).map(id => document.getElementById(id));
-    colorPickers.forEach(picker => {
-        if (!picker) return;
-        picker.addEventListener('input', (e) => {
-            pendingColors[e.target.id] = e.target.value;
-            markPending();
-        });
-        picker.addEventListener('change', (e) => {
-            pendingColors[e.target.id] = e.target.value;
-            markPending();
-        });
-    });
-
-    const resetThemeColorsBtn = document.getElementById('reset-theme-colors-btn');
-    if (resetThemeColorsBtn) {
-        resetThemeColorsBtn.addEventListener('click', () => {
-            if (confirm('Are you sure you want to revert back to the default custom colors?')) {
-                for (const id of Object.keys(DEFAULT_CUSTOM_COLORS)) {
-                    pendingColors[id] = DEFAULT_CUSTOM_COLORS[id];
-                    const el = document.getElementById(id);
-                    if (el) el.value = DEFAULT_CUSTOM_COLORS[id];
-                }
-                pendingCustomThemeSaved = false;
-                if (pendingThemeMode === 'custom') {
-                    pendingThemeMode = 'light';
-                    const themeRadioLight = document.getElementById('theme-radio-light');
-                    if (themeRadioLight) themeRadioLight.checked = true;
-                    updateCustomThemeOptionsVisibility('light');
-                }
-                markPending();
-            }
-        });
-    }
+    if (themeRadioLight) themeRadioLight.addEventListener('change', () => { pendingThemeMode = 'light'; markPending(); });
+    if (themeRadioDark) themeRadioDark.addEventListener('change', () => { pendingThemeMode = 'dark'; markPending(); });
+    if (themeRadioCyberGreen) themeRadioCyberGreen.addEventListener('change', () => { pendingThemeMode = 'cyber-green'; markPending(); });
 
     const toggleHeaderDarkModeSwitch = document.getElementById('toggle-header-dark-mode-switch');
     if (toggleHeaderDarkModeSwitch) {
@@ -197,28 +115,6 @@ function setupListeners() {
         
         try {
             store.set('showHeaderDarkModeToggle', showHeaderDarkModeToggle);
-            
-            const activeColors = {};
-            for (const [id, value] of Object.entries(pendingColors)) {
-                store.set(id, value);
-                const el = document.getElementById(id);
-                if (el) el.value = value;
-                activeColors[id] = value;
-            }
-            setActiveCustomColors(activeColors);
-            activeColorsForReset = { ...activeColors };
-
-            if (pendingCustomThemeSaved !== null) {
-                setIsCustomThemeSaved(pendingCustomThemeSaved);
-                store.set('customThemeSaved', pendingCustomThemeSaved);
-                pendingCustomThemeSaved = null;
-            }
-
-            if (pendingThemeMode === 'custom') {
-                setIsCustomThemeSaved(true);
-                store.set('customThemeSaved', true);
-            }
-
             setThemeMode(pendingThemeMode);
             applyHeaderToggleVisibility();
             hasPendingChanges = false;
@@ -294,3 +190,4 @@ function setupListeners() {
         }, { capture: true });
     }
 }
+

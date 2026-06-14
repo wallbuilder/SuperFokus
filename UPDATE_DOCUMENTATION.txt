@@ -8,6 +8,10 @@ Each new edit to the file that documents new changes should also list the date a
 (Note: You must list ALL changes, including small ones. No detail is too small).
 [DO NOT DELETE THIS TEXT, DELETE TEXT BELOW THIS LINE] >
 
+
+[insert documentation here]
+
+
 < [DO NOT DELETE THIS TEXT, DELETE TEXT ABOVE THIS LINE]
 {6/13/2026 at 5:42 PM}
     [Fixed Bugs]
@@ -15,4 +19,16 @@ Each new edit to the file that documents new changes should also list the date a
      - Refactored runElevated to pass env variables (ELECTRON_RUN_AS_NODE and NODE_OPTIONS) securely through options.env instead of shell chaining (&&).
      - Split combined reg add commands in startProxy into sequential exec calls to avoid shell-dependent syntax issues on Windows.
      - Fixed startup syntax error in micro-sprint.js: added missing export function declaration for startSprintMode.
+{6/13/2026 at 6:23 PM}
+    [Features / Changes]
+     - Removed all references and UI elements of the Custom Theme Creator from the application.
+     - Updated theme-config.js to remove DEFAULT_CUSTOM_COLORS, CUSTOM_COLOR_MAP, and "custom" from theme labels and names.
+     - Refactored theme-engine.js to simplify applyTheme, setThemeMode, and getNextThemeMode, removing all custom color processing.
+     - Cleaned up theme-ui.js to remove unused event listeners, color pickers, and logic associated with custom themes.
+{6/13/2026 at 6:32 PM}
+    [Features / Changes]
+     - Created a new standard theme "Cyber - Green".
+     - Implemented cyber-green styles in index.html, styling text green, backgrounds black, central pad/sidebar dark grey, and buttons with green inset outlines and black insides.
+     - Registered the new theme inside theme-config.js, theme-engine.js, and theme-ui.js.
+     - Implemented matching cyber-green-mode styles and IPC theme logic in popup.html, popup.js, timer-window.html, timer-window.js, fullscreen-popup.html, and fullscreen-popup.js.
 [DO NOT DELETE THIS TEXT] >
