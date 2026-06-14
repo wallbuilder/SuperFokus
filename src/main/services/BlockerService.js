@@ -31,12 +31,17 @@ function runElevated(command, commandArgs, callback) {
     const base64Args = Buffer.from(JSON.stringify(commandArgs)).toString('base64');
     const nodePath = process.execPath;
     let fullCommand;
+    const options = { name: 'SuperFokus' };
     if (process.platform === 'win32') {
-        fullCommand = `set "ELECTRON_RUN_AS_NODE=1" && set "NODE_OPTIONS=" && "${nodePath}" "${helperPath}" ${command} ${base64Args}`;
+        fullCommand = `"${nodePath}" "${helperPath}" ${command} ${base64Args}`;
+        options.env = {
+            'ELECTRON_RUN_AS_NODE': '1',
+            'NODE_OPTIONS': ''
+        };
     } else {
         fullCommand = `ELECTRON_RUN_AS_NODE=1 NODE_OPTIONS="" "${nodePath}" "${helperPath}" ${command} ${base64Args}`;
     }
-    sudo.exec(fullCommand, { name: 'SuperFokus' }, (error, stdout, stderr) => {
+    sudo.exec(fullCommand, options, (error, stdout, stderr) => {
         if (callback) callback(error, stdout, stderr);
     });
 }
@@ -142,8 +147,18 @@ function startProxy(targetHosts, targetUrls, mode = 'allow') {
     });
     proxyServer.listen(8080, '127.0.0.1', () => {
         if (process.platform === 'win32') {
-            exec('reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /t REG_DWORD /d 1 /f && reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyServer /t REG_SZ /d 127.0.0.1:8080 /f', (err) => {
-                if (!err) refreshWindowsProxy();
+            exec('reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /t REG_DWORD /d 1 /f', (err1) => {
+                if (err1) {
+                    console.error('[Proxy] Failed to enable proxy:', err1);
+                    return;
+                }
+                exec('reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyServer /t REG_SZ /d 127.0.0.1:8080 /f', (err2) => {
+                    if (!err2) {
+                        refreshWindowsProxy();
+                    } else {
+                        console.error('[Proxy] Failed to set proxy server:', err2);
+                    }
+                });
             });
         }
     });

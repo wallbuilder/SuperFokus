@@ -25,7 +25,8 @@ const ALLOWED_SEND_CHANNELS = [
     'stop-health-mode',
     'store-set',
     'store-set-multiple',
-    'store-delete'
+    'store-delete',
+    'request-initial-timer-update'
 ];
 
 // Whitelist of channels the renderer can LISTEN to from the main process
@@ -44,7 +45,8 @@ const ALLOWED_ON_CHANNELS = [
     'blocker-error',
     'timer-event',
     'start-flow-state-from-dock',
-    'pause-timer-from-dock'
+    'pause-timer-from-dock',
+    'request-initial-timer-update'
 ];
 
 contextBridge.exposeInMainWorld('electronAPI', {

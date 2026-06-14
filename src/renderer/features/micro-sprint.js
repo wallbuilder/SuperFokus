@@ -271,6 +271,7 @@ export function setPresetAndStart(presetKey) {
     }
     startSprintMode();
 }
+export function startSprintMode() {
     if (!sprintState.isSprintRunning) {
         const rawTasks = sprintTasksInput ? sprintTasksInput.value.split('\n').map(t => t.trim()).filter(Boolean) : [];
         sprintState.sprintTasks = rawTasks.length > 0 ? rawTasks : ['Unnamed Sprint'];

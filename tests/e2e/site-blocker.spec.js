@@ -1,4 +1,4 @@
-﻿const { _electron: electron } = require('@playwright/test');
+const { _electron: electron } = require('@playwright/test');
 const { test, expect } = require('@playwright/test');
 
 let electronApp;
@@ -18,11 +18,17 @@ test.afterAll(async () => {
 });
 
 test('Site Blocker activates without errors', async () => {
+  // Open the sidebar
+  await window.click('#menu-toggle');
+
   // Navigate to the site blocker section (assuming a button or link with this ID)
   await window.click('[data-modal="modal-site-blocker"]');
 
-  // Toggle the site blocker switch
-  await window.click('#site-blocker-enabled');
+  // Toggle the site blocker switch if not already enabled
+  const checkbox = window.locator('#site-blocker-enabled');
+  if (!(await checkbox.isChecked())) {
+    await window.click('label.toggle-switch:has(#site-blocker-enabled) .slider');
+  }
 
   // Add a domain to the block list
   await window.fill('#domain-list', 'example.com');
