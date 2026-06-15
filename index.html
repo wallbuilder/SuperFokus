@@ -360,6 +360,9 @@
       h2, h3 { font-weight: 500; }
       h2 { color: var(--h2-color, var(--heading-color)); margin-top: 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; }
       body.cyber-green-mode #dashboard-subtitle, #dashboard-subtitle { border-bottom: none !important; }
+      body.cyber-white-mode #dashboard-subtitle, #dashboard-subtitle { border-bottom: none !important; }
+      body.cyber-lightblue-mode #dashboard-subtitle, #dashboard-subtitle { border-bottom: none !important; }
+      body.cyber-blue-mode #dashboard-subtitle, #dashboard-subtitle { border-bottom: none !important; }
       h3 { color: var(--h3-color, var(--heading-color)); }
       .form-group { margin-bottom: 1.5rem; }
       label { display: block; margin-bottom: 0.6rem; font-weight: 500; font-size: 0.95rem; }
@@ -676,6 +679,296 @@
       body.platform-darwin .modal-overlay {
           padding-top: 15vh;
       }
+          body.cyber-white-mode {
+        background-color: var(--container-bg);
+        --bg-grad-1: #000000;
+        --bg-grad-2: #000000;
+        --text-color: #ffffff;
+        --header-grad-1: #000000;
+        --header-grad-2: #000000;
+        --container-bg: #121212;
+        --heading-color: #ffffff;
+        --header-title-color: #ffffff;
+        --h1-color: #ffffff;
+        --h2-color: #ffffff;
+        --h3-color: #ffffff;
+        --border-color: #ffffff;
+        --input-border: #ffffff;
+        --input-bg: #000000;
+        --timer-bg: #000000;
+        --timer-text: #ffffff;
+        --timer-subtext: #cccccc;
+        --drawer-bg: #121212;
+        --overlay-bg: rgba(0, 0, 0, 0.95);
+      }
+
+      body.cyber-white-mode * {
+        color: #ffffff !important;
+        border-color: #ffffff !important;
+      }
+
+      body.cyber-white-mode button,
+      body.cyber-white-mode .action-btn,
+      body.cyber-white-mode .home-btn,
+      body.cyber-white-mode .tab-btn {
+        background: #000000 !important;
+        background-color: #000000 !important;
+        color: #ffffff !important;
+        border: none !important;
+        box-shadow: inset 0 0 0 2px #ffffff !important;
+      }
+
+      body.cyber-white-mode button:hover,
+      body.cyber-white-mode .action-btn:hover,
+      body.cyber-white-mode .home-btn:hover,
+      body.cyber-white-mode .tab-btn:hover {
+        box-shadow: inset 0 0 0 2px #ffffff, 0 0 10px rgba(255, 255, 255, 0.5) !important;
+        transform: translateY(-2px);
+      }
+
+      body.cyber-white-mode .hamburger-btn {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+
+      body.cyber-white-mode .hamburger-btn:hover {
+        background: rgba(255, 255, 255, 0.1) !important;
+        box-shadow: none !important;
+        transform: scale(1.1) !important;
+      }
+
+      body.cyber-white-mode .slider {
+        box-sizing: border-box !important;
+        background: #000000 !important;
+        border: 2px solid #ffffff !important;
+      }
+
+      body.cyber-white-mode .slider:before {
+        box-sizing: border-box !important;
+        background: #ffffff !important;
+        left: 1px !important;
+        bottom: 1px !important;
+      }
+
+      body.cyber-white-mode .toggle-switch input:checked + .slider {
+        background: #ffffff !important;
+      }
+
+      body.cyber-white-mode .toggle-switch input:checked + .slider:before {
+        background: #000000 !important;
+      }
+
+      body.cyber-white-mode .pomo-icon {
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+
+      body.cyber-white-mode input,
+      body.cyber-white-mode select,
+      body.cyber-white-mode textarea {
+        background-color: #000000 !important;
+        border: 1px solid #ffffff !important;
+        color: #ffffff !important;
+      }
+
+      body.cyber-white-mode ::placeholder {
+        color: #cccccc !important;
+      }
+
+      body.cyber-lightblue-mode {
+        background-color: var(--container-bg);
+        --bg-grad-1: #000000;
+        --bg-grad-2: #000000;
+        --text-color: #add8e6;
+        --header-grad-1: #000000;
+        --header-grad-2: #000000;
+        --container-bg: #121212;
+        --heading-color: #add8e6;
+        --header-title-color: #add8e6;
+        --h1-color: #add8e6;
+        --h2-color: #add8e6;
+        --h3-color: #add8e6;
+        --border-color: #add8e6;
+        --input-border: #add8e6;
+        --input-bg: #000000;
+        --timer-bg: #000000;
+        --timer-text: #add8e6;
+        --timer-subtext: #00aacc;
+        --drawer-bg: #121212;
+        --overlay-bg: rgba(0, 0, 0, 0.95);
+      }
+
+      body.cyber-lightblue-mode * {
+        color: #add8e6 !important;
+        border-color: #add8e6 !important;
+      }
+
+      body.cyber-lightblue-mode button,
+      body.cyber-lightblue-mode .action-btn,
+      body.cyber-lightblue-mode .home-btn,
+      body.cyber-lightblue-mode .tab-btn {
+        background: #000000 !important;
+        background-color: #000000 !important;
+        color: #add8e6 !important;
+        border: none !important;
+        box-shadow: inset 0 0 0 2px #add8e6 !important;
+      }
+
+      body.cyber-lightblue-mode button:hover,
+      body.cyber-lightblue-mode .action-btn:hover,
+      body.cyber-lightblue-mode .home-btn:hover,
+      body.cyber-lightblue-mode .tab-btn:hover {
+        box-shadow: inset 0 0 0 2px #add8e6, 0 0 10px rgba(0, 229, 255, 0.5) !important;
+        transform: translateY(-2px);
+      }
+
+      body.cyber-lightblue-mode .hamburger-btn {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+
+      body.cyber-lightblue-mode .hamburger-btn:hover {
+        background: rgba(0, 229, 255, 0.1) !important;
+        box-shadow: none !important;
+        transform: scale(1.1) !important;
+      }
+
+      body.cyber-lightblue-mode .slider {
+        box-sizing: border-box !important;
+        background: #000000 !important;
+        border: 2px solid #add8e6 !important;
+      }
+
+      body.cyber-lightblue-mode .slider:before {
+        box-sizing: border-box !important;
+        background: #add8e6 !important;
+        left: 1px !important;
+        bottom: 1px !important;
+      }
+
+      body.cyber-lightblue-mode .toggle-switch input:checked + .slider {
+        background: #add8e6 !important;
+      }
+
+      body.cyber-lightblue-mode .toggle-switch input:checked + .slider:before {
+        background: #000000 !important;
+      }
+
+      body.cyber-lightblue-mode .pomo-icon {
+        background: #add8e6 !important;
+        color: #000000 !important;
+      }
+
+      body.cyber-lightblue-mode input,
+      body.cyber-lightblue-mode select,
+      body.cyber-lightblue-mode textarea {
+        background-color: #000000 !important;
+        border: 1px solid #add8e6 !important;
+        color: #add8e6 !important;
+      }
+
+      body.cyber-lightblue-mode ::placeholder {
+        color: #00aacc !important;
+      }
+
+      body.cyber-blue-mode {
+        background-color: var(--container-bg);
+        --bg-grad-1: #000000;
+        --bg-grad-2: #000000;
+        --text-color: #0066ff;
+        --header-grad-1: #000000;
+        --header-grad-2: #000000;
+        --container-bg: #121212;
+        --heading-color: #0066ff;
+        --header-title-color: #0066ff;
+        --h1-color: #0066ff;
+        --h2-color: #0066ff;
+        --h3-color: #0066ff;
+        --border-color: #0066ff;
+        --input-border: #0066ff;
+        --input-bg: #000000;
+        --timer-bg: #000000;
+        --timer-text: #0066ff;
+        --timer-subtext: #0044cc;
+        --drawer-bg: #121212;
+        --overlay-bg: rgba(0, 0, 0, 0.95);
+      }
+
+      body.cyber-blue-mode * {
+        color: #0066ff !important;
+        border-color: #0066ff !important;
+      }
+
+      body.cyber-blue-mode button,
+      body.cyber-blue-mode .action-btn,
+      body.cyber-blue-mode .home-btn,
+      body.cyber-blue-mode .tab-btn {
+        background: #000000 !important;
+        background-color: #000000 !important;
+        color: #0066ff !important;
+        border: none !important;
+        box-shadow: inset 0 0 0 2px #0066ff !important;
+      }
+
+      body.cyber-blue-mode button:hover,
+      body.cyber-blue-mode .action-btn:hover,
+      body.cyber-blue-mode .home-btn:hover,
+      body.cyber-blue-mode .tab-btn:hover {
+        box-shadow: inset 0 0 0 2px #0066ff, 0 0 10px rgba(0, 102, 255, 0.5) !important;
+        transform: translateY(-2px);
+      }
+
+      body.cyber-blue-mode .hamburger-btn {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+
+      body.cyber-blue-mode .hamburger-btn:hover {
+        background: rgba(0, 102, 255, 0.1) !important;
+        box-shadow: none !important;
+        transform: scale(1.1) !important;
+      }
+
+      body.cyber-blue-mode .slider {
+        box-sizing: border-box !important;
+        background: #000000 !important;
+        border: 2px solid #0066ff !important;
+      }
+
+      body.cyber-blue-mode .slider:before {
+        box-sizing: border-box !important;
+        background: #0066ff !important;
+        left: 1px !important;
+        bottom: 1px !important;
+      }
+
+      body.cyber-blue-mode .toggle-switch input:checked + .slider {
+        background: #0066ff !important;
+      }
+
+      body.cyber-blue-mode .toggle-switch input:checked + .slider:before {
+        background: #000000 !important;
+      }
+
+      body.cyber-blue-mode .pomo-icon {
+        background: #0066ff !important;
+        color: #000000 !important;
+      }
+
+      body.cyber-blue-mode input,
+      body.cyber-blue-mode select,
+      body.cyber-blue-mode textarea {
+        background-color: #000000 !important;
+        border: 1px solid #0066ff !important;
+        color: #0066ff !important;
+      }
+
+      body.cyber-blue-mode ::placeholder {
+        color: #0044cc !important;
+      }
     </style>
   </head>
   <body>
@@ -771,11 +1064,24 @@
                                 <span>Dark Mode</span>
                             </label>
                             
+                                                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="radio" name="theme-selection" value="cyber-green" id="theme-radio-cyber-green" style="width: auto; margin: 0;">
+                                <span>Cyber - Green</span>
+                            </label>
+                            
                             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                <input type="radio" name="theme-selection" value="cyber-green" id="theme-radio-cyber-green" style="width: auto; margin: 0;">
-                                <span>Cyber - Green</span>
-                                <input type="radio" name="theme-selection" value="cyber-green" id="theme-radio-cyber-green" style="width: auto; margin: 0;">
-                                <span>Cyber - Green</span>
+                                <input type="radio" name="theme-selection" value="cyber-white" id="theme-radio-cyber-white" style="width: auto; margin: 0;">
+                                <span>Cyber - White</span>
+                            </label>
+                            
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="radio" name="theme-selection" value="cyber-lightblue" id="theme-radio-cyber-lightblue" style="width: auto; margin: 0;">
+                                <span>Cyber - Light Blue</span>
+                            </label>
+                            
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="radio" name="theme-selection" value="cyber-blue" id="theme-radio-cyber-blue" style="width: auto; margin: 0;">
+                                <span>Cyber - Blue</span>
                             </label>
                         </div>
                     </div>
@@ -798,6 +1104,33 @@
                                 <span class="slider"></span>
                             </label>
                             <span style="font-size: 0.9rem; color: var(--timer-subtext);">Show header toggle</span>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 15px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                        <div style="font-weight: 500; font-size: 1rem; margin-bottom: 10px;">Custom Toggle Editor</div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px;">
+                            <div style="flex: 1;">
+                                <label style="display: block; font-size: 0.85rem; color: var(--timer-subtext); margin-bottom: 5px;">Toggle 1</label>
+                                <select id="custom-toggle-state-1" style="width: 100%; padding: 5px; font-size: 0.9rem; background: var(--input-bg, #fff); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">
+                                    <option value="light">Light Mode</option>
+                                    <option value="dark">Dark Mode</option>
+                                    <option value="cyber-green">Cyber - Green</option>
+                                    <option value="cyber-white">Cyber - White</option>
+                                    <option value="cyber-lightblue">Cyber - Light Blue</option>
+                                    <option value="cyber-blue">Cyber - Blue</option>
+                                </select>
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="display: block; font-size: 0.85rem; color: var(--timer-subtext); margin-bottom: 5px;">Toggle 2</label>
+                                <select id="custom-toggle-state-2" style="width: 100%; padding: 5px; font-size: 0.9rem; background: var(--input-bg, #fff); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">
+                                    <option value="light">Light Mode</option>
+                                    <option value="dark">Dark Mode</option>
+                                    <option value="cyber-green">Cyber - Green</option>
+                                    <option value="cyber-white">Cyber - White</option>
+                                    <option value="cyber-lightblue">Cyber - Light Blue</option>
+                                    <option value="cyber-blue">Cyber - Blue</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div style="display: flex; justify-content: flex-end;">

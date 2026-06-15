@@ -9,9 +9,8 @@ export function setCurrentThemeMode(val) { currentThemeMode = val; }
 export function setShowHeaderDarkModeToggle(val) { showHeaderDarkModeToggle = val; }
 
 export function getNextThemeMode() {
-    if (currentThemeMode === 'light') return 'dark';
-    if (currentThemeMode === 'dark') return 'cyber-green';
-    return 'light';
+    if (currentThemeMode === customToggleState1) return customToggleState2;
+    return customToggleState1;
 }
 
 export function updateHeaderToggleButtonText() {
@@ -40,17 +39,20 @@ export function applyTheme() {
     document.documentElement.style.removeProperty('--modal-bg');
     document.body.classList.remove('dark-mode');
     document.body.classList.remove('cyber-green-mode');
+    document.body.classList.remove('cyber-white-mode');
+    document.body.classList.remove('cyber-lightblue-mode');
+    document.body.classList.remove('cyber-blue-mode');
 
     const themeData = {
         mode: currentThemeMode,
-        isDark: currentThemeMode === 'dark' || currentThemeMode === 'cyber-green',
+        isDark: currentThemeMode === 'dark' || currentThemeMode.startsWith('cyber-'),
         colors: {}
     };
 
     if (currentThemeMode === 'dark') {
         document.body.classList.add('dark-mode');
-    } else if (currentThemeMode === 'cyber-green') {
-        document.body.classList.add('cyber-green-mode');
+    } else if (currentThemeMode.startsWith('cyber-')) {
+        document.body.classList.add(currentThemeMode + '-mode');
     }
 
     ipcRenderer.send('theme-changed', themeData);
@@ -71,10 +73,21 @@ export function setThemeMode(mode) {
     const themeRadioLight = document.getElementById('theme-radio-light');
     const themeRadioDark = document.getElementById('theme-radio-dark');
     const themeRadioCyberGreen = document.getElementById('theme-radio-cyber-green');
+    const themeRadioCyberWhite = document.getElementById('theme-radio-cyber-white');
+    const themeRadioCyberLightblue = document.getElementById('theme-radio-cyber-lightblue');
+    const themeRadioCyberBlue = document.getElementById('theme-radio-cyber-blue');
 
     if (themeRadioLight) themeRadioLight.checked = (mode === 'light');
     if (themeRadioDark) themeRadioDark.checked = (mode === 'dark');
     if (themeRadioCyberGreen) themeRadioCyberGreen.checked = (mode === 'cyber-green');
+    if (themeRadioCyberWhite) themeRadioCyberWhite.checked = (mode === 'cyber-white');
+    if (themeRadioCyberLightblue) themeRadioCyberLightblue.checked = (mode === 'cyber-lightblue');
+    if (themeRadioCyberBlue) themeRadioCyberBlue.checked = (mode === 'cyber-blue');
 
     applyTheme();
 }
+
+export let customToggleState1 = 'light';
+export let customToggleState2 = 'dark';
+export function setCustomToggleState1(val) { customToggleState1 = val; }
+export function setCustomToggleState2(val) { customToggleState2 = val; }
