@@ -70,6 +70,46 @@
         }
         #extra-info { font-size: 0.9rem; color: #7f8c8d; margin-top: 0.2rem; display: none; }
         body.dark-mode #extra-info { color: #a4b0be; }
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 0.8rem;
+        }
+        .control-btn {
+            background: var(--theme-color, #6a11cb);
+            color: #ffffff;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+            font-size: 1rem;
+        }
+        .control-btn:hover {
+            background: var(--theme-color-2, #2575fc);
+            transform: scale(1.05);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        body.cyber-green-mode .control-btn {
+            background: #000000 !important;
+            color: #00ff66 !important;
+            border: 1px solid #00ff66 !important;
+            box-shadow: 0 0 5px #00ff66;
+        }
+        body.cyber-green-mode .control-btn:hover {
+            background: #00ff66 !important;
+            color: #000000 !important;
+            box-shadow: 0 0 10px #00ff66;
+        }
     </style>
 </head>
 <body>
@@ -79,6 +119,9 @@
         <div id="progress-bar"></div>
     </div>
     <div id="extra-info"></div>
+    <div class="controls">
+        <button id="play-pause-btn" class="control-btn" title="Pause">▐▐</button>
+    </div>
     <script type="module" src="./timer-window.js"></script>
 </body>
 </html>

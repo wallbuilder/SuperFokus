@@ -85,7 +85,9 @@ ipcRenderer.on('timer-event', (payload) => {
                         message: reminderMessageInput ? reminderMessageInput.value : '',
                         closeDelay: autocloseSecs * 1000,
                         type: 'Repeating Reminder',
-                        isAutoclose: true
+                        isAutoclose: true,
+                        popupIndex: i,
+                        totalPopups: popups
                     });
                 }, i * 300);
             }
@@ -149,7 +151,7 @@ export function startRepeatingReminders() {
     if (repeatingTimerDisplay) repeatingTimerDisplay.classList.remove('hidden');
     if (pauseRepeatingBtn) {
         pauseRepeatingBtn.style.display = 'block';
-        pauseRepeatingBtn.innerText = 'Pause \u23F8';
+        pauseRepeatingBtn.innerText = 'Pause ▐▐';
     }
     updateRepeatingDisplay();
 
@@ -165,7 +167,7 @@ export function stopRepeatingReminders() {
     if (repeatingTimerDisplay) repeatingTimerDisplay.classList.add('hidden');
     if (pauseRepeatingBtn) {
         pauseRepeatingBtn.style.display = 'none';
-        pauseRepeatingBtn.innerText = 'Pause \u23F8';
+        pauseRepeatingBtn.innerText = 'Pause ▐▐';
     }
     ipcRenderer.send('close-popup');
 }
@@ -326,7 +328,7 @@ export function initializeRepeatingButtonListeners() {
           repeatingState.isRepeatingPaused = false;
           const repeatingDisplay = document.getElementById('repeating-timer-display');
           if (repeatingDisplay) repeatingDisplay.classList.remove('paused');
-          btn.innerText = 'Pause \u23F8';
+          btn.innerText = 'Pause ▐▐';
         }
       }
     });

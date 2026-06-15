@@ -67,9 +67,44 @@ ipcRenderer.on('timer-tick', (batchedTicks) => {
     }
 });
 
+const playPauseBtn = document.getElementById('play-pause-btn');
+let isPaused = false;
+
+function updateControlButtons() {
+    if (!playPauseBtn) return;
+    if (isPaused) {
+        playPauseBtn.innerText = '▶';
+        playPauseBtn.title = 'Resume';
+    } else {
+        playPauseBtn.innerText = '▐▐';
+        playPauseBtn.title = 'Pause';
+    }
+}
+
+function updateControlVisibility() {
+    if (playPauseBtn) {
+        if (currentType === 'pomo') {
+            playPauseBtn.style.display = 'flex';
+        } else {
+            playPauseBtn.style.display = 'none';
+        }
+    }
+}
+
+if (playPauseBtn) {
+    playPauseBtn.addEventListener('click', () => {
+        if (isPaused) {
+            ipcRenderer.send('resume-timer', currentType);
+        } else {
+            ipcRenderer.send('pause-timer', currentType);
+        }
+    });
+}
+
 ipcRenderer.on('init-timer', (type) => {
     currentType = type;
     setThemeColor(type);
+    updateControlVisibility();
     if (type === 'pomo') {
         labelDisplay.innerText = 'Work Session';
         document.title = 'Pomo Timer';
@@ -92,6 +127,32 @@ ipcRenderer.on('update-timer-window', (data) => {
     if (data.timeLeft) timerDisplay.innerText = data.timeLeft;
     if (data.percent !== undefined) progressBar.style.width = `${data.percent}%`;
     if (data.tasksLeft !== undefined) extraInfoDisplay.innerText = `Remaining Tasks: ${data.tasksLeft}`;
+    if (data.isPaused !== undefined) {
+        isPaused = data.isPaused;
+        updateControlButtons();
+        if (isPaused) {
+            timerDisplay.classList.add('paused');
+        } else {
+            timerDisplay.classList.remove('paused');
+        }
+    }
+});
+
+ipcRenderer.on('timer-event', (payload) => {
+    if (payload.type !== currentType) return;
+    if (payload.event === 'paused') {
+        isPaused = true;
+        updateControlButtons();
+        timerDisplay.classList.add('paused');
+    } else if (payload.event === 'resumed' || payload.event === 'started') {
+        isPaused = false;
+        updateControlButtons();
+        timerDisplay.classList.remove('paused');
+    } else if (payload.event === 'stopped') {
+        isPaused = false;
+        updateControlButtons();
+        timerDisplay.classList.remove('paused');
+    }
 });
 
 ipcRenderer.on('set-theme', (themeData) => {
