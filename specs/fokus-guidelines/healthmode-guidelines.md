@@ -17,10 +17,6 @@ Health Mode is a wellness-focused feature that encourages users to take regular 
    - If the user is already away from their computer (detected via system idle time), Health Mode should automatically pause its timers to avoid "double-breaking".
    - It should resume only once activity is detected again.
 
-4. **Integration with Statistics:**
-   - The application tracks how many breaks were successfully taken vs how many were skipped.
-   - This data is visualized to show the user's "Health Score" over time.
-
 ## Implementation Details
 - **Always on Top:** The break windows must use `alwaysOnTop: true` and `level: 'screen-saver'` (on macOS) to ensure they are visible over all other applications.
 - **IPC Handshake:** The break window should signal the main process when it is successfully displayed, so the timer can begin.

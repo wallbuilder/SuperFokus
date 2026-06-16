@@ -26,6 +26,7 @@ export function updateHeaderToggleButtonText() {
 export function applyTheme() {
     document.documentElement.style.removeProperty('--header-grad-1');
     document.documentElement.style.removeProperty('--header-grad-2');
+    document.documentElement.style.removeProperty('--accent-color');
     document.documentElement.style.removeProperty('--header-title-color');
     document.documentElement.style.removeProperty('--h1-color');
     document.documentElement.style.removeProperty('--h2-color');

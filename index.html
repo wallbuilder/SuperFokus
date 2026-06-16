@@ -26,6 +26,7 @@
       @property --timer-text { syntax: '<color>'; initial-value: #2c3e50; inherits: true; }
       @property --timer-subtext { syntax: '<color>'; initial-value: #7f8c8d; inherits: true; }
       @property --drawer-bg { syntax: '<color>'; initial-value: #ffffff; inherits: true; }
+      @property --accent-color { syntax: '<color>'; initial-value: #6a11cb; inherits: true; }
 
       body {
         font-family: 'Roboto', sans-serif;
@@ -51,6 +52,7 @@
         --timer-subtext: #7f8c8d;
         --drawer-bg: #ffffff;
         --overlay-bg: rgba(0, 0, 0, 0.6);
+        --accent-color: #6a11cb;
       }
 
       body.dark-mode {
@@ -73,6 +75,7 @@
         --timer-text: #f1f2f6;
         --timer-subtext: #a4b0be;
         --drawer-bg: #1a1a2e;
+        --accent-color: #e94560;
       }
 
       body.cyber-green-mode {
@@ -96,6 +99,7 @@
         --timer-subtext: #00cc55;
         --drawer-bg: #121212;
         --overlay-bg: rgba(0, 0, 0, 0.95);
+        --accent-color: #00ff66;
       }
 
       body.cyber-green-mode * {
@@ -298,7 +302,7 @@
         padding: 12px 15px; margin: 5px 0; border-radius: 10px; cursor: pointer; transition: 0.2s;
         display: flex; align-items: center; font-weight: 500;
       }
-      .menu-item:hover { background: var(--timer-bg); color: var(--header-grad-1); }
+      .menu-item:hover { background: var(--timer-bg); color: var(--accent-color); }
 
       /* Dialog Overlay & Modal */
         .modal-overlay {
@@ -460,7 +464,7 @@
       /* Version & Github Link */
       #version { position: fixed; bottom: 15px; right: 20px; font-size: 0.85rem; color: #95a5a6; font-weight: 500; z-index: 1000; }
       #github-link { position: fixed; bottom: 15px; left: 20px; font-size: 0.85rem; color: #95a5a6; font-weight: 500; text-decoration: none; transition: color 0.3s; z-index: 1000; }
-      #github-link:hover { color: var(--header-grad-1); }
+      #github-link:hover { color: var(--accent-color); }
       .hidden { display: none !important; }
       .error-msg { color: #e74c3c; font-size: 0.9rem; margin-top: 0.5rem; display: none; font-weight: 500; }
       .warning-text { color: #e74c3c; }
@@ -679,7 +683,7 @@
       body.platform-darwin .modal-overlay {
           padding-top: 15vh;
       }
-          body.cyber-white-mode {
+      body.cyber-white-mode {
         background-color: var(--container-bg);
         --bg-grad-1: #000000;
         --bg-grad-2: #000000;
@@ -700,6 +704,7 @@
         --timer-subtext: #cccccc;
         --drawer-bg: #121212;
         --overlay-bg: rgba(0, 0, 0, 0.95);
+        --accent-color: #ffffff;
       }
 
       body.cyber-white-mode * {
@@ -797,6 +802,7 @@
         --timer-subtext: #00aacc;
         --drawer-bg: #121212;
         --overlay-bg: rgba(0, 0, 0, 0.95);
+        --accent-color: #add8e6;
       }
 
       body.cyber-lightblue-mode * {
@@ -894,6 +900,7 @@
         --timer-subtext: #0044cc;
         --drawer-bg: #121212;
         --overlay-bg: rgba(0, 0, 0, 0.95);
+        --accent-color: #0066ff;
       }
 
       body.cyber-blue-mode * {
@@ -1395,7 +1402,7 @@
             <h2 style="margin-bottom: 20px;">Credits</h2>
             
             <div class="credits-section" style="margin-bottom: 20px; background: var(--timer-bg); padding: 15px; border-radius: 10px; border: 1px solid var(--border-color);">
-                <h3 style="margin-top: 0; color: var(--header-grad-1); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Contributors</h3>
+                <h3 style="margin-top: 0; color: var(--accent-color); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Contributors</h3>
                 <ul style="list-style: none; padding-left: 0; margin-top: 10px;">
                     <li style="padding: 5px 0;">wallbuilder: Lead Coder / Project Creator</li>
                     <li style="padding: 5px 0;">A1A2J2: Secondary Coder / Asset Lead</li>
@@ -1406,7 +1413,7 @@
             </div>
 
             <div class="credits-section" style="margin-bottom: 20px; background: var(--timer-bg); padding: 15px; border-radius: 10px; border: 1px solid var(--border-color);">
-                <h3 style="margin-top: 0; color: var(--header-grad-1); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Models</h3>
+                <h3 style="margin-top: 0; color: var(--accent-color); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Models</h3>
                 <div style="margin-top: 10px;">
                     <strong>Gemini / Google Models:</strong>
                     <ul style="list-style: disc; padding-left: 20px; margin-top: 5px; margin-bottom: 10px;">
@@ -1429,7 +1436,7 @@
             </div>
 
             <div class="credits-section" style="margin-bottom: 20px; background: var(--timer-bg); padding: 15px; border-radius: 10px; border: 1px solid var(--border-color);">
-                <h3 style="margin-top: 0; color: var(--header-grad-1); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Testers</h3>
+                <h3 style="margin-top: 0; color: var(--accent-color); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Testers</h3>
                 <ul style="list-style: none; padding-left: 0; margin-top: 10px; margin-bottom: 0;">
                     <li style="padding: 5px 0;">cat2d430</li>
                     <li style="padding: 5px 0;">NoTesterYet (Edit this code in line 1052 in index.html)</li>
@@ -1437,7 +1444,7 @@
             </div>
 
             <div class="credits-section" style="background: var(--timer-bg); padding: 15px; border-radius: 10px; border: 1px solid var(--border-color);">
-                <h3 style="margin-top: 0; color: var(--header-grad-1); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Sound Assets</h3>
+                <h3 style="margin-top: 0; color: var(--accent-color); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Sound Assets</h3>
                 
                 <div style="margin-top: 10px; font-size: 0.9rem; margin-bottom: 15px;">
                     <strong>Classic Pack:</strong>
@@ -1533,7 +1540,7 @@
         </div>
         
         <div id="flow-timer-display" class="hidden timer-display">
-          <div style="font-size: 1.4rem; font-weight: 500; color: var(--header-grad-1);">Elapsed Time</div>
+          <div style="font-size: 1.4rem; font-weight: 500; color: var(--accent-color);">Elapsed Time</div>
           <div id="flow-time-elapsed" style="font-size: 3rem; font-weight: 700; color: var(--timer-text);">00:00:00</div>
         </div>
 
@@ -1703,7 +1710,7 @@
         </div>
 
         <div id="pomo-timer-display" class="hidden timer-display">
-          <div id="pomo-status-text" style="font-size: 1.4rem; font-weight: 500; color: var(--header-grad-1);">Work Session</div>
+          <div id="pomo-status-text" style="font-size: 1.4rem; font-weight: 500; color: var(--accent-color);">Work Session</div>
           <div id="pomo-time-left" style="font-size: 3rem; font-weight: 700; color: var(--timer-text);">00:00</div>
           <div id="pomo-rounds-left" style="font-size: 1rem; color: var(--timer-subtext); margin-top: 0.5rem;">Next: --</div>
           <button class="action-btn continue-btn" id="continue-pomo-btn">Continue to Next Phase</button>
@@ -1759,7 +1766,7 @@
         </div>
         
         <div id="sprint-timer-display" class="hidden timer-display">
-          <div id="sprint-current-task" style="font-size: 1.4rem; font-weight: 500; color: var(--header-grad-1);">Task</div>
+          <div id="sprint-current-task" style="font-size: 1.4rem; font-weight: 500; color: var(--accent-color);">Task</div>
           <div id="sprint-time-left" style="font-size: 3rem; font-weight: 700; color: var(--timer-text);">00:00</div>
           <div id="sprint-tasks-left" style="font-size: 1rem; color: var(--timer-subtext); margin-top: 0.5rem;">Remaining Tasks: 0</div>
           <div style="display: flex; gap: 10px; margin-top: 10px;">
@@ -1843,7 +1850,7 @@
             </div>
             <div class="workflow-duration-bar">
               <span>Total Estimated Duration:</span>
-              <span id="workflow-total-duration" style="font-weight: 600; color: var(--header-grad-1);">0m</span>
+              <span id="workflow-total-duration" style="font-weight: 600; color: var(--accent-color);">0m</span>
             </div>
           </div>
         </div>
