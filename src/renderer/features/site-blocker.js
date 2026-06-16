@@ -48,9 +48,9 @@ export async function initSiteBlocker() {
         if (elements.alwaysRunCheck) elements.alwaysRunCheck.checked = blockerState.alwaysRun;
         if (elements.domainInput) elements.domainInput.value = (saved.rawDomains || []).join('\n');
         if (elements.urlInput) elements.urlInput.value = (saved.rawUrls || []).join('\n');
-        
-        updateUIVisibility();
     }
+    
+    updateUIVisibility();
 
     elements.modeSelect.addEventListener('change', () => {
         updateUIVisibility();

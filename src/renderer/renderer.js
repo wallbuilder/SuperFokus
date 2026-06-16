@@ -58,7 +58,7 @@ export function switchMode(mode) {
 
   const dashboardSubtitle = document.getElementById('dashboard-subtitle');
   if (dashboardSubtitle) {
-      dashboardSubtitle.innerHTML = '<span id="select-another-mode-btn" style="text-decoration: underline; cursor: pointer; color: var(--header-grad-1);">Select another Fokus Mode</span>';
+      dashboardSubtitle.innerHTML = '<span id="select-another-mode-btn" style="text-decoration: underline; cursor: pointer; color: var(--accent-color);">Select another Fokus Mode</span>';
       const selectAnotherBtn = document.getElementById('select-another-mode-btn');
       if (selectAnotherBtn) {
           selectAnotherBtn.addEventListener('click', () => {

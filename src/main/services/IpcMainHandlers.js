@@ -1,4 +1,4 @@
-const { ipcMain, app, Notification } = require('electron');
+const { ipcMain, app, Notification, BrowserWindow } = require('electron');
 const path = require('path');
 const windowManager = require('./WindowManager');
 
@@ -73,7 +73,16 @@ async function init() {
     ipcMain.on('show-popup', (event, payload) => {
         if (!windowManager.isOriginSafe(event)) return;
         if (typeof payload === 'object' && payload !== null) {
-            windowManager.createPopupWindow(payload.message, payload.closeDelay || 10000, payload.healthType || null, true);
+            windowManager.createPopupWindow(
+                payload.message,
+                payload.closeDelay || 10000,
+                payload.healthType || null,
+                payload.isAutoclose || false,
+                null,
+                payload.type || null,
+                payload.popupIndex ?? 0,
+                payload.totalPopups ?? 1
+            );
         } else {
             windowManager.createPopupWindow(payload, 10000, null, true);
         }
@@ -81,8 +90,13 @@ async function init() {
 
     ipcMain.on('close-popup', (event) => {
         if (!windowManager.isOriginSafe(event)) return;
-        if (windowManager.popupWindow && !windowManager.popupWindow.isDestroyed()) {
-            windowManager.popupWindow.close();
+        if (windowManager.mainWindow && event.sender === windowManager.mainWindow.webContents) {
+            windowManager.closeAllPopups();
+        } else {
+            const win = BrowserWindow.fromWebContents(event.sender);
+            if (win && !win.isDestroyed()) {
+                win.close();
+            }
         }
     });
 

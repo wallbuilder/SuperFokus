@@ -5,6 +5,7 @@ class WindowManager {
     constructor() {
         this.mainWindow = null;
         this.popupWindow = null;
+        this.popupWindows = new Set();
         this.timerWindow = null;
         this.fullscreenWindow = null;
         this.isQuitting = false;
@@ -179,17 +180,19 @@ class WindowManager {
         Menu.setApplicationMenu(menu);
     }
 
-    createPopupWindow(message, autoDismissMs = 10000, healthType = null, isAutoclose = false, healthConfig = null) {
+    createPopupWindow(message, autoDismissMs = 10000, healthType = null, isAutoclose = false, healthConfig = null, popupType = null, popupIndex = 0, totalPopups = 1) {
         const isBlocking = healthType && healthConfig && healthConfig.blockingMode === 'fullscreen';
+        let targetWin = null;
+        let shouldReuse = false;
 
-        if (this.popupWindow && this.currentPopupIsBlocking !== isBlocking) {
-            this.popupWindow.destroy();
-            this.popupWindow = null;
+        if (this.popupWindow && !this.popupWindow.isDestroyed() && popupType !== 'Repeating Reminder' && this.currentPopupIsBlocking === isBlocking) {
+            shouldReuse = true;
+            targetWin = this.popupWindow;
         }
 
-        if (this.popupWindow && !this.popupWindow.isDestroyed()) {
-            this.popupWindow.show();
-            this.popupWindow.webContents.send('display-message', {
+        if (shouldReuse) {
+            targetWin.show();
+            targetWin.webContents.send('display-message', {
                 message,
                 closeDelay: autoDismissMs,
                 healthType,
@@ -197,44 +200,70 @@ class WindowManager {
                 isAutoclose
             });
         } else {
-            if (isBlocking) {
-                this.popupWindow = this._createWindow({
-                    width: screen.getPrimaryDisplay().workAreaSize.width,
-                    height: screen.getPrimaryDisplay().workAreaSize.height,
-                    x: 0,
-                    y: 0,
-                    alwaysOnTop: true,
-                    frame: false,
-                    fullscreen: false,
-                    resizable: false,
-                });
-                this.currentPopupIsBlocking = true;
-            } else {
-                this.popupWindow = this._createWindow({
-                    width: 500,
-                    height: 350,
-                    alwaysOnTop: true,
-                    frame: true,
-                    resizable: false,
-                });
-                this.currentPopupIsBlocking = false;
+            if (this.popupWindow && !this.popupWindow.isDestroyed() && this.currentPopupIsBlocking !== isBlocking && popupType !== 'Repeating Reminder') {
+                this.popupWindow.destroy();
+                this.popupWindow = null;
             }
 
-            this.popupWindow.loadFile(path.join(__dirname, '../../renderer/ui/popup.html'));
-            
-            this.popupWindow.webContents.on('did-finish-load', () => {
-                this.popupWindow.webContents.send('set-theme', this.currentThemeData);
+            let winOptions = {
+                width: 500,
+                height: 350,
+                alwaysOnTop: true,
+                frame: true,
+                resizable: false,
+            };
+
+            if (isBlocking) {
+                winOptions.width = screen.getPrimaryDisplay().workAreaSize.width;
+                winOptions.height = screen.getPrimaryDisplay().workAreaSize.height;
+                winOptions.x = 0;
+                winOptions.y = 0;
+                winOptions.frame = false;
+                winOptions.fullscreen = false;
+                winOptions.resizable = false;
+                this.currentPopupIsBlocking = true;
+            } else {
+                this.currentPopupIsBlocking = false;
+                if (popupType === 'Repeating Reminder' && totalPopups > 1 && popupIndex > 0) {
+                    const targetDisplay = screen.getPrimaryDisplay();
+                    const { x: workX, y: workY, width: workWidth, height: workHeight } = targetDisplay.workArea;
+                    const maxX = workX + workWidth - 500;
+                    const maxY = workY + workHeight - 350;
+                    winOptions.x = maxX > workX ? Math.floor(workX + Math.random() * (maxX - workX)) : workX;
+                    winOptions.y = maxY > workY ? Math.floor(workY + Math.random() * (maxY - workY)) : workY;
+                }
+            }
+
+            targetWin = this._createWindow(winOptions);
+
+            if (!this.popupWindows) {
+                this.popupWindows = new Set();
+            }
+            this.popupWindows.add(targetWin);
+
+            if (popupType === 'Repeating Reminder') {
+                targetWin.isRepeatingReminder = true;
+            }
+
+            if (!this.popupWindow || this.popupWindow.isDestroyed() || popupIndex === 0) {
+                this.popupWindow = targetWin;
+            }
+
+            targetWin.loadFile(path.join(__dirname, '../../renderer/ui/popup.html'));
+
+            targetWin.webContents.on('did-finish-load', () => {
+                targetWin.webContents.send('set-theme', this.currentThemeData);
                 if (process.platform === 'darwin') {
                     try {
-                        this.popupWindow.setAlwaysOnTop(true, 'floating');
-                        this.popupWindow.setVisibleOnAllWorkspaces(true);
-                        this.popupWindow.setFullScreenable(false);
+                        targetWin.setAlwaysOnTop(true, 'floating');
+                        targetWin.setVisibleOnAllWorkspaces(true);
+                        targetWin.setFullScreenable(false);
                     } catch (e) {
                         console.warn('Mac popup window tuning failed', e);
                     }
                 }
 
-                this.popupWindow.webContents.send('display-message', {
+                targetWin.webContents.send('display-message', {
                     message,
                     closeDelay: autoDismissMs,
                     healthType,
@@ -243,29 +272,58 @@ class WindowManager {
                 });
             });
 
-            this.popupWindow.on('close', (e) => {
+            targetWin.on('close', (e) => {
                 if (!this.isQuitting) {
-                    e.preventDefault();
-                    this.popupWindow.hide();
-                    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-                        this.mainWindow.webContents.send('popup-closed');
+                    if (targetWin.isRepeatingReminder) {
+                        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+                            this.mainWindow.webContents.send('popup-closed');
+                        }
+                    } else {
+                        e.preventDefault();
+                        targetWin.hide();
+                        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+                            this.mainWindow.webContents.send('popup-closed');
+                        }
                     }
                 }
             });
 
-            this.popupWindow.on('blur', () => {
+            targetWin.on('closed', () => {
+                if (this.popupWindows) {
+                    this.popupWindows.delete(targetWin);
+                }
+                if (this.popupWindow === targetWin) {
+                    this.popupWindow = null;
+                }
+            });
+
+            targetWin.on('blur', () => {
                 // This will be handled by the blocker service if macBlockActive is needed
             });
         }
-        
+
         if (autoDismissMs > 0) {
+            const winToClose = targetWin;
             setTimeout(() => {
                 try {
-                    if (this.popupWindow && !this.popupWindow.isDestroyed()) {
-                        this.popupWindow.close();
+                    if (winToClose && !winToClose.isDestroyed()) {
+                        winToClose.close();
                     }
                 } catch (err) {}
             }, autoDismissMs);
+        }
+    }
+
+    closeAllPopups() {
+        if (this.popupWindows) {
+            for (const win of [...this.popupWindows]) {
+                if (win && !win.isDestroyed()) {
+                    win.close();
+                }
+            }
+        }
+        if (this.popupWindow && !this.popupWindow.isDestroyed()) {
+            this.popupWindow.close();
         }
     }
 
@@ -462,20 +520,20 @@ class WindowManager {
             this.mainWindow,
             this.timerWindow,
             this.fullscreenWindow,
-            this.popupWindow
+            ...this.popupWindows
         ];
 
         // Optimization: Only send timer ticks to visible windows to reduce IPC spam
         const isTimerTickChannel = channel === 'timer-tick';
 
-        windows.forEach(win => {
-            if (win && !win.isDestroyed()) {
-                // Skip sending timer ticks to hidden windows
-                if (isTimerTickChannel && !win.isVisible()) {
-                    return;
-                }
-                win.webContents.send(channel, ...args);
+        const uniqueWindows = new Set(windows.filter(win => win && !win.isDestroyed()));
+
+        uniqueWindows.forEach(win => {
+            // Skip sending timer ticks to hidden windows
+            if (isTimerTickChannel && !win.isVisible()) {
+                return;
             }
+            win.webContents.send(channel, ...args);
         });
     }
 }
