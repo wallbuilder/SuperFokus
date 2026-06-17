@@ -9,6 +9,7 @@ function startTimerService() {
     timerInterval = setInterval(() => {
         const now = Date.now();
         let activeTimersCount = 0;
+        const batchedTicks = [];
 
         for (const id in timers) {
             const timer = timers[id];
@@ -17,18 +18,22 @@ function startTimerService() {
             activeTimersCount++;
             const remaining = Math.max(0, Math.round((timer.endTime - now) / 1000));
             
-            windowManager.broadcastToWindows('timer-tick', { id, remaining, total: timer.totalSeconds });
+            batchedTicks.push({ id, remaining, total: timer.totalSeconds });
 
             if (remaining <= 0) {
                 timer.isRunning = false;
                 timer.remainingSeconds = 0;
-                windowManager.broadcastToWindows(`timer-complete-${id}`, id);
+                windowManager.broadcastToWindows('timer-event', { event: 'complete', type: id });
                 
                 if (id.includes('break') || id.includes('pomo')) {
                     windowManager.forceKillFullscreen();
                 }
                 delete timers[id];
             }
+        }
+        
+        if (batchedTicks.length > 0) {
+            windowManager.broadcastToWindows('timer-tick', batchedTicks);
         }
 
         if (activeTimersCount === 0) {
@@ -64,7 +69,7 @@ function init() {
             isRunning: true
         };
 
-        windowManager.broadcastToWindows(`timer-started-${id}`, { id, endTime, seconds });
+        windowManager.broadcastToWindows('timer-event', { event: 'started', type: id, data: { id, endTime, seconds } });
         startTimerService();
     });
 
@@ -75,7 +80,7 @@ function init() {
             timers[id].remainingSeconds = 0;
             delete timers[id];
         }
-        windowManager.broadcastToWindows(`timer-stopped-${id}`, id);
+        windowManager.broadcastToWindows('timer-event', { event: 'stopped', type: id });
         if (id && (id.includes('break') || id.includes('pomo'))) {
             windowManager.forceKillFullscreen();
         }
@@ -87,7 +92,7 @@ function init() {
             timers[id].isRunning = false;
             timers[id].remainingSeconds = Math.max(0, Math.round((timers[id].endTime - Date.now()) / 1000));
         }
-        windowManager.broadcastToWindows(`timer-paused-${id}`, id, timers[id] ? timers[id].remainingSeconds : 0);
+        windowManager.broadcastToWindows('timer-event', { event: 'paused', type: id, data: timers[id] ? timers[id].remainingSeconds : 0 });
     });
 
     ipcMain.on('resume-timer', (event, id) => {
@@ -98,7 +103,7 @@ function init() {
             timers[id].endTime = endTime;
             timers[id].isRunning = true;
             
-            windowManager.broadcastToWindows(`timer-resumed-${id}`, { id, endTime, seconds: timers[id].remainingSeconds });
+            windowManager.broadcastToWindows('timer-event', { event: 'resumed', type: id, data: { id, endTime, seconds: timers[id].remainingSeconds } });
             startTimerService();
         }
     });
@@ -125,10 +130,10 @@ function init() {
         if (breakOrPomoRunning || justOpened) return;
 
         windowManager.forceKillFullscreen();
-        if (windowManager.pomoTimerWindow && !windowManager.pomoTimerWindow.isDestroyed() && windowManager.pomoTimerWindow.isVisible()) {
-            windowManager.pomoTimerWindow.show();
-            windowManager.pomoTimerWindow.focus();
-            windowManager.pomoTimerWindow.setAlwaysOnTop(true);
+        if (windowManager.timerWindow && !windowManager.timerWindow.isDestroyed() && windowManager.timerWindow.isVisible()) {
+            windowManager.timerWindow.show();
+            windowManager.timerWindow.focus();
+            windowManager.timerWindow.setAlwaysOnTop(true);
         }
     });
 }

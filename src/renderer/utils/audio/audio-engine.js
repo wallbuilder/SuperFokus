@@ -38,7 +38,11 @@ export function playSynthChime(pack, type) {
     if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    
+    // Explicitly resume in case it was suspended by the browser
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
     
     const oscillator = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
@@ -47,26 +51,27 @@ export function playSynthChime(pack, type) {
     const selectedNotif = notifSelector ? notifSelector.value : 'classic-notif-1';
 
     let freq = 880;
-    if (type === 'session-start') freq = 440;
-    if (type === 'break-start') freq = 660;
-    if (type === 'session-complete') freq = 880;
+    if (type === 'session-start') freq = 523.25; // C5
+    if (type === 'break-start') freq = 659.25; // E5
+    if (type === 'session-complete') freq = 783.99; // G5
+    if (type === 'test') freq = 880; // A5
 
     // Trap for the Legacy Chime specifically
     if (selectedNotif === 'nature-notif-1') {
         oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.1);
+        oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(freq * 1.2, audioCtx.currentTime + 0.1);
         
         const chimeVolumeInput = document.getElementById('chime-volume');
         const vol = chimeVolumeInput ? parseFloat(chimeVolumeInput.value) : 1;
         gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
         
         oscillator.connect(gainNode);
         gainNode.connect(audioCtx.destination);
         
         oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.5);
+        oscillator.stop(audioCtx.currentTime + 0.8);
         return;
     }
 
@@ -74,19 +79,19 @@ export function playSynthChime(pack, type) {
         if (selectedNotif === 'classic-notif-1') {
             oscillator.type = 'triangle';
             oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(freq / 2, audioCtx.currentTime + 0.1);
+            oscillator.frequency.exponentialRampToValueAtTime(freq * 1.5, audioCtx.currentTime + 0.1);
         } else if (selectedNotif === 'classic-notif-2') {
             oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(freq * 1.2, audioCtx.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(freq * 0.8, audioCtx.currentTime + 0.2);
+            oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(freq * 1.2, audioCtx.currentTime + 0.2);
         } else if (selectedNotif === 'classic-notif-3') {
             oscillator.type = 'square';
-            oscillator.frequency.setValueAtTime(freq * 0.5, audioCtx.currentTime);
-            oscillator.frequency.linearRampToValueAtTime(freq * 1.5, audioCtx.currentTime + 0.3);
+            oscillator.frequency.setValueAtTime(freq * 0.8, audioCtx.currentTime);
+            oscillator.frequency.linearRampToValueAtTime(freq * 1.2, audioCtx.currentTime + 0.3);
         } else {
             oscillator.type = 'triangle';
             oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(freq / 2, audioCtx.currentTime + 0.1);
+            oscillator.frequency.exponentialRampToValueAtTime(freq * 1.5, audioCtx.currentTime + 0.1);
         }
     } else if (pack === 'nature') {
         oscillator.type = 'sine';
@@ -98,7 +103,7 @@ export function playSynthChime(pack, type) {
     } else {
         oscillator.type = 'triangle';
         oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(freq / 2, audioCtx.currentTime + 0.1);
+        oscillator.frequency.exponentialRampToValueAtTime(freq * 1.5, audioCtx.currentTime + 0.1);
     }
     
     const chimeVolumeInput = document.getElementById('chime-volume');
@@ -124,12 +129,14 @@ export function playChime(eventType = 'test') {
     
     const selectedNotif = notifSelector ? notifSelector.value : `${pack}-notif-1`;
 
-    if (pack === 'classic' || selectedNotif === 'nature-notif-1') {
+    if (pack === 'classic') {
         playSynthChime(pack, eventType);
         return;
     }
 
     if (chimeAudio) {
+        const chimeVolumeInput = document.getElementById('chime-volume');
+        if (chimeVolumeInput) chimeAudio.volume = parseFloat(chimeVolumeInput.value);
         if (selectedNotif.startsWith('custom-notif-')) {
             const idx = parseInt(selectedNotif.split('-').pop(), 10);
             if (customNotifs[idx]) {

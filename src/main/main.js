@@ -2,6 +2,9 @@ const { app, Notification, ipcMain } = require('electron');
 const path = require('path');
 const util = require('util');
 
+// Set user data path to a local directory to avoid permission issues on this system.
+app.setPath('userData', path.join(__dirname, '../../electron-data'));
+
 // Services
 const windowManager = require('./services/WindowManager');
 let blockerService;
@@ -12,16 +15,19 @@ let ipcMainHandlers;
 console.log('[Main Process] Starting modular SuperFokus...');
 
 // Prevent multiple instances
-const gotTheLock = app.requestSingleInstanceLock();
-if (!gotTheLock) {
-    app.quit();
-} else {
-    app.on('second-instance', () => {
-        if (windowManager.mainWindow) {
-            if (windowManager.mainWindow.isMinimized()) windowManager.mainWindow.restore();
-            windowManager.mainWindow.focus();
-        }
-    });
+const isTestMode = process.argv.includes('--no-single-instance');
+if (!isTestMode) {
+    const gotTheLock = app.requestSingleInstanceLock();
+    if (!gotTheLock) {
+        app.quit();
+    } else {
+        app.on('second-instance', () => {
+            if (windowManager.mainWindow) {
+                if (windowManager.mainWindow.isMinimized()) windowManager.mainWindow.restore();
+                windowManager.mainWindow.focus();
+            }
+        });
+    }
 }
 
 // app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
@@ -48,6 +54,11 @@ app.whenReady().then(async () => {
         }
     });
 
+    ipcMain.on('request-initial-timer-update', (event, type) => {
+        if (!windowManager.isOriginSafe(event)) return;
+        windowManager.broadcastToWindows('request-initial-timer-update', type);
+    });
+
     // Initialize Services
     windowManager.createWindow();
     windowManager.createApplicationMenu();
@@ -68,28 +79,23 @@ app.whenReady().then(async () => {
         require('./services/MacOptimizationService').init(windowManager.mainWindow);
     }
 
-    // Startup Cleanup
-    console.log('[Main Process] Calling runElevated for startup cleanup...');
-    blockerService.runElevated('clear', [], (error) => {
-        if (error) {
-            console.log('[Startup] Failsafe check failed: ', error.message);
-            if (windowManager.mainWindow && !windowManager.mainWindow.isDestroyed()) {
-                windowManager.mainWindow.webContents.send('startup-cleanup-failed', error.message);
-            }
-        } else {
-            console.log('[Startup] Checked and cleared zombie blocks.');
-        }
-    });
-
     process.on('uncaughtException', (err) => {
         console.error('CRITICAL UNCAUGHT EXCEPTION:', err);
-        blockerService.runElevated('clear', [], () => {
-            process.exit(1);
-        });
+        // Do not use runElevated with UAC prompt on crash.
+        // If possible, clear blocks un-elevated or just exit to prevent zombie processes.
+        if (blockerService) {
+            try { blockerService.stopProxy(); } catch (e) {}
+            try { 
+                if (process.platform === 'darwin') {
+                    blockerService.setMacProxy(false); 
+                }
+            } catch (e) {}
+        }
+        process.exit(1);
     });
 
     app.on('activate', () => {
-        if (require('electron').BrowserWindow.getAllWindows().length === 0) {
+        if (!windowManager.mainWindow || windowManager.mainWindow.isDestroyed()) {
             windowManager.createWindow();
         } else {
             windowManager.mainWindow.show();

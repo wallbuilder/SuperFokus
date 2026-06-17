@@ -2,9 +2,7 @@ import { ipcRenderer } from '../../utils/ipc.js';
 import { sharedState } from '../../utils/state.js';
 import { customAlert } from '../../ui/modals.js';
 import { playChime } from '../../utils/audio.js';
-import { startPomoStyle, stopPomoStyle, pomoState } from '../pomo-timer.js';
-import { startRepeatingReminders, stopRepeatingReminders, repeatingState } from '../repeating.js';
-import { startSprintMode, stopSprintMode, sprintState } from '../micro-sprint.js';
+import { timerState, setPresetAndStart, stopAllActive } from '../TimerService.js';
 import { formatTime } from '../../utils/ui-helpers.js';
 import { showOSNotification } from '../../utils/notifications.js';
 import { workflowState, workflowBlocks } from './workflows-state.js';
@@ -33,7 +31,7 @@ export function startNextWorkflowBlock() {
     }
 
     const currentBlock = workflowBlocks[workflowState.currentBlockIndex];
-    
+
     if (workflowState.currentCycle >= currentBlock.cycles) {
         workflowState.currentBlockIndex++;
         workflowState.currentCycle = 0;
@@ -42,21 +40,21 @@ export function startNextWorkflowBlock() {
     }
 
     workflowState.currentCycle++;
-    
+
     // Execute Break Block if it is next in the Workflow
     if (currentBlock.type === 'break') {
         const durationSecs = (currentBlock.duration || 5) * 60;
-        
+
         // Ensure timer is registered in main BEFORE showing the popup
         ipcRenderer.send('start-timer', { id: 'workflow-break', seconds: durationSecs });
-        
+
         ipcRenderer.send('show-break-popup', { 
             type: 'Break', 
             duration: durationSecs, 
             fullScreen: currentBlock.blocksScreen,
             autoStart: true 
         });
-        
+
         if (!currentBlock.blocksScreen) {
             ipcRenderer.send('open-timer-window', 'pomo');
             ipcRenderer.send('update-timer-window', {
@@ -67,46 +65,31 @@ export function startNextWorkflowBlock() {
         }
         return;
     }
-    
+
     const modeMap = {
         'pomo': 'pomo-style',
         'sprint': 'micro-sprint',
         'repeating': 'repeating-reminders'
     };
-    
+
     switchMode(modeMap[currentBlock.type]);
 
-    setTimeout(() => {
-        if (currentBlock.type === 'pomo') {
-            const pomoPresetsSelect = document.getElementById('pomo-presets');
-            if (pomoPresetsSelect) {
-                pomoPresetsSelect.value = currentBlock.presetKey;
-                pomoPresetsSelect.dispatchEvent(new Event('change'));
-                startPomoStyle();
-            }
-        } else if (currentBlock.type === 'sprint') {
-            const sprintPresetsSelect = document.getElementById('sprint-presets');
-            if (sprintPresetsSelect) {
-                sprintPresetsSelect.value = currentBlock.presetKey;
-                sprintPresetsSelect.dispatchEvent(new Event('change'));
-                startSprintMode();
-            }
-        } else if (currentBlock.type === 'repeating') {
-            const repeatingPresetsSelect = document.getElementById('repeating-presets');
-            if (repeatingPresetsSelect) {
-                repeatingPresetsSelect.value = currentBlock.presetKey;
-                repeatingPresetsSelect.dispatchEvent(new Event('change'));
-                
-                const reminderRoundsInput = document.getElementById('reminder-rounds');
-                if (reminderRoundsInput) reminderRoundsInput.value = 1; // 1 round per cycle
-                
-                startRepeatingReminders();
-            }
-        }
-    }, 100); // slight delay to ensure UI updates after switching modes
+    requestAnimationFrame(() => {
+        setPresetAndStart(currentBlock.type, currentBlock.presetKey);
+    }); // slight delay to ensure UI updates after switching modes
 }
 
+// Track listeners to prevent duplicates and enable cleanup
+let engineListenersInitialized = false;
+let cleanupTimerTick = null;
+let cleanupTimerEvent = null;
+
 export function setupEngineListeners() {
+    // Prevent duplicate listener registration
+    if (engineListenersInitialized) {
+        return;
+    }
+
     if (startWorkflowBtn) {
         startWorkflowBtn.addEventListener('click', () => {
             if (workflowBlocks.length === 0) {
@@ -127,26 +110,24 @@ export function setupEngineListeners() {
     if (stopWorkflowBtn) {
         stopWorkflowBtn.addEventListener('click', () => {
             workflowState.isWorkflowRunning = false;
-            
+
             ipcRenderer.send('stop-timer', 'workflow-break');
             ipcRenderer.send('close-popup');
             ipcRenderer.send('close-fullscreen');
             ipcRenderer.send('close-timer-window');
 
-            if (pomoState.isPomoRunning) stopPomoStyle();
-            if (repeatingState.isRepeatingRunning) stopRepeatingReminders();
-            if (sprintState.isSprintRunning) stopSprintMode();
-            
+            stopAllActive();
+
             resetWorkflowState();
             switchMode('workflows');
         });
     }
-
-    ipcRenderer.on('timer-tick', (data) => {
-        if (data.id === 'workflow-break') {
+    cleanupTimerTick = ipcRenderer.on('timer-tick', (batchedTicks) => {
+        const data = batchedTicks.find(t => t.id === 'workflow-break');
+        if (data) {
             const currentBlock = workflowBlocks[workflowState.currentBlockIndex];
             if (currentBlock && currentBlock.type === 'break') {
-                ipcRenderer.send('update-pomo-timer', {
+                ipcRenderer.send('update-timer-window', {
                     phase: 'Break Time',
                     timeLeft: formatTime(data.remaining),
                     percent: data.total > 0 ? (data.remaining / data.total) * 100 : 0
@@ -155,15 +136,34 @@ export function setupEngineListeners() {
         }
     });
 
-    ipcRenderer.on('timer-complete-workflow-break', () => {
-        playChime('session-start');
-        showOSNotification('start');
-        ipcRenderer.send('close-popup');
-        ipcRenderer.send('close-fullscreen');
-        ipcRenderer.send('close-pomo-timer');
-        
-        if (workflowState.isWorkflowRunning || sharedState.isWorkflowRunning) {
-            setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
+    cleanupTimerEvent = ipcRenderer.on('timer-event', (payload) => {
+        if (payload.type === 'workflow-break' && payload.event === 'complete') {
+            playChime('session-start');
+            showOSNotification('start');
+            ipcRenderer.send('close-popup');
+            ipcRenderer.send('close-fullscreen');
+            ipcRenderer.send('close-timer-window');
+            
+            if (workflowState.isWorkflowRunning || sharedState.isWorkflowRunning) {
+                setTimeout(() => { if (typeof sharedState.triggerNextWorkflowBlock === 'function') sharedState.triggerNextWorkflowBlock(); }, 500);
+            }
         }
     });
+
+    engineListenersInitialized = true;
+}
+
+export function cleanupEngineListeners() {
+    if (!engineListenersInitialized) return;
+    
+    if (typeof cleanupTimerTick === 'function') {
+        cleanupTimerTick();
+    }
+    if (typeof cleanupTimerEvent === 'function') {
+        cleanupTimerEvent();
+    }
+    
+    engineListenersInitialized = false;
+    cleanupTimerTick = null;
+    cleanupTimerEvent = null;
 }

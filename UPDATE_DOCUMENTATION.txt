@@ -6,47 +6,25 @@ This file is strictly for the purpose of documenting/writing down changes to the
 Before each commit, the contents of this file should be mostly discarded of, EXCLUDING this header and the footer at the bottom.
 Each new edit to the file that documents new changes should also list the date and time of implementation.
 (Note: You must list ALL changes, including small ones. No detail is too small).
-[DO NOT DELETE THIS TEXT, DELETE TEXT BELOW THIS LINE] >
-~
 
-- Hardened IPC security by implementing `isOriginSafe` validation across all `ipcMain` handlers.
-- Enabled `sandbox: true` for `timerWindow` and `fullscreenWindow` to improve security posture.
-- Implemented the missing `blocker-expand-fullscreen` IPC handler to fix the site blocker's lock functionality.
-- Added a `blocker-status-display` element and listeners to provide real-time feedback on site blocking operations.
-- Fixed a build-breaking issue by providing a default `entitlements.mac.plist` for macOS packaging.
-- Optimized memory usage in `TimerService.js` by ensuring completed timers are properly deleted from the state.
-- Completed the storage migration process by clearing `localStorage` keys after they are moved to `electron-store`.
-- Added a warning for users regarding "DNS over HTTPS" (DoH) to prevent silent bypasses of the site blocker.
+[DO NOT DELETE THIS TEXT, DELETE TEXT |BELOW| THIS LINE] >
 
-- Created new "fokus-guidelines" folder in the specs/ directory (the files will be modified later)
-- Added specs/ directory to the .gitignore file to ensure it (and all its extra weight) no longer gets packaged with the rest of the SuperFokus files.
 
-- Optimized application startup by implementing lazy loading for `BlockerService`, `TimerService`, `HealthService`, and `IpcMainHandlers` in the main process.
-- Refactored `WindowManager.js` to use a centralized `_createWindow` helper, reducing code duplication and standardizing `BrowserWindow` configurations.
-- Optimized `fokus-sb-helper.js` to perform atomic updates to the system hosts file, reducing disk I/O by merging clearing and applying operations into a single read-write cycle.
-- Added null safety checks for services during the application shutdown sequence to prevent potential crashes if services were not fully initialized.
-- Reorganized the workspace by moving diagnostic and prototyping scripts (`test-app.js`, `test-proxy.js`, etc.) into `tests/manual/` and updated `.gitignore` accordingly.
+[insert documentation here]
 
-~
-< [DO NOT DELETE THIS TEXT, DELETE TEXT ABOVE THIS LINE]
-(Example chunk of documentation:
-{1/1/2025 at 12:00 PM}
+
+< [DO NOT DELETE THIS TEXT, DELETE TEXT |ABOVE| THIS LINE]
+
+Sample chunk of documentation: {
+{1/10/2011 at 1:00 PM}
     [Fixed Bugs]
-     - Fixed critical bugs
-     - Other Example text
-
-    [Added New Features]
-     - Added new features
-     - Other Example text
-
-{1/2/2025 at 12:00 PM}
-    [Fixed Bugs]
-     - Fixed critical bugs
-     - Other example text
-
-    [Added New Features]
-     - Added new features
-     - Other example text
-
-And so on, until all the update goals have been met)
+     - Example text
+     - Example text
+    [Optimizations]
+     - Example text
+     - Example text
+    [New Features]
+     - Example text
+     - Example text
+}
 [DO NOT DELETE THIS TEXT] >
