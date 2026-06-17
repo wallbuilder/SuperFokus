@@ -5,8 +5,11 @@ node_modules/
 dist/
 build/
 out/
+.cache/
+electron-data/
 
 # IDEs and editors
+.vs/
 .vscode/
 .idea/
 *.swp
@@ -28,8 +31,7 @@ logs
 *.log
 
 # Development/Manual Tests
-tests/manual/
-specs/
+test-results/
 
 # Rust builds
 target/

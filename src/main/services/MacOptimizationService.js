@@ -24,13 +24,30 @@ class MacOptimizationService {
 
     setupPowerSaveBlocker() {
         // Update on IPC events for timers
-        ipcMain.on('start-timer', () => this.updateState());
-        ipcMain.on('stop-timer', () => this.updateState());
-        ipcMain.on('pause-timer', () => this.updateState());
-        ipcMain.on('resume-timer', () => this.updateState());
-        
-        // Also poll every 1 second to update dock badge accurately
-        setInterval(() => this.updateState(), 1000);
+        ipcMain.on('start-timer', () => {
+            this.updateState();
+            if (!this.pollingInterval) {
+                this.pollingInterval = setInterval(() => this.updateState(), 1000);
+            }
+        });
+        ipcMain.on('stop-timer', () => this.handleTimerChange());
+        ipcMain.on('pause-timer', () => this.handleTimerChange());
+        ipcMain.on('resume-timer', () => {
+            this.updateState();
+            if (!this.pollingInterval) {
+                this.pollingInterval = setInterval(() => this.updateState(), 1000);
+            }
+        });
+    }
+
+    handleTimerChange() {
+        this.updateState();
+        const timers = timerService.getTimers();
+        const hasRunningTimer = Object.values(timers).some(t => t.isRunning);
+        if (!hasRunningTimer && this.pollingInterval) {
+            clearInterval(this.pollingInterval);
+            this.pollingInterval = null;
+        }
     }
 
     updateState() {

@@ -190,7 +190,7 @@ function getBlockContentHtml(block, index, availablePresets, presetDetailsHtml) 
  */
 function getCyclesHtml(block, index, dur) {
     const labelStyle = 'font-size: 0.75rem; color: var(--timer-subtext); text-transform: uppercase; font-weight: 500;';
-    const displayStyle = 'padding: 8px; text-align: center; font-weight: 600; color: var(--header-grad-1); background: var(--timer-bg); border-radius: 6px; border: 1px solid var(--border-color);';
+    const displayStyle = 'padding: 8px; text-align: center; font-weight: 600; color: var(--accent-color); background: var(--timer-bg); border-radius: 6px; border: 1px solid var(--border-color);';
     const inputStyle = 'padding: 8px; text-align: center; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); font-weight: 600; color: var(--heading-color);';
 
     if (block.type !== 'break') {
@@ -253,7 +253,7 @@ export function setupWorkflowEventListeners() {
             if (!ph) {
                 ph = document.createElement('div');
                 ph.id = 'workflow-drop-placeholder';
-                ph.style.border = '2px dashed var(--header-grad-1)';
+                ph.style.border = '2px dashed var(--accent-color)';
                 ph.style.borderRadius = '12px';
                 ph.style.margin = '5px 0';
                 ph.style.background = 'var(--timer-bg)';
