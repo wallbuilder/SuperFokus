@@ -26,6 +26,7 @@
       @property --timer-text { syntax: '<color>'; initial-value: #2c3e50; inherits: true; }
       @property --timer-subtext { syntax: '<color>'; initial-value: #7f8c8d; inherits: true; }
       @property --drawer-bg { syntax: '<color>'; initial-value: #ffffff; inherits: true; }
+      @property --accent-color { syntax: '<color>'; initial-value: #6a11cb; inherits: true; }
 
       body {
         font-family: 'Roboto', sans-serif;
@@ -51,6 +52,7 @@
         --timer-subtext: #7f8c8d;
         --drawer-bg: #ffffff;
         --overlay-bg: rgba(0, 0, 0, 0.6);
+        --accent-color: #6a11cb;
       }
 
       body.dark-mode {
@@ -73,6 +75,105 @@
         --timer-text: #f1f2f6;
         --timer-subtext: #a4b0be;
         --drawer-bg: #1a1a2e;
+        --accent-color: #e94560;
+      }
+
+      body.cyber-green-mode {
+        background-color: var(--container-bg);
+        --bg-grad-1: #000000;
+        --bg-grad-2: #000000;
+        --text-color: #00ff66;
+        --header-grad-1: #000000;
+        --header-grad-2: #000000;
+        --container-bg: #121212;
+        --heading-color: #00ff66;
+        --header-title-color: #00ff66;
+        --h1-color: #00ff66;
+        --h2-color: #00ff66;
+        --h3-color: #00ff66;
+        --border-color: #00ff66;
+        --input-border: #00ff66;
+        --input-bg: #000000;
+        --timer-bg: #000000;
+        --timer-text: #00ff66;
+        --timer-subtext: #00cc55;
+        --drawer-bg: #121212;
+        --overlay-bg: rgba(0, 0, 0, 0.95);
+        --accent-color: #00ff66;
+      }
+
+      body.cyber-green-mode * {
+        color: #00ff66 !important;
+        border-color: #00ff66 !important;
+      }
+
+      body.cyber-green-mode button,
+      body.cyber-green-mode .action-btn,
+      body.cyber-green-mode .home-btn,
+      body.cyber-green-mode .tab-btn {
+        background: #000000 !important;
+        background-color: #000000 !important;
+        color: #00ff66 !important;
+        border: none !important;
+        box-shadow: inset 0 0 0 2px #00ff66 !important;
+      }
+
+      body.cyber-green-mode button:hover,
+      body.cyber-green-mode .action-btn:hover,
+      body.cyber-green-mode .home-btn:hover,
+      body.cyber-green-mode .tab-btn:hover {
+        box-shadow: inset 0 0 0 2px #00ff66, 0 0 10px rgba(0, 255, 102, 0.5) !important;
+        transform: translateY(-2px);
+      }
+
+      body.cyber-green-mode .hamburger-btn {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+
+      body.cyber-green-mode .hamburger-btn:hover {
+        background: rgba(0, 255, 102, 0.1) !important;
+        box-shadow: none !important;
+        transform: scale(1.1) !important;
+      }
+
+      body.cyber-green-mode .slider {
+        box-sizing: border-box !important;
+        background: #000000 !important;
+        border: 2px solid #00ff66 !important;
+      }
+
+      body.cyber-green-mode .slider:before {
+        box-sizing: border-box !important;
+        background: #00ff66 !important;
+        left: 1px !important;
+        bottom: 1px !important;
+      }
+
+      body.cyber-green-mode .toggle-switch input:checked + .slider {
+        background: #00ff66 !important;
+      }
+
+      body.cyber-green-mode .toggle-switch input:checked + .slider:before {
+        background: #000000 !important;
+      }
+
+      body.cyber-green-mode .pomo-icon {
+        background: #00ff66 !important;
+        color: #000000 !important;
+      }
+
+      body.cyber-green-mode input,
+      body.cyber-green-mode select,
+      body.cyber-green-mode textarea {
+        background-color: #000000 !important;
+        border: 1px solid #00ff66 !important;
+        color: #00ff66 !important;
+      }
+
+      body.cyber-green-mode ::placeholder {
+        color: #008833 !important;
       }
 
       /* Paused State Styling */
@@ -201,7 +302,7 @@
         padding: 12px 15px; margin: 5px 0; border-radius: 10px; cursor: pointer; transition: 0.2s;
         display: flex; align-items: center; font-weight: 500;
       }
-      .menu-item:hover { background: var(--timer-bg); color: var(--header-grad-1); }
+      .menu-item:hover { background: var(--timer-bg); color: var(--accent-color); }
 
       /* Dialog Overlay & Modal */
         .modal-overlay {
@@ -262,6 +363,10 @@
       .container h1 { color: var(--h1-color, var(--text-color)); }
       h2, h3 { font-weight: 500; }
       h2 { color: var(--h2-color, var(--heading-color)); margin-top: 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; }
+      body.cyber-green-mode #dashboard-subtitle, #dashboard-subtitle { border-bottom: none !important; }
+      body.cyber-white-mode #dashboard-subtitle, #dashboard-subtitle { border-bottom: none !important; }
+      body.cyber-lightblue-mode #dashboard-subtitle, #dashboard-subtitle { border-bottom: none !important; }
+      body.cyber-blue-mode #dashboard-subtitle, #dashboard-subtitle { border-bottom: none !important; }
       h3 { color: var(--h3-color, var(--heading-color)); }
       .form-group { margin-bottom: 1.5rem; }
       label { display: block; margin-bottom: 0.6rem; font-weight: 500; font-size: 0.95rem; }
@@ -359,7 +464,7 @@
       /* Version & Github Link */
       #version { position: fixed; bottom: 15px; right: 20px; font-size: 0.85rem; color: #95a5a6; font-weight: 500; z-index: 1000; }
       #github-link { position: fixed; bottom: 15px; left: 20px; font-size: 0.85rem; color: #95a5a6; font-weight: 500; text-decoration: none; transition: color 0.3s; z-index: 1000; }
-      #github-link:hover { color: var(--header-grad-1); }
+      #github-link:hover { color: var(--accent-color); }
       .hidden { display: none !important; }
       .error-msg { color: #e74c3c; font-size: 0.9rem; margin-top: 0.5rem; display: none; font-weight: 500; }
       .warning-text { color: #e74c3c; }
@@ -398,6 +503,16 @@
         display: flex;
         align-items: center;
         justify-content: center;
+      }
+      .mask-icon {
+        display: inline-block;
+        background-color: currentColor;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
       }
       .pomo-icon {
         width: 40px; height: 40px;
@@ -568,6 +683,299 @@
       body.platform-darwin .modal-overlay {
           padding-top: 15vh;
       }
+      body.cyber-white-mode {
+        background-color: var(--container-bg);
+        --bg-grad-1: #000000;
+        --bg-grad-2: #000000;
+        --text-color: #ffffff;
+        --header-grad-1: #000000;
+        --header-grad-2: #000000;
+        --container-bg: #121212;
+        --heading-color: #ffffff;
+        --header-title-color: #ffffff;
+        --h1-color: #ffffff;
+        --h2-color: #ffffff;
+        --h3-color: #ffffff;
+        --border-color: #ffffff;
+        --input-border: #ffffff;
+        --input-bg: #000000;
+        --timer-bg: #000000;
+        --timer-text: #ffffff;
+        --timer-subtext: #cccccc;
+        --drawer-bg: #121212;
+        --overlay-bg: rgba(0, 0, 0, 0.95);
+        --accent-color: #ffffff;
+      }
+
+      body.cyber-white-mode * {
+        color: #ffffff !important;
+        border-color: #ffffff !important;
+      }
+
+      body.cyber-white-mode button,
+      body.cyber-white-mode .action-btn,
+      body.cyber-white-mode .home-btn,
+      body.cyber-white-mode .tab-btn {
+        background: #000000 !important;
+        background-color: #000000 !important;
+        color: #ffffff !important;
+        border: none !important;
+        box-shadow: inset 0 0 0 2px #ffffff !important;
+      }
+
+      body.cyber-white-mode button:hover,
+      body.cyber-white-mode .action-btn:hover,
+      body.cyber-white-mode .home-btn:hover,
+      body.cyber-white-mode .tab-btn:hover {
+        box-shadow: inset 0 0 0 2px #ffffff, 0 0 10px rgba(255, 255, 255, 0.5) !important;
+        transform: translateY(-2px);
+      }
+
+      body.cyber-white-mode .hamburger-btn {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+
+      body.cyber-white-mode .hamburger-btn:hover {
+        background: rgba(255, 255, 255, 0.1) !important;
+        box-shadow: none !important;
+        transform: scale(1.1) !important;
+      }
+
+      body.cyber-white-mode .slider {
+        box-sizing: border-box !important;
+        background: #000000 !important;
+        border: 2px solid #ffffff !important;
+      }
+
+      body.cyber-white-mode .slider:before {
+        box-sizing: border-box !important;
+        background: #ffffff !important;
+        left: 1px !important;
+        bottom: 1px !important;
+      }
+
+      body.cyber-white-mode .toggle-switch input:checked + .slider {
+        background: #ffffff !important;
+      }
+
+      body.cyber-white-mode .toggle-switch input:checked + .slider:before {
+        background: #000000 !important;
+      }
+
+      body.cyber-white-mode .pomo-icon {
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+
+      body.cyber-white-mode input,
+      body.cyber-white-mode select,
+      body.cyber-white-mode textarea {
+        background-color: #000000 !important;
+        border: 1px solid #ffffff !important;
+        color: #ffffff !important;
+      }
+
+      body.cyber-white-mode ::placeholder {
+        color: #cccccc !important;
+      }
+
+      body.cyber-lightblue-mode {
+        background-color: var(--container-bg);
+        --bg-grad-1: #000000;
+        --bg-grad-2: #000000;
+        --text-color: #add8e6;
+        --header-grad-1: #000000;
+        --header-grad-2: #000000;
+        --container-bg: #121212;
+        --heading-color: #add8e6;
+        --header-title-color: #add8e6;
+        --h1-color: #add8e6;
+        --h2-color: #add8e6;
+        --h3-color: #add8e6;
+        --border-color: #add8e6;
+        --input-border: #add8e6;
+        --input-bg: #000000;
+        --timer-bg: #000000;
+        --timer-text: #add8e6;
+        --timer-subtext: #00aacc;
+        --drawer-bg: #121212;
+        --overlay-bg: rgba(0, 0, 0, 0.95);
+        --accent-color: #add8e6;
+      }
+
+      body.cyber-lightblue-mode * {
+        color: #add8e6 !important;
+        border-color: #add8e6 !important;
+      }
+
+      body.cyber-lightblue-mode button,
+      body.cyber-lightblue-mode .action-btn,
+      body.cyber-lightblue-mode .home-btn,
+      body.cyber-lightblue-mode .tab-btn {
+        background: #000000 !important;
+        background-color: #000000 !important;
+        color: #add8e6 !important;
+        border: none !important;
+        box-shadow: inset 0 0 0 2px #add8e6 !important;
+      }
+
+      body.cyber-lightblue-mode button:hover,
+      body.cyber-lightblue-mode .action-btn:hover,
+      body.cyber-lightblue-mode .home-btn:hover,
+      body.cyber-lightblue-mode .tab-btn:hover {
+        box-shadow: inset 0 0 0 2px #add8e6, 0 0 10px rgba(0, 229, 255, 0.5) !important;
+        transform: translateY(-2px);
+      }
+
+      body.cyber-lightblue-mode .hamburger-btn {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+
+      body.cyber-lightblue-mode .hamburger-btn:hover {
+        background: rgba(0, 229, 255, 0.1) !important;
+        box-shadow: none !important;
+        transform: scale(1.1) !important;
+      }
+
+      body.cyber-lightblue-mode .slider {
+        box-sizing: border-box !important;
+        background: #000000 !important;
+        border: 2px solid #add8e6 !important;
+      }
+
+      body.cyber-lightblue-mode .slider:before {
+        box-sizing: border-box !important;
+        background: #add8e6 !important;
+        left: 1px !important;
+        bottom: 1px !important;
+      }
+
+      body.cyber-lightblue-mode .toggle-switch input:checked + .slider {
+        background: #add8e6 !important;
+      }
+
+      body.cyber-lightblue-mode .toggle-switch input:checked + .slider:before {
+        background: #000000 !important;
+      }
+
+      body.cyber-lightblue-mode .pomo-icon {
+        background: #add8e6 !important;
+        color: #000000 !important;
+      }
+
+      body.cyber-lightblue-mode input,
+      body.cyber-lightblue-mode select,
+      body.cyber-lightblue-mode textarea {
+        background-color: #000000 !important;
+        border: 1px solid #add8e6 !important;
+        color: #add8e6 !important;
+      }
+
+      body.cyber-lightblue-mode ::placeholder {
+        color: #00aacc !important;
+      }
+
+      body.cyber-blue-mode {
+        background-color: var(--container-bg);
+        --bg-grad-1: #000000;
+        --bg-grad-2: #000000;
+        --text-color: #0066ff;
+        --header-grad-1: #000000;
+        --header-grad-2: #000000;
+        --container-bg: #121212;
+        --heading-color: #0066ff;
+        --header-title-color: #0066ff;
+        --h1-color: #0066ff;
+        --h2-color: #0066ff;
+        --h3-color: #0066ff;
+        --border-color: #0066ff;
+        --input-border: #0066ff;
+        --input-bg: #000000;
+        --timer-bg: #000000;
+        --timer-text: #0066ff;
+        --timer-subtext: #0044cc;
+        --drawer-bg: #121212;
+        --overlay-bg: rgba(0, 0, 0, 0.95);
+        --accent-color: #0066ff;
+      }
+
+      body.cyber-blue-mode * {
+        color: #0066ff !important;
+        border-color: #0066ff !important;
+      }
+
+      body.cyber-blue-mode button,
+      body.cyber-blue-mode .action-btn,
+      body.cyber-blue-mode .home-btn,
+      body.cyber-blue-mode .tab-btn {
+        background: #000000 !important;
+        background-color: #000000 !important;
+        color: #0066ff !important;
+        border: none !important;
+        box-shadow: inset 0 0 0 2px #0066ff !important;
+      }
+
+      body.cyber-blue-mode button:hover,
+      body.cyber-blue-mode .action-btn:hover,
+      body.cyber-blue-mode .home-btn:hover,
+      body.cyber-blue-mode .tab-btn:hover {
+        box-shadow: inset 0 0 0 2px #0066ff, 0 0 10px rgba(0, 102, 255, 0.5) !important;
+        transform: translateY(-2px);
+      }
+
+      body.cyber-blue-mode .hamburger-btn {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+
+      body.cyber-blue-mode .hamburger-btn:hover {
+        background: rgba(0, 102, 255, 0.1) !important;
+        box-shadow: none !important;
+        transform: scale(1.1) !important;
+      }
+
+      body.cyber-blue-mode .slider {
+        box-sizing: border-box !important;
+        background: #000000 !important;
+        border: 2px solid #0066ff !important;
+      }
+
+      body.cyber-blue-mode .slider:before {
+        box-sizing: border-box !important;
+        background: #0066ff !important;
+        left: 1px !important;
+        bottom: 1px !important;
+      }
+
+      body.cyber-blue-mode .toggle-switch input:checked + .slider {
+        background: #0066ff !important;
+      }
+
+      body.cyber-blue-mode .toggle-switch input:checked + .slider:before {
+        background: #000000 !important;
+      }
+
+      body.cyber-blue-mode .pomo-icon {
+        background: #0066ff !important;
+        color: #000000 !important;
+      }
+
+      body.cyber-blue-mode input,
+      body.cyber-blue-mode select,
+      body.cyber-blue-mode textarea {
+        background-color: #000000 !important;
+        border: 1px solid #0066ff !important;
+        color: #0066ff !important;
+      }
+
+      body.cyber-blue-mode ::placeholder {
+        color: #0044cc !important;
+      }
     </style>
   </head>
   <body>
@@ -589,13 +997,13 @@
             <p><strong>Introduction:</strong> SuperFokus is a versatile productivity tool designed to help you stay concentrated, manage your time, and minimize distractions. Built on core principles of focused work sessions, it provides several distinct "Fokus Modes" that you can configure to perfectly match your workflow and personal habits.</p>
             <p><strong>Repeating Reminders:</strong> The classic mode of Fokus. It involves a popup that continuously appears on your screen after a set interval. You can configure custom messages and define the exact number of reminder rounds.</p>
             <p><strong>Pomo Style:</strong> A structured time-management mode that balances work sessions with scheduled breaks. You can configure dynamic work/break sequences and choose to either receive a gentle reminder or have the application completely block your screen to enforce downtime.</p>
-            <p><strong>Micro-Task Sprints:</strong> Designed for high-velocity work. Break down large projects into rapid, timed intervals to maintain momentum and beat procrastination.</p>
+            <p><strong>Micro-Task Sprint:</strong> Designed for high-velocity work. Break down large projects into rapid, timed intervals to maintain momentum and beat procrastination.</p>
             <p><strong>Flow State:</strong> A simple stopwatch mode for open-ended work sessions. It can be configured to play a gentle chime at regular intervals to help you stay mindful of time passing without interrupting your flow.</p>
             <p><strong>Multi-Mode Workflows:</strong> The ultimate builder for complex sessions. Use the drag-and-drop interface to stack different Fokus modes and breaks into a single, automated sequence.</p>
             <p><strong>Site Blocker:</strong> A powerful tool to keep you away from digital distractions. You can create lists of specific domains or URLs to either block completely or exclusively allow, ensuring your browser remains a tool for work.</p>
             <p><strong>Health Mode:</strong> Your personal "Body Guard." Enforce the 20-20-20 eye-saver rule and receive regular posture check reminders to stay healthy while you work.</p>
             <p><strong>Sidebar Features:</strong> The robust sidebar gives you access to real-time productivity statistics, a visual heatmap of your activity, comprehensive session history logs, and deep customization options.</p>
-            <p><strong>Conclusion:</strong> Together, these features make SuperFokus not just a simple timer, but a comprehensive environment for mastering your attention. Whether you are studying, coding, or just trying to get through the day's tasks, SuperFokus is here to keep you on track.</p>
+            <p><strong>Conclusion:</strong> Together, these features make SuperFokus not just a simple selection of timers, but a comprehensive environment for mastering your attention. Whether you are studying, coding, or just trying to get through the day's tasks, SuperFokus is here to keep you on track.</p>
         </div>
     </div>
 
@@ -663,9 +1071,24 @@
                                 <span>Dark Mode</span>
                             </label>
                             
+                                                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="radio" name="theme-selection" value="cyber-green" id="theme-radio-cyber-green" style="width: auto; margin: 0;">
+                                <span>Cyber - Green</span>
+                            </label>
+                            
                             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                <input type="radio" name="theme-selection" value="custom" id="theme-radio-custom" style="width: auto; margin: 0;">
-                                <span>Custom Theme (create below)</span>
+                                <input type="radio" name="theme-selection" value="cyber-white" id="theme-radio-cyber-white" style="width: auto; margin: 0;">
+                                <span>Cyber - White</span>
+                            </label>
+                            
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="radio" name="theme-selection" value="cyber-lightblue" id="theme-radio-cyber-lightblue" style="width: auto; margin: 0;">
+                                <span>Cyber - Light Blue</span>
+                            </label>
+                            
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="radio" name="theme-selection" value="cyber-blue" id="theme-radio-cyber-blue" style="width: auto; margin: 0;">
+                                <span>Cyber - Blue</span>
                             </label>
                         </div>
                     </div>
@@ -678,60 +1101,10 @@
                     </div>
                 </div>
 
-                <div id="custom-theme-options" style="margin-top: 25px; padding-top: 20px; border-top: 2px solid var(--border-color); opacity: 0.5; pointer-events: none; transition: opacity 0.3s;">
-                    <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--timer-subtext); margin-bottom: 15px;">Custom Theme Creator</h3>
-                    <div style="display: flex; gap: 15px; align-items: flex-start; flex-wrap: wrap;">
-                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">MAIN<br>color</label>
-                            <input type="color" id="custom-main-color" value="#6a11cb" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
-                        </div>
-                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">ACCENT<br>color</label>
-                            <input type="color" id="custom-accent-color" value="#2575fc" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
-                        </div>
-                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">HEADER TEXT<br>color</label>
-                            <input type="color" id="custom-header-title-color" value="#ffffff" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
-                        </div>
-                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">HEADING 1<br>color</label>
-                            <input type="color" id="custom-h1-color" value="#2c3e50" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
-                        </div>
-                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">HEADING 2<br>color</label>
-                            <input type="color" id="custom-h2-color" value="#2c3e50" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
-                        </div>
-                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">HEADING 3<br>color</label>
-                            <input type="color" id="custom-h3-color" value="#2c3e50" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
-                        </div>
-                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">NORMAL<br>text</label>
-                            <input type="color" id="custom-text-color" value="#4a4a4a" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
-                        </div>
-                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">BG 1 START<br>color</label>
-                            <input type="color" id="custom-bg1-color" value="#f5f7fa" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
-                        </div>
-                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">BG 1 END<br>(GRADIENT)</label>
-                            <input type="color" id="custom-bg1-grad-color" value="#c3cfe2" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
-                        </div>
-                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">BG 2 COLOR<br>(CONTAINER)</label>
-                            <input type="color" id="custom-bg2-color" value="#ffffff" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
-                        </div>
-                        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 5px; align-items: center;">
-                            <label style="font-size: 0.75rem; color: var(--timer-subtext); font-weight: bold; text-transform: uppercase; text-align: center;">SIDEBAR<br>color</label>
-                            <input type="color" id="custom-drawer-bg" value="#ffffff" style="width: 100%; height: 40px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; padding: 0; background: none;">
-                        </div>
-                    </div>
-                    <button class="action-btn" id="reset-theme-colors-btn" style="width: 100%; margin-top: 15px; padding: 0.6rem; background: var(--timer-bg); color: var(--text-color); border: 1px solid var(--border-color); font-size: 0.85rem;">Reset Custom Colors</button>
-                </div>
 
                 <div style="margin-top: 25px; border-top: 2px solid var(--border-color); padding-top: 15px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <div style="font-weight: 500; font-size: 1.1rem;">Toggle settings</div>
+                        <div style="font-weight: 500; font-size: 1.1rem;">Header Settings</div>
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <label class="toggle-switch" style="transform: scale(0.8);">
                                 <input type="checkbox" id="toggle-header-dark-mode-switch" checked>
@@ -740,42 +1113,35 @@
                             <span style="font-size: 0.9rem; color: var(--timer-subtext);">Show header toggle</span>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 15px; align-items: center;">
-                        <div style="position: relative; flex: 1;">
-                            <button id="toggle-option-1" class="action-btn" style="margin-top: 0; background: var(--timer-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 20px; padding: 0.6rem 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Light Mode</button>
-                            <div id="dropdown-option-1" class="dropdown-option" style="position: absolute; bottom: calc(100% + 10px); left: 0; background: var(--container-bg); border: 2px solid var(--border-color); border-radius: 12px; padding: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 100; width: 180px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                    <span style="font-size: 0.9rem; font-weight: 500;">Select below ⤵</span>
-                                    <span id="close-dropdown-1" style="cursor: pointer; font-size: 0.8rem; background: var(--timer-bg); border-radius: 5px; padding: 2px 6px; border: 1px solid var(--border-color);">✕</span>
-                                </div>
-                                <select id="toggle-select-1" style="width: 100%; padding: 8px; font-size: 0.9rem; border-radius: 6px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-color);">
+                    <div style="margin-bottom: 15px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                        <div style="font-weight: 500; font-size: 1rem; margin-bottom: 10px;">Custom Toggle Editor</div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px;">
+                            <div style="flex: 1;">
+                                <label style="display: block; font-size: 0.85rem; color: var(--timer-subtext); margin-bottom: 5px;">Toggle 1</label>
+                                <select id="custom-toggle-state-1" style="width: 100%; padding: 5px; font-size: 0.9rem; background: var(--input-bg, #fff); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">
                                     <option value="light">Light Mode</option>
                                     <option value="dark">Dark Mode</option>
-                                    <option value="custom">Custom Theme</option>
+                                    <option value="cyber-green">Cyber - Green</option>
+                                    <option value="cyber-white">Cyber - White</option>
+                                    <option value="cyber-lightblue">Cyber - Light Blue</option>
+                                    <option value="cyber-blue">Cyber - Blue</option>
                                 </select>
                             </div>
-                        </div>
-                        
-                        <div style="font-size: 1.5rem; color: var(--timer-subtext);">➔</div>
-                        
-                        <div style="position: relative; flex: 1;">
-                            <button id="toggle-option-2" class="action-btn" style="margin-top: 0; background: var(--timer-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 20px; padding: 0.6rem 1rem; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Dark Mode</button>
-                            <div id="dropdown-option-2" class="dropdown-option" style="position: absolute; bottom: calc(100% + 10px); left: 0; background: var(--container-bg); border: 2px solid var(--border-color); border-radius: 12px; padding: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 100; width: 180px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                    <span style="font-size: 0.9rem; font-weight: 500;">Select below ⤵</span>
-                                    <span id="close-dropdown-2" style="cursor: pointer; font-size: 0.8rem; background: var(--timer-bg); border-radius: 5px; padding: 2px 6px; border: 1px solid var(--border-color);">✕</span>
-                                </div>
-                                <select id="toggle-select-2" style="width: 100%; padding: 8px; font-size: 0.9rem; border-radius: 6px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-color);">
+                            <div style="flex: 1;">
+                                <label style="display: block; font-size: 0.85rem; color: var(--timer-subtext); margin-bottom: 5px;">Toggle 2</label>
+                                <select id="custom-toggle-state-2" style="width: 100%; padding: 5px; font-size: 0.9rem; background: var(--input-bg, #fff); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">
                                     <option value="light">Light Mode</option>
-                                    <option value="dark" selected>Dark Mode</option>
-                                    <option value="custom">Custom Theme</option>
+                                    <option value="dark">Dark Mode</option>
+                                    <option value="cyber-green">Cyber - Green</option>
+                                    <option value="cyber-white">Cyber - White</option>
+                                    <option value="cyber-lightblue">Cyber - Light Blue</option>
+                                    <option value="cyber-blue">Cyber - Blue</option>
                                 </select>
                             </div>
                         </div>
-                        
-                        <div style="flex: 1; display: flex; justify-content: flex-end;">
-                            <button id="save-toggle-settings-btn" class="action-btn" style="margin-top: 0; padding: 0.6rem 1.5rem; background: #27ae60; color: white; border-radius: 20px; border: none; width: 100%;">Save</button>
-                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: flex-end;">
+                        <button id="save-theme-settings-btn" class="action-btn" style="margin-top: 0; padding: 0.6rem 1.5rem; background: #27ae60; color: white; border-radius: 20px; border: none; width: 100%;">Save Theme Settings</button>
                     </div>
                 </div>
             </div>
@@ -1036,7 +1402,7 @@
             <h2 style="margin-bottom: 20px;">Credits</h2>
             
             <div class="credits-section" style="margin-bottom: 20px; background: var(--timer-bg); padding: 15px; border-radius: 10px; border: 1px solid var(--border-color);">
-                <h3 style="margin-top: 0; color: var(--header-grad-1); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Contributors</h3>
+                <h3 style="margin-top: 0; color: var(--accent-color); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Contributors</h3>
                 <ul style="list-style: none; padding-left: 0; margin-top: 10px;">
                     <li style="padding: 5px 0;">wallbuilder: Lead Coder / Project Creator</li>
                     <li style="padding: 5px 0;">A1A2J2: Secondary Coder / Asset Lead</li>
@@ -1047,7 +1413,7 @@
             </div>
 
             <div class="credits-section" style="margin-bottom: 20px; background: var(--timer-bg); padding: 15px; border-radius: 10px; border: 1px solid var(--border-color);">
-                <h3 style="margin-top: 0; color: var(--header-grad-1); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Models</h3>
+                <h3 style="margin-top: 0; color: var(--accent-color); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Models</h3>
                 <div style="margin-top: 10px;">
                     <strong>Gemini / Google Models:</strong>
                     <ul style="list-style: disc; padding-left: 20px; margin-top: 5px; margin-bottom: 10px;">
@@ -1059,14 +1425,18 @@
                     </ul>
                     <strong>Claude / Anthropic Models:</strong>
                     <ul style="list-style: disc; padding-left: 20px; margin-top: 5px; margin-bottom: 0;">
-                        <li>Claude Haiku 4.6</li>
+                        <li>Claude Haiku 4.5</li>
                         <li>Claude Sonnet 4.6</li>
+                    </ul>
+                    <strong>Other Models:</strong>
+                    <ul style="list-style: disc; padding-left: 20px; margin-top: 5px; margin-bottom: 0;">
+                        <li>ChatGPT-4.1</li>
                     </ul>
                 </div>
             </div>
 
             <div class="credits-section" style="margin-bottom: 20px; background: var(--timer-bg); padding: 15px; border-radius: 10px; border: 1px solid var(--border-color);">
-                <h3 style="margin-top: 0; color: var(--header-grad-1); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Testers</h3>
+                <h3 style="margin-top: 0; color: var(--accent-color); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Testers</h3>
                 <ul style="list-style: none; padding-left: 0; margin-top: 10px; margin-bottom: 0;">
                     <li style="padding: 5px 0;">cat2d430</li>
                     <li style="padding: 5px 0;">NoTesterYet (Edit this code in line 1052 in index.html)</li>
@@ -1074,7 +1444,7 @@
             </div>
 
             <div class="credits-section" style="background: var(--timer-bg); padding: 15px; border-radius: 10px; border: 1px solid var(--border-color);">
-                <h3 style="margin-top: 0; color: var(--header-grad-1); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Sound Assets</h3>
+                <h3 style="margin-top: 0; color: var(--accent-color); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Sound Assets</h3>
                 
                 <div style="margin-top: 10px; font-size: 0.9rem; margin-bottom: 15px;">
                     <strong>Classic Pack:</strong>
@@ -1139,10 +1509,10 @@
           <span class="icon pomo-icon">✓</span> Pomo Style
         </button>
         <button class="home-btn" data-mode="micro-sprint">
-          <span class="icon">🗎</span> Micro-Task Sprint
+          <span class="icon mask-icon" style="-webkit-mask-image: url('assets/micro-sprint.png'); mask-image: url('assets/micro-sprint.png'); height: 1em; width: 1em;"></span> Micro-Task Sprint
         </button>
         <button class="home-btn" data-mode="flow-state">
-          <span class="icon">⏱</span> Flow State Stopwatch
+          <span class="icon mask-icon" style="-webkit-mask-image: url('assets/flow-state.png'); mask-image: url('assets/flow-state.png'); height: 1em; width: 1em;"></span> Flow State Stopwatch
         </button>
         <button class="home-btn" data-mode="health-mode">
           <span class="icon">♡</span> Health Mode
@@ -1170,7 +1540,7 @@
         </div>
         
         <div id="flow-timer-display" class="hidden timer-display">
-          <div style="font-size: 1.4rem; font-weight: 500; color: var(--header-grad-1);">Elapsed Time</div>
+          <div style="font-size: 1.4rem; font-weight: 500; color: var(--accent-color);">Elapsed Time</div>
           <div id="flow-time-elapsed" style="font-size: 3rem; font-weight: 700; color: var(--timer-text);">00:00:00</div>
         </div>
 
@@ -1238,6 +1608,16 @@
         <div class="form-group" id="rounds-container">
           <label for="reminder-rounds">Number of Rounds:</label>
           <input type="number" id="reminder-rounds" placeholder="e.g. 5" min="1">
+        </div>
+        <div class="form-group" id="popups-count-container">
+          <label for="reminder-popups-count">Popups per Cycle:</label>
+          <select id="reminder-popups-count">
+            <option value="1" selected>1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
         </div>
         <div class="form-group">
           <label class="toggle-switch">
@@ -1330,7 +1710,7 @@
         </div>
 
         <div id="pomo-timer-display" class="hidden timer-display">
-          <div id="pomo-status-text" style="font-size: 1.4rem; font-weight: 500; color: var(--header-grad-1);">Work Session</div>
+          <div id="pomo-status-text" style="font-size: 1.4rem; font-weight: 500; color: var(--accent-color);">Work Session</div>
           <div id="pomo-time-left" style="font-size: 3rem; font-weight: 700; color: var(--timer-text);">00:00</div>
           <div id="pomo-rounds-left" style="font-size: 1rem; color: var(--timer-subtext); margin-top: 0.5rem;">Next: --</div>
           <button class="action-btn continue-btn" id="continue-pomo-btn">Continue to Next Phase</button>
@@ -1380,13 +1760,13 @@
         </div>
         <div class="form-group">
           <label class="toggle-switch">
-            <input type="checkbox" id="sprint-utostart">
+            <input type="checkbox" id="sprint-autostart">
             <span class="slider"></span>
           </label> Autostart next task
         </div>
         
         <div id="sprint-timer-display" class="hidden timer-display">
-          <div id="sprint-current-task" style="font-size: 1.4rem; font-weight: 500; color: var(--header-grad-1);">Task</div>
+          <div id="sprint-current-task" style="font-size: 1.4rem; font-weight: 500; color: var(--accent-color);">Task</div>
           <div id="sprint-time-left" style="font-size: 3rem; font-weight: 700; color: var(--timer-text);">00:00</div>
           <div id="sprint-tasks-left" style="font-size: 1rem; color: var(--timer-subtext); margin-top: 0.5rem;">Remaining Tasks: 0</div>
           <div style="display: flex; gap: 10px; margin-top: 10px;">
@@ -1470,7 +1850,7 @@
             </div>
             <div class="workflow-duration-bar">
               <span>Total Estimated Duration:</span>
-              <span id="workflow-total-duration" style="font-weight: 600; color: var(--header-grad-1);">0m</span>
+              <span id="workflow-total-duration" style="font-weight: 600; color: var(--accent-color);">0m</span>
             </div>
           </div>
         </div>
@@ -1502,3 +1882,4 @@
     <script type="module" src="./src/renderer/renderer.js"></script>
   </body>
 </html>
+

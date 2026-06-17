@@ -7,7 +7,6 @@ const progressContainer = document.getElementById('progress-container');
 const extraInfoDisplay = document.getElementById('extra-info');
 
 let currentType = 'pomo';
-let localInterval = null;
 let totalDuration = 0;
 
 function setThemeColor(type) {
@@ -38,98 +37,134 @@ function setThemeColor(type) {
     document.body.style.setProperty('--theme-color-2', color2);
 }
 
-function startLocalTick(endTime, duration) {
-    if (duration) totalDuration = duration;
-    if (localInterval) clearInterval(localInterval);
-    localInterval = setInterval(() => {
-        const seconds = Math.max(0, Math.round((endTime - Date.now()) / 1000));
-        
+function formatTime(seconds) {
+    if (currentType === 'flow') {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    } else {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+}
+
+ipcRenderer.on('timer-tick', (batchedTicks) => {
+    // Find the relevant tick for currentType or any active timer
+    // In timer-window, we usually only care about the primary active timer
+    const data = batchedTicks.find(t => t.id === currentType) || batchedTicks[0];
+    if (data) {
         if (currentType === 'flow') {
-            const h = Math.floor(seconds / 3600);
-            const m = Math.floor((seconds % 3600) / 60);
-            const s = seconds % 60;
-            timerDisplay.innerText = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            timerDisplay.innerText = formatTime(data.total - data.remaining);
         } else {
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            timerDisplay.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            timerDisplay.innerText = formatTime(data.remaining);
+            if (data.total > 0) {
+                const percent = (data.remaining / data.total) * 100;
+                progressBar.style.width = `${percent}%`;
+            }
         }
-        
-        if (totalDuration > 0 && currentType !== 'flow') {
-            const percent = (seconds / totalDuration) * 100;
-            progressBar.style.width = `${percent}%`;
+    }
+});
+
+const playPauseBtn = document.getElementById('play-pause-btn');
+let isPaused = false;
+
+function updateControlButtons() {
+    if (!playPauseBtn) return;
+    if (isPaused) {
+        playPauseBtn.innerText = '▶';
+        playPauseBtn.title = 'Resume';
+    } else {
+        playPauseBtn.innerText = '▐▐';
+        playPauseBtn.title = 'Pause';
+    }
+}
+
+function updateControlVisibility() {
+    if (playPauseBtn) {
+        if (currentType === 'pomo') {
+            playPauseBtn.style.display = 'flex';
+        } else {
+            playPauseBtn.style.display = 'none';
         }
-        
-        if (seconds <= 0) {
-            clearInterval(localInterval);
-            localInterval = null;
+    }
+}
+
+if (playPauseBtn) {
+    playPauseBtn.addEventListener('click', () => {
+        if (isPaused) {
+            ipcRenderer.send('resume-timer', currentType);
+        } else {
+            ipcRenderer.send('pause-timer', currentType);
         }
-    }, 1000);
+    });
 }
 
 ipcRenderer.on('init-timer', (type) => {
     currentType = type;
     setThemeColor(type);
-    if (type === 'pomo') labelDisplay.innerText = 'Work Session';
-    else if (type === 'sprint') labelDisplay.innerText = 'Sprint Task';
-    else if (type === 'flow') labelDisplay.innerText = 'Flow State';
-    else if (type === 'break') labelDisplay.innerText = 'Break Time';
+    updateControlVisibility();
+    if (type === 'pomo') {
+        labelDisplay.innerText = 'Work Session';
+        document.title = 'Pomo Timer';
+    } else if (type === 'sprint') {
+        labelDisplay.innerText = 'Sprint Task';
+        document.title = 'Micro-Sprint Timer';
+    } else if (type === 'flow') {
+        labelDisplay.innerText = 'Flow State';
+        document.title = 'Flow State Timer';
+    } else if (type === 'break') {
+        labelDisplay.innerText = 'Break Time';
+        document.title = 'Break Timer';
+    }
+    
+    ipcRenderer.send('request-initial-timer-update', type);
 });
 
-// Generic listeners for all timer types
-const timerEvents = ['pomo', 'sprint', 'flow', 'workflow-break'];
-
-timerEvents.forEach(id => {
-    ipcRenderer.on(`timer-started-${id}`, (data) => {
-        if (id.includes(currentType) || (currentType === 'break' && id === 'workflow-break')) {
-            startLocalTick(data.endTime, data.seconds);
-        }
-    });
-
-    ipcRenderer.on(`timer-paused-${id}`, (targetId, remainingSeconds) => {
-        if (id.includes(currentType) || (currentType === 'break' && id === 'workflow-break')) {
-            if (localInterval) clearInterval(localInterval);
-            localInterval = null;
-            timerDisplay.classList.add('paused');
-            // Update display manually
-            const mins = Math.floor(remainingSeconds / 60);
-            const secs = remainingSeconds % 60;
-            timerDisplay.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        }
-    });
-
-    ipcRenderer.on(`timer-resumed-${id}`, (data) => {
-        if (id.includes(currentType) || (currentType === 'break' && id === 'workflow-break')) {
-            timerDisplay.classList.remove('paused');
-            startLocalTick(data.endTime);
-        }
-    });
-
-    ipcRenderer.on(`timer-stopped-${id}`, () => {
-        if (id.includes(currentType) || (currentType === 'break' && id === 'workflow-break')) {
-            if (localInterval) clearInterval(localInterval);
-            localInterval = null;
-            timerDisplay.innerText = currentType === 'flow' ? "00:00:00" : "00:00";
-            progressBar.style.width = "0%";
-            timerDisplay.classList.remove('paused');
-        }
-    });
-});
-
-ipcRenderer.on('update-display', (data) => {
+ipcRenderer.on('update-timer-window', (data) => {
     if (data.phase || data.task) labelDisplay.innerText = data.phase || data.task;
     if (data.timeLeft) timerDisplay.innerText = data.timeLeft;
     if (data.percent !== undefined) progressBar.style.width = `${data.percent}%`;
     if (data.tasksLeft !== undefined) extraInfoDisplay.innerText = `Remaining Tasks: ${data.tasksLeft}`;
+    if (data.isPaused !== undefined) {
+        isPaused = data.isPaused;
+        updateControlButtons();
+        if (isPaused) {
+            timerDisplay.classList.add('paused');
+        } else {
+            timerDisplay.classList.remove('paused');
+        }
+    }
+});
+
+ipcRenderer.on('timer-event', (payload) => {
+    if (payload.type !== currentType) return;
+    if (payload.event === 'paused') {
+        isPaused = true;
+        updateControlButtons();
+        timerDisplay.classList.add('paused');
+    } else if (payload.event === 'resumed' || payload.event === 'started') {
+        isPaused = false;
+        updateControlButtons();
+        timerDisplay.classList.remove('paused');
+    } else if (payload.event === 'stopped') {
+        isPaused = false;
+        updateControlButtons();
+        timerDisplay.classList.remove('paused');
+    }
 });
 
 ipcRenderer.on('set-theme', (themeData) => {
     // Reset any previous custom styles
     document.body.classList.remove('dark-mode');
+    document.body.classList.remove('cyber-green-mode');
     document.documentElement.style.cssText = '';
 
     if (themeData.mode === 'dark') {
         document.body.classList.add('dark-mode');
+    } else if (themeData.mode === 'cyber-green') {
+        document.body.classList.add('cyber-green-mode');
     } else if (themeData.mode === 'custom' && themeData.colors) {
         for (const [variable, value] of Object.entries(themeData.colors)) {
             document.documentElement.style.setProperty(variable, value);

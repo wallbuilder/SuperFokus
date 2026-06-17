@@ -1,31 +1,31 @@
 import { store } from '../../utils/storage.js';
 import { 
-    DEFAULT_CUSTOM_COLORS, 
-    CUSTOM_COLOR_MAP, 
-    modeNames 
-} from './theme-config.js';
-import { 
     currentThemeMode,
     setCurrentThemeMode,
     showHeaderDarkModeToggle,
     setShowHeaderDarkModeToggle,
-    toggleState1,
-    setToggleState1,
-    toggleState2,
-    setToggleState2,
+    getNextThemeMode,
     applyTheme, 
     applyHeaderToggleVisibility, 
     setThemeMode,
-    updateHeaderToggleButtonText
+    updateHeaderToggleButtonText,
+    customToggleState1,
+    customToggleState2,
+    setCustomToggleState1,
+    setCustomToggleState2
 } from './theme-engine.js';
 
-let pendingToggleState1 = 'light';
-let pendingToggleState2 = 'dark';
+let pendingThemeMode = 'light';
 let pendingShowHeaderToggle = true;
+let pendingCustomToggleState1 = 'light';
+let pendingCustomToggleState2 = 'dark';
+let hasPendingChanges = false;
+let savedThemeMode = 'light';
 
 export async function initTheme() {
     try {
         const mode = await store.get('themeMode', 'light');
+        savedThemeMode = mode;
         
         if (!document.getElementById('modal-theme-style')) {
             const style = document.createElement('style');
@@ -37,54 +37,49 @@ export async function initTheme() {
                 .modal-content {
                     background-color: var(--container-bg) !important;
                 }
-                .bubble, .white-bubble, .modal-bubble, input[type="radio"], input[type="checkbox"] {
+                .bubble, .white-bubble, .modal-bubble, input[type="radio"], input[type="checkbox"], select {
                     background-color: var(--container-bg) !important;
+                    color: var(--text-color) !important;
                 }
             `;
             document.head.appendChild(style);
         }
 
         setCurrentThemeMode(mode);
+        pendingThemeMode = mode;
         const showToggle = await store.get('showHeaderDarkModeToggle', true);
         setShowHeaderDarkModeToggle(showToggle);
-        const s1 = await store.get('toggleState1', 'light');
-        setToggleState1(s1);
-        const s2 = await store.get('toggleState2', 'dark');
-        setToggleState2(s2);
-        
-        pendingToggleState1 = s1;
-        pendingToggleState2 = s2;
         pendingShowHeaderToggle = showToggle;
+
+        const ts1 = await store.get('customToggleState1', 'light');
+        const ts2 = await store.get('customToggleState2', 'dark');
+        setCustomToggleState1(ts1);
+        setCustomToggleState2(ts2);
+        pendingCustomToggleState1 = ts1;
+        pendingCustomToggleState2 = ts2;
+
+        const sel1 = document.getElementById('custom-toggle-state-1');
+        if (sel1) sel1.value = ts1;
+        const sel2 = document.getElementById('custom-toggle-state-2');
+        if (sel2) sel2.value = ts2;
 
         const themeRadioLight = document.getElementById('theme-radio-light');
         const themeRadioDark = document.getElementById('theme-radio-dark');
-        const themeRadioCustom = document.getElementById('theme-radio-custom');
+        const themeRadioCyberGreen = document.getElementById('theme-radio-cyber-green');
+        const themeRadioCyberWhite = document.getElementById('theme-radio-cyber-white');
+        const themeRadioCyberLightblue = document.getElementById('theme-radio-cyber-lightblue');
+        const themeRadioCyberBlue = document.getElementById('theme-radio-cyber-blue');
 
         if (themeRadioLight && mode === 'light') themeRadioLight.checked = true;
         if (themeRadioDark && mode === 'dark') themeRadioDark.checked = true;
-        if (themeRadioCustom && mode === 'custom') themeRadioCustom.checked = true;
+        if (themeRadioCyberGreen && mode === 'cyber-green') themeRadioCyberGreen.checked = true;
+        if (themeRadioCyberWhite && mode === 'cyber-white') themeRadioCyberWhite.checked = true;
+        if (themeRadioCyberLightblue && mode === 'cyber-lightblue') themeRadioCyberLightblue.checked = true;
+        if (themeRadioCyberBlue && mode === 'cyber-blue') themeRadioCyberBlue.checked = true;
 
-        for (const id of Object.keys(CUSTOM_COLOR_MAP)) {
-            const el = document.getElementById(id);
-            if (el) {
-                const savedValue = await store.get(id, DEFAULT_CUSTOM_COLORS[id]);
-                el.value = savedValue;
-            }
-        }
-
-        const toggleSelect1 = document.getElementById('toggle-select-1');
-        const toggleSelect2 = document.getElementById('toggle-select-2');
         const toggleHeaderDarkModeSwitch = document.getElementById('toggle-header-dark-mode-switch');
-        
-        if (toggleSelect1) toggleSelect1.value = s1;
-        if (toggleSelect2) toggleSelect2.value = s2;
         if (toggleHeaderDarkModeSwitch) toggleHeaderDarkModeSwitch.checked = showToggle;
         
-        const toggleOption1Btn = document.getElementById('toggle-option-1');
-        const toggleOption2Btn = document.getElementById('toggle-option-2');
-        if (toggleOption1Btn) toggleOption1Btn.innerText = modeNames[s1];
-        if (toggleOption2Btn) toggleOption2Btn.innerText = modeNames[s2];
-
         setupListeners();
         applyTheme();
         applyHeaderToggleVisibility();
@@ -95,132 +90,184 @@ export async function initTheme() {
     }
 }
 
+function revertPendingChanges() {
+    pendingThemeMode = savedThemeMode;
+    pendingShowHeaderToggle = showHeaderDarkModeToggle;
+    pendingCustomToggleState1 = customToggleState1;
+    pendingCustomToggleState2 = customToggleState2;
+    hasPendingChanges = false;
+
+    setCurrentThemeMode(savedThemeMode);
+    applyTheme();
+
+    const themeRadioLight = document.getElementById('theme-radio-light');
+    const themeRadioDark = document.getElementById('theme-radio-dark');
+    const themeRadioCyberGreen = document.getElementById('theme-radio-cyber-green');
+    const themeRadioCyberWhite = document.getElementById('theme-radio-cyber-white');
+    const themeRadioCyberLightblue = document.getElementById('theme-radio-cyber-lightblue');
+    const themeRadioCyberBlue = document.getElementById('theme-radio-cyber-blue');
+    
+    if (themeRadioLight) themeRadioLight.checked = (pendingThemeMode === 'light');
+    if (themeRadioDark) themeRadioDark.checked = (pendingThemeMode === 'dark');
+    if (themeRadioCyberGreen) themeRadioCyberGreen.checked = (pendingThemeMode === 'cyber-green');
+    if (themeRadioCyberWhite) themeRadioCyberWhite.checked = (pendingThemeMode === 'cyber-white');
+    if (themeRadioCyberLightblue) themeRadioCyberLightblue.checked = (pendingThemeMode === 'cyber-lightblue');
+    if (themeRadioCyberBlue) themeRadioCyberBlue.checked = (pendingThemeMode === 'cyber-blue');
+
+    const toggleHeaderDarkModeSwitch = document.getElementById('toggle-header-dark-mode-switch');
+    if (toggleHeaderDarkModeSwitch) toggleHeaderDarkModeSwitch.checked = pendingShowHeaderToggle;
+
+    const sel1 = document.getElementById('custom-toggle-state-1');
+    if (sel1) sel1.value = pendingCustomToggleState1;
+    const sel2 = document.getElementById('custom-toggle-state-2');
+    if (sel2) sel2.value = pendingCustomToggleState2;
+}
+
+function previewTheme(mode) {
+    setCurrentThemeMode(mode);
+    applyTheme();
+}
+
 function setupListeners() {
     const themeToggleBtn = document.getElementById('theme-toggle');
     if (themeToggleBtn) {
         themeToggleBtn.addEventListener('click', () => {
-            let targetState = toggleState2;
-            if (currentThemeMode === toggleState2) {
-                targetState = toggleState1;
-            } else if (currentThemeMode !== toggleState1 && currentThemeMode !== toggleState2) {
-                targetState = toggleState1;
-            }
-            setThemeMode(targetState);
+            const next = getNextThemeMode();
+            setThemeMode(next);
+            savedThemeMode = next;
+            pendingThemeMode = next;
+            
+            // visually update the radio buttons in the background if they exist
+            const rL = document.getElementById('theme-radio-light');
+            if (rL) rL.checked = (next === 'light');
+            const rD = document.getElementById('theme-radio-dark');
+            if (rD) rD.checked = (next === 'dark');
+            const rCG = document.getElementById('theme-radio-cyber-green');
+            if (rCG) rCG.checked = (next === 'cyber-green');
+            const rCW = document.getElementById('theme-radio-cyber-white');
+            if (rCW) rCW.checked = (next === 'cyber-white');
+            const rCL = document.getElementById('theme-radio-cyber-lightblue');
+            if (rCL) rCL.checked = (next === 'cyber-lightblue');
+            const rCB = document.getElementById('theme-radio-cyber-blue');
+            if (rCB) rCB.checked = (next === 'cyber-blue');
         });
     }
 
     const themeRadioLight = document.getElementById('theme-radio-light');
     const themeRadioDark = document.getElementById('theme-radio-dark');
-    const themeRadioCustom = document.getElementById('theme-radio-custom');
+    const themeRadioCyberGreen = document.getElementById('theme-radio-cyber-green');
+    const themeRadioCyberWhite = document.getElementById('theme-radio-cyber-white');
+    const themeRadioCyberLightblue = document.getElementById('theme-radio-cyber-lightblue');
+    const themeRadioCyberBlue = document.getElementById('theme-radio-cyber-blue');
 
-    if (themeRadioLight) themeRadioLight.addEventListener('change', () => setThemeMode('light'));
-    if (themeRadioDark) themeRadioDark.addEventListener('change', () => setThemeMode('dark'));
-    if (themeRadioCustom) themeRadioCustom.addEventListener('change', () => setThemeMode('custom'));
+    const markPending = () => { hasPendingChanges = true; };
 
-    const colorPickers = Object.keys(CUSTOM_COLOR_MAP).map(id => document.getElementById(id));
-    colorPickers.forEach(picker => {
-        if (!picker) return;
-        picker.addEventListener('input', () => {
-            if (currentThemeMode === 'custom') applyTheme();
-        });
-        picker.addEventListener('change', (e) => {
-            store.set(e.target.id, e.target.value);
-        });
-    });
-
-    const resetThemeColorsBtn = document.getElementById('reset-theme-colors-btn');
-    if (resetThemeColorsBtn) {
-        resetThemeColorsBtn.addEventListener('click', async () => {
-            if (confirm('Are you sure you want to revert back to the default custom colors?')) {
-                try {
-                    for (const id of Object.keys(DEFAULT_CUSTOM_COLORS)) {
-                        store.delete(id);
-                        const el = document.getElementById(id);
-                        if (el) el.value = DEFAULT_CUSTOM_COLORS[id];
-                    }
-                    if (currentThemeMode === 'custom') applyTheme();
-                } catch (error) {
-                    console.error('Error resetting custom theme colors:', error);
-                }
-            }
-        });
-    }
+    if (themeRadioLight) themeRadioLight.addEventListener('change', () => { pendingThemeMode = 'light'; previewTheme('light'); markPending(); });
+    if (themeRadioDark) themeRadioDark.addEventListener('change', () => { pendingThemeMode = 'dark'; previewTheme('dark'); markPending(); });
+    if (themeRadioCyberGreen) themeRadioCyberGreen.addEventListener('change', () => { pendingThemeMode = 'cyber-green'; previewTheme('cyber-green'); markPending(); });
+    if (themeRadioCyberWhite) themeRadioCyberWhite.addEventListener('change', () => { pendingThemeMode = 'cyber-white'; previewTheme('cyber-white'); markPending(); });
+    if (themeRadioCyberLightblue) themeRadioCyberLightblue.addEventListener('change', () => { pendingThemeMode = 'cyber-lightblue'; previewTheme('cyber-lightblue'); markPending(); });
+    if (themeRadioCyberBlue) themeRadioCyberBlue.addEventListener('change', () => { pendingThemeMode = 'cyber-blue'; previewTheme('cyber-blue'); markPending(); });
 
     const toggleHeaderDarkModeSwitch = document.getElementById('toggle-header-dark-mode-switch');
     if (toggleHeaderDarkModeSwitch) {
         toggleHeaderDarkModeSwitch.addEventListener('change', (e) => {
             pendingShowHeaderToggle = e.target.checked;
+            markPending();
         });
     }
 
-    const toggleOption1Btn = document.getElementById('toggle-option-1');
-    const dropdownOption1 = document.getElementById('dropdown-option-1');
-    const closeDropdown1Btn = document.getElementById('close-dropdown-1');
-    const toggleSelect1 = document.getElementById('toggle-select-1');
+    const sel1 = document.getElementById('custom-toggle-state-1');
+    if (sel1) sel1.addEventListener('change', (e) => { pendingCustomToggleState1 = e.target.value; markPending(); });
+    const sel2 = document.getElementById('custom-toggle-state-2');
+    if (sel2) sel2.addEventListener('change', (e) => { pendingCustomToggleState2 = e.target.value; markPending(); });
 
-    const toggleOption2Btn = document.getElementById('toggle-option-2');
-    const dropdownOption2 = document.getElementById('dropdown-option-2');
-    const closeDropdown2Btn = document.getElementById('close-dropdown-2');
-    const toggleSelect2 = document.getElementById('toggle-select-2');
+    const saveThemeSettingsBtn = document.getElementById('save-theme-settings-btn');
+    
+    const performSave = () => {
+        setShowHeaderDarkModeToggle(pendingShowHeaderToggle);
+        
+        try {
+            store.set('showHeaderDarkModeToggle', pendingShowHeaderToggle);
 
-    const setupDropdown = (btn, dropdown, closeBtn, select, pendingStateKey) => {
-        if (!btn || !dropdown) return;
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            dropdown.classList.toggle('active');
-            document.querySelectorAll('.dropdown-option').forEach(d => {
-                if (d !== dropdown) d.classList.remove('active');
-            });
-        });
-        if (closeBtn) {
-            closeBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                dropdown.classList.remove('active');
-            });
-        }
-        if (select) {
-            select.addEventListener('change', (e) => {
-                if (pendingStateKey === 1) pendingToggleState1 = e.target.value;
-                else pendingToggleState2 = e.target.value;
-                btn.innerText = modeNames[e.target.value];
-            });
+            setCustomToggleState1(pendingCustomToggleState1);
+            setCustomToggleState2(pendingCustomToggleState2);
+            store.set('customToggleState1', pendingCustomToggleState1);
+            store.set('customToggleState2', pendingCustomToggleState2);
+            
+            savedThemeMode = pendingThemeMode;
+            setThemeMode(pendingThemeMode);
+            applyHeaderToggleVisibility();
+            hasPendingChanges = false;
+
+            if (saveThemeSettingsBtn) {
+                const oldText = saveThemeSettingsBtn.innerText;
+                saveThemeSettingsBtn.innerText = 'Saved!';
+                setTimeout(() => { saveThemeSettingsBtn.innerText = oldText; }, 1500);
+            }
+        } catch (error) {
+            console.error('Error saving theme settings:', error);
+            alert('Failed to save theme settings.');
         }
     };
 
-    setupDropdown(toggleOption1Btn, dropdownOption1, closeDropdown1Btn, toggleSelect1, 1);
-    setupDropdown(toggleOption2Btn, dropdownOption2, closeDropdown2Btn, toggleSelect2, 2);
-
-    const saveToggleSettingsBtn = document.getElementById('save-toggle-settings-btn');
-    if (saveToggleSettingsBtn) {
-        saveToggleSettingsBtn.addEventListener('click', async () => {
-            setToggleState1(pendingToggleState1);
-            setToggleState2(pendingToggleState2);
-            setShowHeaderDarkModeToggle(pendingShowHeaderToggle);
-            
-            try {
-                store.set('toggleState1', toggleState1);
-                store.set('toggleState2', toggleState2);
-                store.set('showHeaderDarkModeToggle', showHeaderDarkModeToggle);
-                
-                updateHeaderToggleButtonText();
-                applyHeaderToggleVisibility();
-
-                const oldText = saveToggleSettingsBtn.innerText;
-                saveToggleSettingsBtn.innerText = 'Saved!';
-                setTimeout(() => { saveToggleSettingsBtn.innerText = oldText; }, 1500);
-            } catch (error) {
-                console.error('Error saving toggle settings:', error);
-                alert('Failed to save toggle settings.');
-            }
-        });
+    if (saveThemeSettingsBtn) {
+        saveThemeSettingsBtn.addEventListener('click', performSave);
     }
 
-    document.addEventListener('click', (e) => {
-        if (dropdownOption1 && dropdownOption1.classList.contains('active') && !toggleOption1Btn.contains(e.target) && !dropdownOption1.contains(e.target)) {
-            dropdownOption1.classList.remove('active');
-        }
-        if (dropdownOption2 && dropdownOption2.classList.contains('active') && !toggleOption2Btn.contains(e.target) && !dropdownOption2.contains(e.target)) {
-            dropdownOption2.classList.remove('active');
-        }
+    // Unsaved Changes Modal Setup
+    let unsavedModal = document.getElementById('unsaved-changes-modal');
+    if (!unsavedModal) {
+        unsavedModal = document.createElement('div');
+        unsavedModal.id = 'unsaved-changes-modal';
+        unsavedModal.className = 'modal-overlay';
+        unsavedModal.style.zIndex = '9999';
+        unsavedModal.innerHTML = `
+            <div class="modal-content" style="max-width: 400px; text-align: center;">
+                <h3 style="margin-top: 0;">Unsaved Changes</h3>
+                <p style="color: var(--timer-subtext); margin-bottom: 20px;">Are you sure you want to discard your changes?</p>
+                <div style="display: flex; gap: 15px; justify-content: center;">
+                    <button class="action-btn" id="unsaved-discard-btn" style="background: #e74c3c; width: auto; padding: 0.6rem 1.2rem;">Discard Changes</button>
+                    <button class="action-btn" id="unsaved-save-btn" style="background: #27ae60; width: auto; padding: 0.6rem 1.2rem;">Save Changes</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(unsavedModal);
+    }
+
+    const customizationModal = document.getElementById('modal-customization');
+    const showUnsavedChangesModal = () => {
+        unsavedModal.classList.add('active');
+    };
+
+    document.getElementById('unsaved-discard-btn').addEventListener('click', () => {
+        unsavedModal.classList.remove('active');
+        revertPendingChanges();
+        if (customizationModal) customizationModal.classList.remove('active');
     });
+
+    document.getElementById('unsaved-save-btn').addEventListener('click', () => {
+        unsavedModal.classList.remove('active');
+        performSave();
+        if (customizationModal) customizationModal.classList.remove('active');
+    });
+
+    if (customizationModal) {
+        const closeBtn = customizationModal.querySelector('.modal-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                if (hasPendingChanges) {
+                    e.stopImmediatePropagation();
+                    showUnsavedChangesModal();
+                }
+            }, { capture: true });
+        }
+
+        customizationModal.addEventListener('click', (e) => {
+            if (e.target === customizationModal && hasPendingChanges) {
+                e.stopImmediatePropagation();
+                showUnsavedChangesModal();
+            }
+        }, { capture: true });
+    }
 }

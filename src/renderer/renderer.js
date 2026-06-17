@@ -58,7 +58,7 @@ export function switchMode(mode) {
 
   const dashboardSubtitle = document.getElementById('dashboard-subtitle');
   if (dashboardSubtitle) {
-      dashboardSubtitle.innerHTML = '<span id="select-another-mode-btn" style="text-decoration: underline; cursor: pointer; color: var(--header-grad-1);">Select another Fokus Mode</span>';
+      dashboardSubtitle.innerHTML = '<span id="select-another-mode-btn" style="text-decoration: underline; cursor: pointer; color: var(--accent-color);">Select another Fokus Mode</span>';
       const selectAnotherBtn = document.getElementById('select-another-mode-btn');
       if (selectAnotherBtn) {
           selectAnotherBtn.addEventListener('click', () => {
@@ -98,7 +98,7 @@ if (headerTitle) {
         console.log('[Startup] Migration complete. Loading modules...');
 
         const [
-            theme, stats, audio, workflows, pomo, repeating, sprint, flow, integration
+            theme, stats, audio, workflows, pomo, repeating, sprint, flow, integration, siteBlocker
         ] = await Promise.all([
             import('./ui/theme.js'),
             import('./utils/stats.js'),
@@ -108,8 +108,10 @@ if (headerTitle) {
             import('./features/repeating.js'),
             import('./features/micro-sprint.js'),
             import('./features/flow-state.js'),
-            import('./ui/integration.js')
+            import('./ui/integration.js'),
+            import('./features/site-blocker.js')
         ]);
+
 
         const initApp = async () => {
           console.log('[Startup] Initializing App UI...');
@@ -121,7 +123,7 @@ if (headerTitle) {
           const loadingText = document.getElementById('startup-loading-text');
           
           if (!startupScreen) {
-            await runInitializationSteps(theme, stats, audio, workflows, pomo, repeating, sprint, flow, integration);
+            await runInitializationSteps(theme, stats, audio, workflows, pomo, repeating, sprint, flow, integration, siteBlocker);
             return;
           }
           
@@ -134,44 +136,36 @@ if (headerTitle) {
 
           let currentStep = 0;
           const executeStepsSequentially = async () => {
-            while (currentStep < steps.length) {
-              const step = steps[currentStep];
-              if (loadingBar) loadingBar.style.width = step.progress + '%';
-              if (loadingText) loadingText.innerText = step.text;
-              
-              if (currentStep === 1) {
-                  initializeDomElements(workflows.setupWorkflowEventListeners, workflows.setupWorkflowPresetsEventListeners);
-                  await Promise.all([
-                      theme.initTheme(), stats.initStats(), audio.initAudio(), workflows.initWorkflows(),
-                      pomo.initPomo(), repeating.initRepeating(), sprint.initSprint(), flow.initFlow(),
-                      integration.setupIntegrationUI()
-                  ]);
-              } else if (currentStep === 2) {
-                  initializeButtonListeners(repeating.initializeRepeatingButtonListeners);
-                  initializeCustomSoundpackListeners(
-                      audio.updateCustomNotifsUI, audio.updateCustomAmbientUI, audio.updateCustomPackUI, 
-                      audio.updateSoundSelectors, audio.loadFileAsDataURL, audio.saveCustomSoundPack, audio.deleteCustomSoundPack
-                  );
-                  await stats.updateStatsUI();
-                  stats.renderChart();
-              }
-              currentStep++;
-              await new Promise(r => setTimeout(r, 0));
-            }
-            setTimeout(() => {
+              if (loadingBar) loadingBar.style.width = '100%';
+              if (loadingText) loadingText.innerText = 'Starting SuperFokus...';
+
+              initializeDomElements(workflows.setupWorkflowEventListeners, workflows.setupWorkflowPresetsEventListeners);
+              await Promise.all([
+                  theme.initTheme(), stats.initStats(), audio.initAudio(), workflows.initWorkflows(),
+                  pomo.initPomo(), repeating.initRepeating(), sprint.initSprint(), flow.initFlow(),
+                  integration.setupIntegrationUI(), siteBlocker.initSiteBlocker()
+              ]);
+
+              initializeButtonListeners(repeating.initializeRepeatingButtonListeners); 
+              initializeCustomSoundpackListeners(
+                  audio.updateCustomNotifsUI, audio.updateCustomAmbientUI, audio.updateCustomPackUI,
+                  audio.updateSoundSelectors, audio.loadFileAsDataURL, audio.saveCustomSoundPack, audio.deleteCustomSoundPack
+              );
+              await stats.updateStatsUI();
+              stats.renderChart();
+
               startupScreen.style.opacity = '0';
               setTimeout(() => { startupScreen.style.display = 'none'; }, 400);
-            }, 0);
           };
           executeStepsSequentially();
         };
 
-        const runInitializationSteps = async (theme, stats, audio, workflows, pomo, repeating, sprint, flow, integration) => {
+        const runInitializationSteps = async (theme, stats, audio, workflows, pomo, repeating, sprint, flow, integration, siteBlocker) => {
             initializeDomElements(workflows.setupWorkflowEventListeners, workflows.setupWorkflowPresetsEventListeners);
             await Promise.all([
                 theme.initTheme(), stats.initStats(), audio.initAudio(), workflows.initWorkflows(),
                 pomo.initPomo(), repeating.initRepeating(), sprint.initSprint(), flow.initFlow(),
-                integration.setupIntegrationUI()
+                integration.setupIntegrationUI(), siteBlocker.initSiteBlocker()
             ]);
             initializeButtonListeners(repeating.initializeRepeatingButtonListeners);
             initializeCustomSoundpackListeners(

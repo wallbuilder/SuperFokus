@@ -6,50 +6,25 @@ This file is strictly for the purpose of documenting/writing down changes to the
 Before each commit, the contents of this file should be mostly discarded of, EXCLUDING this header and the footer at the bottom.
 Each new edit to the file that documents new changes should also list the date and time of implementation.
 (Note: You must list ALL changes, including small ones. No detail is too small).
-[DO NOT DELETE THIS TEXT, DELETE TEXT BELOW THIS LINE] >
-~ (< spacer)
-~
-{May 23, 2026 at 12:00 PM}
+
+[DO NOT DELETE THIS TEXT, DELETE TEXT |BELOW| THIS LINE] >
+
+
+[insert documentation here]
+
+
+< [DO NOT DELETE THIS TEXT, DELETE TEXT |ABOVE| THIS LINE]
+
+Sample chunk of documentation: {
+{1/10/2011 at 1:00 PM}
     [Fixed Bugs]
-     - Fixed an issue where the Pause button would become disabled (unclickable with a "not allowed" cursor) while a timer was running. Updated `setInputsLocked` in `src/renderer/utils/ui-helpers.js` to ensure elements with ID, class, or text containing "pause" remain unlocked.
-
-{May 23, 2026 at 12:05 PM}
-    [Added New Features]
-     - Updated the Credits modal in `index.html` to include a new "Sound Assets" section.
-     - Added specific links and credits for the Mechanical sound pack (mech-notif-1, mech-notif-2, mech-notif-3) sourced from Pixabay.
-
-{May 23, 2026 at 12:10 PM}
-    [Added New Features]
-     - Refined the "Sound Assets" section in the Credits modal.
-     - Added credit for the "Classic Pack" as being computer-generated via the built-in JavaScript / Web Audio API synthesizer.
-     - Added a placeholder for the "Nature Pack" credits.
-     - Simplified the "Mechanical Pack" header by removing the "(via Pixabay)" text.
-
-{May 23, 2026 at 12:15 PM}
-    [Added New Features]
-     - Updated the Mechanical Pack credits in the modal to display full Pixabay URLs instead of descriptive labels.
-     - Added `word-break: break-all;` to the credit links to ensure they wrap correctly on smaller screens.
-~
-~
-< [DO NOT DELETE THIS TEXT, DELETE TEXT ABOVE THIS LINE]
-(Example chunk of documentation:
-{1/1/2025 at 12:00 PM}
-    [Fixed Bugs]
-     - Fixed critical bugs
-     - Other Example text
-
-    [Added New Features]
-     - Added new features
-     - Other Example text
-
-{1/2/2025 at 12:00 PM}
-    [Fixed Bugs]
-     - Fixed critical bugs
-     - Other example text
-
-    [Added New Features]
-     - Added new features
-     - Other example text
-
-And so on, until all the update goals have been met)
+     - Example text
+     - Example text
+    [Optimizations]
+     - Example text
+     - Example text
+    [New Features]
+     - Example text
+     - Example text
+}
 [DO NOT DELETE THIS TEXT] >
