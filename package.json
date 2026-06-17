@@ -1,22 +1,75 @@
 {
   "name": "fokus",
-  "version": "0.8.2",
+  "version": "1.0.0",
   "description": "Fokus is an Electron application designed to help regulate computer and homework time while minimizing distractions.",
-  "main": "main.js",
+  "main": "src/main/main.js",
+  "napi": {
+    "binaryName": "fokus-native"
+  },
   "scripts": {
     "start": "electron .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "playwright test tests/e2e",
+    "dist": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "build": "npm run build:native",
+    "build:native": "napi build --platform --release --package bridge --manifest-path src/native/Cargo.toml",
+    "prestart": "",
+    "pretest": "",
+    "predist": ""
+  },
+  "build": {
+    "appId": "com.superfokus.app",
+    "productName": "SuperFokus",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/fokusicon.png"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "assets/fokusicon.png",
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "asar": true,
+    "asarUnpack": [
+      "src/main/fokus-sb-helper.js",
+      "**/*.node"
+    ],
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "index.html",
+      "package.json",
+      "*.node"
+    ]
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
-    "electron": "^41.0.2"
+    "@napi-rs/cli": "^3.6.2",
+    "@playwright/test": "^1.45.3",
+    "electron": "^30.0.0",
+    "electron-builder": "^26.8.1"
   },
   "dependencies": {
+    "@vscode/sudo-prompt": "^9.3.2",
     "chart.js": "^4.5.1",
     "electron-store": "^11.0.2",
-    "sudo-prompt": "^9.2.1"
+    "fokus-native": "file:."
   }
 }

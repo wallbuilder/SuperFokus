@@ -5,8 +5,11 @@ node_modules/
 dist/
 build/
 out/
+.cache/
+electron-data/
 
 # IDEs and editors
+.vs/
 .vscode/
 .idea/
 *.swp
@@ -26,3 +29,9 @@ yarn-debug.log*
 yarn-error.log*
 logs
 *.log
+
+# Development/Manual Tests
+test-results/
+
+# Rust builds
+target/

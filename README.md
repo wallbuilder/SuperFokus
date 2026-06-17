@@ -1,71 +1,102 @@
 # SuperFokus
 
-SuperFokus is a versatile, Electron-based productivity application designed to help you regulate computer time, maintain healthy habits, and minimize digital distractions.
+SuperFokus is a high-performance, Electron-based productivity suite designed to help you master your attention, regulate computer usage,
+and maintain healthy digital habits. By combining structured focus intervals, system-wide distraction blocking, and health-centric
+reminders, SuperFokus provides a comprehensive environment for deep work and mindful computing.
 
-## Core Features (Fokus Modes)
+ ## Overview
+ 
+ ### Core Fokus Modes
 
-SuperFokus offers three primary modes to suit your workflow:
+  SuperFokus offers five distinct modes to accommodate various workflows and cognitive needs:
 
-### 1. Repeating Reminders
-The classic mode. Sets up a continuous loop of reminders to keep you on track.
-- **Custom Intervals:** Set precise reminder intervals using minutes and seconds.
-- **Rounds Control:** Choose a specific number of reminder rounds or let it run infinitely.
-- **Custom Messages:** Personalize the popup message that appears when the timer goes off.
-- **Quick Pause:** Easily pause the active timer for unexpected interruptions without resetting your session.
+  1. Multi-Mode Workflows (The Engine)
+  The ultimate productivity architect. Build complex, automated sessions by stacking different Fokus modes.
+   - Drag-and-Drop Builder: Intuitively sequence Pomo phases, Sprints, and Repeating Reminders.
+   - Automated Transitions: SuperFokus handles the hand-off between different modes seamlessly.
+   - Cycle Management: Run your entire custom workflow once or loop it indefinitely.
 
-### 2. Pomo Style
-A structured time-management mode that balances work sessions with scheduled breaks, inspired by the Pomodoro Technique.
-- **Dynamic Pomo Config:** Create completely custom sequences of Work and Break phases.
-- **Break Actions:** Choose between a gentle reminder or a strict screen-blocking popup to enforce downtime.
-- **Pomo Presets:** Save your favorite phase configurations (e.g., "Deep Work - 50/10") or use built-in presets and load them instantly.
-- **Auto-Start:** Optionally toggle auto-start for the next phase to keep your hands off the timer.
-- **Quick Pause:** Pause your work session or break at any time.
+  2. Pomo Style (Structured Rhythm)
+  A refined implementation of the Pomodoro Technique for balanced work and recovery.
+   - Dynamic Sequences: Configure custom strings of Work and Break phases.
+   - Enforcement Levels: Choose between gentle notifications or strict, full-screen "Focus Overlays" to ensure you take your breaks.
+   - Preset Library: Load optimized configurations like "Deep Work (50/10)" or "Quick Study (25/5)" instantly.
 
-### 3. Micro-Task Sprint Mode ("Speed Run")
-Designed to break down larger tasks into rapid, high-speed intervals.
-- **Rapid Tasks:** Allocate 5, 10, or 15 minutes per task.
-- **Visual Velocity:** Dedicated countdown timer for specific tasks to maintain momentum.
+  3. Flow State Stopwatch (Open-Ended)
+  Designed for when you're "in the zone" and don't want a countdown to interrupt your momentum.
+   - Mindful Chimes: Set recurring ambient pings (e.g., every 15 minutes) to maintain time awareness without breaking focus.
+   - Visual Persistence: Includes a dedicated, always-on-top timer window to keep your progress visible.
 
-## Sidebar Features & Tools
+  4. Micro-Task Sprints (Velocity)
+  Ideal for tackling procrastination or clearing a high volume of small tasks.
+   - Rapid Intervals: Assign set times (5, 10, or 15 minutes) to specific tasks.
+   - Task Stacking: Enter a list of tasks and sprint through them with optional auto-start.
 
-The SuperFokus sidebar provides quick access to powerful tools and analytics without interrupting your active timers:
+  5. Repeating Reminders (Classic)
+  The foundational mode for building consistency.
+   - Precise Intervals: Set loops down to the second.
+   - Custom Persistence: Configure autoclose timers for popup reminders to ensure they don't linger.
 
-- 📊 **Fokus Stats:** View your "Total Focus Time" and "Completed Rounds", alongside a visual chart of your activity over the last 7 days.
-- 📜 **Session History:** Check a local log of your past productivity sessions.
-- 🔒 **Site Blocker:**
-    - Block digital distractions system-wide.
-    - Choose to either *block* a blacklist of domains/URLs or *allow* only a whitelist.
-    - Can run independently in the background even if other Fokus modes are active.
-    - *Note: Requires Administrator privileges as it safely modifies the system hosts file.*
-- ❤️ **Health Mode (The "Body Guard"):**
-    - **Eye Saver:** Enforces the 20-20-20 rule (every 20 minutes, look 20 feet away for 20 seconds).
-    - **Posture Check:** Reminds you to stretch and adjust your posture every 45 minutes.
-- ⚙️ **Customization:**
-    - **Dark Mode:** Toggle a sleek dark theme for late-night work (with smooth transitions).
-    - **Audio Notifications:** Select from built-in chimes or upload your own custom sound. Test the chime and adjust the volume.
+  ---
 
-## Usage Examples
+ ### Sidebar Tools & Features
 
-### Example 1: The "Deep Work" Session
-1. Open **SuperFokus** and select **Pomo Style** from the Dashboard dropdown.
-2. Under **Pomo Presets**, select "Deep Work - 50/10" (or create your own sequence).
-3. Set **Action at end of phase** to "Block screen AND remind" so you are forced to step away from your monitor during breaks.
-4. Select your desired number of **Cycles** and click **Start**.
+   - 📊 Fokus Stats: Integrated analytics dashboard with a 7-day activity heatmap and total focus time tracking.
+   - 🔒 System-Wide Site Blocker:
+       - Dual Logic: Supports both Blacklist (block specific sites) and Whitelist (allow only specific sites) modes.
+       - Kernel-Level Feel: Modifies the system hosts file for robust, browser-agnostic blocking.
+       - Note: Requires Administrator privileges for system modification.
+   - ❤️ Health Mode ("The Body Guard"):
+       - 20-20-20 Eye Saver: Automated reminders to rest your eyes every 20 minutes.
+       - Posture Alignment: Periodic prompts to stretch and correct your seating position.
+   - ⚙️ Deep Customization:
+       - Theme Engine: Switch between Light, Dark, and Custom themes with smooth CSS variable transitions.
+       - Acoustic Environments: Select between "Classic", "Nature (Zen)", and "Mechanical" sound packs, or upload your own notification
+         and ambient sounds.
 
-### Example 2: Blocking Distractions While Studying
-1. Open the sidebar (☰) and select **Site Blocker**.
-2. Toggle the Site Blocker switch to **Active** (granting administrator permissions when prompted).
-3. Set Blocker Mode to **Block only entered websites**.
-4. In the **Domain List**, enter `youtube.com`, `reddit.com`, and `twitter.com`.
-5. Click **Save & Apply Blocker**. You can now study distraction-free, optionally running a **Repeating Reminder** timer in the background.
+  ---
 
-### Example 3: Health-Conscious Coding
-1. Open the sidebar (☰) and select **Health Mode**.
-2. Enable both **Eye Saver (20-20-20 Rule)** and **Posture Check**.
-3. Click **Start Health Mode**.
-4. SuperFokus will run quietly in the background, pinging you every 20 minutes to rest your eyes and every 45 minutes to fix your posture.
+ ### Technical Architecture
 
-## Technical Details
-- Built with Electron.js.
-- Site Blocker utilizes a separate elevated helper script to modify the Windows `hosts` file for true system-wide blocking.
-- Timer precision is maintained using a timestamp-based calculation approach rather than simple `setInterval` ticks to prevent timer drift over long sessions.
+  SuperFokus is built with a focus on precision and system integrity:
+   - Engine: Built with Electron.js and Vanilla JavaScript/CSS for maximum performance and a lightweight footprint.
+   - Timer Precision: Utilizes a timestamp-based calculation system rather than standard setInterval to prevent drift during long sessions
+     or system sleep.
+   - Secure Escalation: Uses an elevated helper script via @vscode/sudo-prompt to safely modify system files only when necessary.
+   - Persistence: Local configuration and session history are managed via electron-store for reliable data retention.
+
+ ### Installation
+
+   1. Download the latest SuperFokus release for your operating system (**.exe** for Windows, **.dmg** for macOS) from the Releases (https://github.com/wallbuilder/SuperFokus/releases) page.
+   2. Run the installer 
+    - If the installer doesn't work, (_it shows that the app isn't verified on the Microsoft/Apple app store or anything similar_) open the app through your terminal, (search "how to open files using terminal on [OS name]" if you don't know how) and follow the prompts. **(WE DO NOT HAVE A CERTIFICATE FROM MICROSOFT OR APPLE)**
+   3. (Optional) Run as Administrator if you intend to use the Site Blocker feature.
+
+ ## Development Setup (FOR NEW CONTRIBUTORS ONLY)
+
+  To contribute or build from source:
+
+    1. Clone the repository through your terminal (use the cd command to switch to a designated folder first) 
+    `git clone https://github.com/wallbuilder/SuperFokus.git`
+    
+    2. Install dependencies
+    `npm install`
+    
+    3. Run the application in development mode
+    `npm start`
+    
+    To build the Windows installer, use the command: `npm run dist`
+
+  ---
+
+ ## Credits
+  
+  ### Contributors
+   - wallbuilder: Lead Coder / Project Creator
+   - A1A2J2: Secondary Coder / Lead Asset Creator
+   - cat2d430: Tester
+
+  ### AI Systems
+   SuperFokus was developed with significant architectural and implementation assistance from:
+   - Gemini Models by Google: Gemini 3.1 Pro Preview, Gemini 3 Flash, Gemini 2.5 Pro/Flash/Lite.
+   - Claude Models by Anthrophic: Claude Haiku 4.6, Claude Sonnet 4.6.

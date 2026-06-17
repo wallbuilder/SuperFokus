@@ -1,0 +1,30 @@
+< [DO NOT DELETE THIS TEXT]
+
+UPDATE DOCUMENTATION DESCRIPTION
+
+This file is strictly for the purpose of documenting/writing down changes to the SuperFokus codebase so they can later be summarized into a commit message.
+Before each commit, the contents of this file should be mostly discarded of, EXCLUDING this header and the footer at the bottom.
+Each new edit to the file that documents new changes should also list the date and time of implementation.
+(Note: You must list ALL changes, including small ones. No detail is too small).
+
+[DO NOT DELETE THIS TEXT, DELETE TEXT |BELOW| THIS LINE] >
+
+
+[insert documentation here]
+
+
+< [DO NOT DELETE THIS TEXT, DELETE TEXT |ABOVE| THIS LINE]
+
+Sample chunk of documentation: {
+{1/10/2011 at 1:00 PM}
+    [Fixed Bugs]
+     - Example text
+     - Example text
+    [Optimizations]
+     - Example text
+     - Example text
+    [New Features]
+     - Example text
+     - Example text
+}
+[DO NOT DELETE THIS TEXT] >

@@ -1,0 +1,46 @@
+export function setInputsLocked(sectionId, locked) {
+    const section = document.getElementById(sectionId);
+    if (!section) return;
+    const inputs = section.querySelectorAll('input, select, textarea, button');
+    inputs.forEach(input => {
+        const text = input.textContent ? input.textContent.toLowerCase() : '';
+        const isStopBtn = text.includes('stop') || input.id.includes('stop') || input.className.includes('stop');
+        const isContinueBtn = text.includes('continue') || input.id.includes('continue') || input.className.includes('continue');
+        const isPauseBtn = text.includes('pause') || input.id.includes('pause') || input.className.includes('pause');
+        
+        if (isStopBtn || isContinueBtn || isPauseBtn) {
+            input.disabled = false; // Always enabled
+        } else {
+            input.disabled = locked;
+        }
+    });
+}
+
+export function toggleStartStopButton(btnElement) {
+  if (!btnElement) return;
+  if (btnElement.classList.contains('start-btn')) {
+    btnElement.classList.remove('start-btn');
+    btnElement.classList.add('stop-btn');
+    btnElement.innerHTML = 'Stop \u2715';
+  } else {
+    btnElement.classList.remove('stop-btn');
+    btnElement.classList.add('start-btn');
+    btnElement.innerHTML = 'Start \u27A4';
+  }
+}
+
+export function formatTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+export function escapeHtml(unsafe) {
+    if (!unsafe || typeof unsafe !== 'string') return unsafe;
+    return unsafe
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
