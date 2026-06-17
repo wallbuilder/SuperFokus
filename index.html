@@ -460,6 +460,12 @@
           background: var(--timer-bg); border-radius: 15px; border: 1px solid var(--border-color);
           contain: layout paint;
       }
+      body.hide-timer-active #pomo-time-left,
+      body.hide-timer-active #sprint-time-left,
+      body.hide-timer-active #flow-time-elapsed,
+      body.hide-timer-active #repeating-time-left {
+          display: none !important;
+      }
 
       /* Version & Github Link */
       #version { position: fixed; bottom: 15px; right: 20px; font-size: 0.85rem; color: #95a5a6; font-weight: 500; z-index: 1000; }
@@ -1302,6 +1308,12 @@
                       <input type="checkbox" id="github-browser-toggle" checked>
                       <span class="slider"></span>
                     </label> Open GitHub links in external browser
+                </div>
+                <div class="form-group" style="margin-top: 1.5rem;">
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="hide-timer-toggle">
+                      <span class="slider"></span>
+                    </label> Hide timer display in all modes (distraction-free)
                 </div>
                 <div class="form-group" style="margin-top: 1.5rem;">
                     <label>Failsafe:</label>

@@ -181,7 +181,11 @@ if (sequenceListEl) {
         if (e.target.tagName === 'INPUT' && e.target.type === 'number') {
             const idx = e.target.getAttribute('data-index');
             if (idx !== null) {
-                let val = parseInt(e.target.value, 10) || 1;
+                let val = parseInt(e.target.value, 10);
+                if (isNaN(val) || val <= 0) {
+                    val = 1;
+                    e.target.value = 1;
+                }
                 const unitSelect = sequenceListEl.querySelector(`select[data-index="${idx}"]`);
                 if (unitSelect && unitSelect.value === 'secs' && val >= 60) {
                     val = 59;

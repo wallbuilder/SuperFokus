@@ -63,6 +63,8 @@ ipcRenderer.on('timer-tick', (batchedTicks) => {
     }
 });
 
+
+
 ipcRenderer.on('timer-event', (payload) => {
     if (payload.type !== 'repeating') return;
     switch(payload.event) {
