@@ -11,6 +11,119 @@ let audioCtx = null;
 let ambientAudio = new Audio();
 ambientAudio.loop = true;
 
+// Synthetic Ambient State
+let synthAmbientSource = null;
+let synthAmbientGain = null;
+let synthAmbientLFO = null;
+let synthAmbientFilter = null;
+
+function stopSynthAmbient() {
+    if (synthAmbientSource) {
+        synthAmbientSource.stop();
+        synthAmbientSource.disconnect();
+        synthAmbientSource = null;
+    }
+    if (synthAmbientLFO) {
+        synthAmbientLFO.stop();
+        synthAmbientLFO.disconnect();
+        synthAmbientLFO = null;
+    }
+    if (synthAmbientFilter) {
+        synthAmbientFilter.disconnect();
+        synthAmbientFilter = null;
+    }
+    if (synthAmbientGain) {
+        synthAmbientGain.disconnect();
+        synthAmbientGain = null;
+    }
+}
+
+function startSynthAmbient(type, vol) {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    stopSynthAmbient();
+
+    const bufferSize = audioCtx.sampleRate * 2; // 2 seconds of noise
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const output = buffer.getChannelData(0);
+    
+    let lastOut = 0;
+    for (let i = 0; i < bufferSize; i++) {
+        let white = Math.random() * 2 - 1;
+        if (type.startsWith('classic')) {
+            output[i] = (lastOut + (0.02 * white)) / 1.02; // Brown noise
+            lastOut = output[i];
+            output[i] *= 3.5;
+        } else {
+            output[i] = white * 0.5; // Pinkish
+        }
+    }
+
+    synthAmbientSource = audioCtx.createBufferSource();
+    synthAmbientSource.buffer = buffer;
+    synthAmbientSource.loop = true;
+
+    synthAmbientFilter = audioCtx.createBiquadFilter();
+    
+    if (type === 'classic-bg-1') {
+        synthAmbientFilter.type = 'lowpass';
+        synthAmbientFilter.frequency.value = 400;
+    } else if (type === 'classic-bg-2') {
+        synthAmbientFilter.type = 'lowpass';
+        synthAmbientFilter.frequency.value = 800;
+    } else if (type === 'classic-bg-3') {
+        synthAmbientFilter.type = 'bandpass';
+        synthAmbientFilter.frequency.value = 600;
+    } else if (type === 'mech-bg-1') {
+        synthAmbientFilter.type = 'lowpass';
+        synthAmbientFilter.frequency.value = 300;
+        synthAmbientLFO = audioCtx.createOscillator();
+        synthAmbientLFO.type = 'sine';
+        synthAmbientLFO.frequency.value = 0.5;
+        const lfoGain = audioCtx.createGain();
+        lfoGain.gain.value = 200;
+        synthAmbientLFO.connect(lfoGain);
+        lfoGain.connect(synthAmbientFilter.frequency);
+        synthAmbientLFO.start();
+    } else if (type === 'mech-bg-2') {
+        synthAmbientFilter.type = 'bandpass';
+        synthAmbientFilter.frequency.value = 1000;
+        synthAmbientFilter.Q.value = 2;
+        synthAmbientLFO = audioCtx.createOscillator();
+        synthAmbientLFO.type = 'square';
+        synthAmbientLFO.frequency.value = 2;
+        const lfoGain = audioCtx.createGain();
+        lfoGain.gain.value = 500;
+        synthAmbientLFO.connect(lfoGain);
+        lfoGain.connect(synthAmbientFilter.frequency);
+        synthAmbientLFO.start();
+    } else if (type === 'mech-bg-3') {
+        synthAmbientFilter.type = 'lowpass';
+        synthAmbientFilter.frequency.value = 500;
+        synthAmbientLFO = audioCtx.createOscillator();
+        synthAmbientLFO.type = 'sawtooth';
+        synthAmbientLFO.frequency.value = 0.2;
+        const lfoGain = audioCtx.createGain();
+        lfoGain.gain.value = 300;
+        synthAmbientLFO.connect(lfoGain);
+        lfoGain.connect(synthAmbientFilter.frequency);
+        synthAmbientLFO.start();
+    }
+
+    synthAmbientGain = audioCtx.createGain();
+    synthAmbientGain.gain.value = vol;
+
+    synthAmbientSource.connect(synthAmbientFilter);
+    synthAmbientFilter.connect(synthAmbientGain);
+    synthAmbientGain.connect(audioCtx.destination);
+    
+    synthAmbientSource.start();
+}
+
 export function toggleAmbientNoise() {
     const ambientSelector = document.getElementById('ambient-noise-selector');
     if (!ambientSelector) return;
@@ -19,8 +132,14 @@ export function toggleAmbientNoise() {
     const vol = volInput ? parseFloat(volInput.value) : 0.5;
     
     ambientAudio.pause();
+    stopSynthAmbient();
     
     if (type === 'none') {
+        return;
+    }
+
+    if (type.startsWith('classic-bg-') || type.startsWith('mech-bg-')) {
+        startSynthAmbient(type, vol);
         return;
     }
 
@@ -59,19 +178,19 @@ export function playSynthChime(pack, type) {
     // Trap for the Legacy Chime specifically
     if (selectedNotif === 'nature-notif-1') {
         oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(freq * 1.2, audioCtx.currentTime + 0.1);
+        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.1);
         
         const chimeVolumeInput = document.getElementById('chime-volume');
         const vol = chimeVolumeInput ? parseFloat(chimeVolumeInput.value) : 1;
         gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
         
         oscillator.connect(gainNode);
         gainNode.connect(audioCtx.destination);
         
         oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.8);
+        oscillator.stop(audioCtx.currentTime + 0.5);
         return;
     }
 
@@ -170,4 +289,7 @@ export function setChimeVolume(vol) {
 
 export function setAmbientVolume(vol) {
     ambientAudio.volume = vol;
+    if (synthAmbientGain) {
+        synthAmbientGain.gain.value = vol;
+    }
 }

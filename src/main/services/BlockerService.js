@@ -28,6 +28,14 @@ function runElevated(command, commandArgs, callback) {
         if (callback) callback(new Error('Unauthorized command'));
         return;
     }
+    const isTestMode = process.argv.includes('--no-single-instance');
+    if (isTestMode) {
+        console.log(`[BlockerService] Mocking runElevated in test mode for command: ${command}`);
+        if (callback) {
+            setTimeout(() => callback(null, 'Mock Success', ''), 50);
+        }
+        return;
+    }
     const base64Args = Buffer.from(JSON.stringify(commandArgs)).toString('base64');
     const nodePath = process.execPath;
     let fullCommand;

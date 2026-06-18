@@ -63,6 +63,8 @@ ipcRenderer.on('timer-tick', (batchedTicks) => {
     }
 });
 
+
+
 ipcRenderer.on('timer-event', (payload) => {
     if (payload.type !== 'repeating') return;
     switch(payload.event) {
@@ -322,7 +324,7 @@ export function initializeRepeatingButtonListeners() {
           repeatingState.isRepeatingPaused = true;
           const repeatingDisplay = document.getElementById('repeating-timer-display');
           if (repeatingDisplay) repeatingDisplay.classList.add('paused');
-          btn.innerText = 'Resume \u25B6\uFE0F';
+          btn.innerText = 'Resume ▶';
         } else {
           ipcRenderer.send('resume-timer', 'repeating');
           repeatingState.isRepeatingPaused = false;

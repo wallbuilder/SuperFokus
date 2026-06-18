@@ -103,6 +103,8 @@ async function init() {
     // Generic Timer Handlers
     ipcMain.on('open-timer-window', (event, type) => {
         if (!windowManager.isOriginSafe(event)) return;
+        const hideTimer = store ? store.get('hide-timer-all-modes', false) : false;
+        if (hideTimer) return;
         if (type === 'pomo') windowManager.createPomoTimerWindow();
         else if (type === 'sprint') windowManager.createMicroSprintTimerWindow();
         else if (type === 'flow') windowManager.createFlowTimerWindow();
