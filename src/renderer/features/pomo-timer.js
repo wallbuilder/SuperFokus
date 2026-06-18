@@ -329,7 +329,7 @@ ipcRenderer.on('timer-event', (payload) => {
         case 'paused':
             pomoState.pomoTimer = payload.data;
             pomoState.isPomoPaused = true;
-            if (pausePomoBtn) pausePomoBtn.innerText = 'Resume ▶️';
+            if (pausePomoBtn) pausePomoBtn.innerText = 'Resume ▶';
             if (timerDisplay) timerDisplay.classList.add('paused');
             updatePomoDisplay();
             break;
@@ -493,7 +493,7 @@ document.addEventListener('click', (e) => {
             pomoState.isPomoPaused = true;
             const timerDisplay = document.getElementById('pomo-timer-display');
             if (timerDisplay) timerDisplay.classList.add('paused');
-            e.target.innerText = 'Resume ▶️';
+            e.target.innerText = 'Resume ▶';
         } else {
             ipcRenderer.send('resume-timer', 'pomo');
             pomoState.isPomoPaused = false;

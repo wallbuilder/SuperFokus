@@ -5,9 +5,9 @@ Repeating Reminders mode is designed to provide periodic "nudges" or alerts to t
 
 ## Core Functionality
 1. **Interval Setting:**
-   - The user can define a reminder interval using a numerical input.
-   - A dropdown menu next to the input allows the user to specify if the interval is in 'mins' (minutes) or 'secs' (seconds).
-   - This value determines the cycle duration for each reminder.
+   - The user can define a reminder interval using two numerical inputs.
+   - There will be one input for minutes and one for seconds.
+   - The two text input's combined value of minutes and seconds will determine the cycle duration for each reminder.
 
 2. **Looping Logic:**
    - The mode features an "Infinite Rounds" toggle.
@@ -36,7 +36,7 @@ Repeating Reminders mode is designed to provide periodic "nudges" or alerts to t
 ## User Experience (UX) Standards
 - The start button should clearly toggle to a "Stop" state while a session is active.
 - Configuration inputs (interval, rounds) must be disabled while the timer is running to prevent mid-session logic conflicts.
-- Visual progress (e.g., a countdown or progress bar) should be visible in both the main dashboard and the dedicated timer window.
+- Visual progress (e.g., a countdown or progress bar) should be visible in the main dashboard. There should be no specified timer window that exists for this mode. (If there is one found, remove it!)
 
 ## Edge Case Handling
 - If the interval is set to zero or a negative number, the "Start" button should remain disabled or show a validation alert.
@@ -44,7 +44,4 @@ Repeating Reminders mode is designed to provide periodic "nudges" or alerts to t
 - If the computer goes to sleep, the `TimerService` must calculate the elapsed time upon wake and determine if a reminder was missed.
 
 ## Future Enhancements
-- Support for "Burst Mode" where reminders happen more frequently for a set period.
-- Integration with external task lists to display a specific task in each reminder popup.
-- Advanced "Quiet Hours" to automatically disable reminders during specific times of day.
-- Detailed logs of how many reminders were acknowledged vs ignored.
+- Detailed logs of how many reminders were acknowledged vs ignored (close button clicked on >0 popups AFTER 1 second = acknowledgement).
