@@ -69,14 +69,14 @@ reminders, SuperFokus provides a comprehensive environment for deep work and min
 
    1. Download the latest SuperFokus release for your operating system (**.exe** for Windows, **.dmg** for macOS) from the Releases (https://github.com/wallbuilder/SuperFokus/releases) page.
    2. Run the installer 
-    - If the installer doesn't work, (_it shows that the app isn't verified on the Microsoft/Apple app store or anything similar_) open the app through your terminal, (search "how to open files using terminal on [OS name]" if you don't know how) and follow the prompts. **(WE DO NOT HAVE A CERTIFICATE FROM MICROSOFT OR APPLE)**
+    - If the installer doesn't work, (_it shows that the app isn't verified on the Microsoft/Apple app store or anything similar_) open the app through your terminal, (search "how to open files using terminal on (OS name)" if you don't know how) and follow the prompts. **(WE DO NOT HAVE A CERTIFICATE FROM MICROSOFT OR APPLE)**
    3. (Optional) Run as Administrator if you intend to use the Site Blocker feature.
 
  ## Development Setup (FOR NEW CONTRIBUTORS ONLY)
 
   To contribute or build from source:
 
-    1. Clone the repository through your terminal (use the cd command to switch to a designated folder first) 
+    1. Clone the repository through your terminal (use the `cd` command to switch to a designated folder first) 
     `git clone https://github.com/wallbuilder/SuperFokus.git`
     
     2. Install dependencies
@@ -85,18 +85,21 @@ reminders, SuperFokus provides a comprehensive environment for deep work and min
     3. Run the application in development mode
     `npm start`
     
-    To build the Windows installer, use the command: `npm run dist`
+    (Note: To build the Windows installer, use the command: `npm run dist`)
+
+
 
   ---
 
  ## Credits
   
   ### Contributors
-   - wallbuilder: Lead Coder / Project Creator
-   - A1A2J2: Secondary Coder / Lead Asset Creator
-   - cat2d430: Tester
+   - **wallbuilder**: Founder / Lead Coder / Project Creator
+   - **A1A2J2**: Co-founder / Secondary Coder / Lead Asset Creator
+   - **cat2d430**: Tester
 
   ### AI Systems
-   SuperFokus was developed with significant architectural and implementation assistance from:
-   - Gemini Models by Google: Gemini 3.1 Pro Preview, Gemini 3 Flash, Gemini 2.5 Pro/Flash/Lite.
-   - Claude Models by Anthrophic: Claude Haiku 4.6, Claude Sonnet 4.6.
+   SuperFokus was developed with significant implementation, architectural, and technical assistance from:
+   - **Gemini Models** (by Google): Gemini 3.1 Pro Preview, Gemini 3 Flash, Gemini 2.5 Pro/Flash/Lite.
+   - **Claude Models** (by Anthropic): Claude Haiku 4.5, Claude Sonnet 4.6.
+   - **GitHub Copilot / Other Models**: ChatGPT-4.1, GPT 5 Mini, Qwen 3 Coder 8B, Qwen 3 32B, Raptor Mini, Mai Code 1 Flash.

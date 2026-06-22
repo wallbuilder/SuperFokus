@@ -28,6 +28,40 @@ export async function setupIntegrationUI() {
     endTitle.value = await store.get('notif-end-title', 'Round Ended');
     endBody.value = await store.get('notif-end-body', 'Great job! Take a break.');
 
+    // Load and bind hide-timer setting
+    const hideTimerToggle = document.getElementById('hide-timer-toggle');
+    const hideTimerEnabled = await store.get('hide-timer-all-modes', false);
+    if (hideTimerToggle) {
+        hideTimerToggle.checked = hideTimerEnabled;
+        if (hideTimerEnabled) {
+            document.body.classList.add('hide-timer-active');
+        }
+        hideTimerToggle.addEventListener('change', async (e) => {
+            const isChecked = e.target.checked;
+            await store.set('hide-timer-all-modes', isChecked);
+            if (isChecked) {
+                document.body.classList.add('hide-timer-active');
+                if (ipcRenderer) {
+                    ipcRenderer.send('close-timer-window');
+                }
+            } else {
+                document.body.classList.remove('hide-timer-active');
+            }
+        });
+    }
+
+    // Bind Failsafe button
+    const clearBlockerModalBtn = document.getElementById('clear-blocker-modal-btn');
+    if (clearBlockerModalBtn) {
+        clearBlockerModalBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to clear all SuperFokus block entries from your system?')) {
+                if (ipcRenderer) {
+                    ipcRenderer.send('clear-all-blocks');
+                }
+            }
+        });
+    }
+
     // Toggle event listeners
     startToggle.addEventListener('change', async (e) => {
         startSettings.style.display = e.target.checked ? 'block' : 'none';

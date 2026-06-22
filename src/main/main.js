@@ -30,8 +30,8 @@ if (!isTestMode) {
     }
 }
 
-// app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
-// app.commandLine.appendSwitch('disable-http-cache');
+app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
+app.commandLine.appendSwitch('disable-http-cache');
 
 app.name = 'SuperFokus';
 

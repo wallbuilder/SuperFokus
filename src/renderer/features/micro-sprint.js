@@ -4,6 +4,7 @@ import { store } from '../utils/storage.js';
 import { sharedState } from '../utils/state.js';
 import { recordFocusSession } from '../utils/stats.js';
 import { formatTime, setInputsLocked, escapeHtml } from '../utils/ui-helpers.js';
+import { showOSNotification } from '../utils/notifications.js';
 
 const sprintDurationSelect = document.getElementById('sprint-duration');
 const sprintTasksInput = document.getElementById('sprint-tasks');

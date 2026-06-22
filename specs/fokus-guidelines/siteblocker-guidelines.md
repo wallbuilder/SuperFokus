@@ -40,5 +40,5 @@ The Site Blocker is a powerful system-wide utility that prevents access to distr
 ## Future Enhancements
 - Support for "Timed Blocks" that automatically expire.
 - Integration with Fokus Modes (e.g., "Block these sites only during Pomo Work phases").
-- Categories of blocks (e.g., "Social Media", "News", "Gaming") to allow for quick setup.
-- "White List" mode where *everything* is blocked except for a few specific sites.
+- Preset integration to allow for quick setup.
+- "Allow-only" mode full support where **everything** is blocked except for a few specific sites.
