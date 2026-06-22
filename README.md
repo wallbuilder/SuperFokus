@@ -101,4 +101,5 @@ reminders, SuperFokus provides a comprehensive environment for deep work and min
   ### AI Systems
    SuperFokus was developed with significant implementation, architectural, and technical assistance from:
    - **Gemini Models** (by Google): Gemini 3.1 Pro Preview, Gemini 3 Flash, Gemini 2.5 Pro/Flash/Lite.
-   - **Claude Models** (by Anthrophic): Claude Haiku 4.5, Claude Sonnet 4.6.
+   - **Claude Models** (by Anthropic): Claude Haiku 4.5, Claude Sonnet 4.6.
+   - **GitHub Copilot / Other Models**: ChatGPT-4.1, GPT 5 Mini, Qwen 3 Coder 8B, Qwen 3 32B, Raptor Mini, Mai Code 1 Flash.
