@@ -98,7 +98,7 @@ if (headerTitle) {
         console.log('[Startup] Migration complete. Loading modules...');
 
         const [
-            theme, stats, audio, workflows, pomo, repeating, sprint, flow, integration, siteBlocker
+            theme, stats, audio, workflows, pomo, repeating, sprint, flow, healthMode, integration, siteBlocker
         ] = await Promise.all([
             import('./ui/theme.js'),
             import('./utils/stats.js'),
@@ -108,6 +108,7 @@ if (headerTitle) {
             import('./features/repeating.js'),
             import('./features/micro-sprint.js'),
             import('./features/flow-state.js'),
+            import('./features/health-mode.js'),
             import('./ui/integration.js'),
             import('./features/site-blocker.js')
         ]);
@@ -122,10 +123,10 @@ if (headerTitle) {
           const loadingBar = document.getElementById('startup-loading-bar');
           const loadingText = document.getElementById('startup-loading-text');
           
-          if (!startupScreen) {
-            await runInitializationSteps(theme, stats, audio, workflows, pomo, repeating, sprint, flow, integration, siteBlocker);
-            return;
-          }
+                    if (!startupScreen) {
+                        await runInitializationSteps(theme, stats, audio, workflows, pomo, repeating, sprint, flow, healthMode, integration, siteBlocker);
+                        return;
+                    }
           
           const steps = [
             { progress: 20, text: 'Core modules loaded.' },
@@ -143,7 +144,7 @@ if (headerTitle) {
               await Promise.all([
                   theme.initTheme(), stats.initStats(), audio.initAudio(), workflows.initWorkflows(),
                   pomo.initPomo(), repeating.initRepeating(), sprint.initSprint(), flow.initFlow(),
-                  integration.setupIntegrationUI(), siteBlocker.initSiteBlocker()
+                  healthMode, integration.setupIntegrationUI(), siteBlocker.initSiteBlocker()
               ]);
 
               initializeButtonListeners(repeating.initializeRepeatingButtonListeners); 
@@ -160,12 +161,12 @@ if (headerTitle) {
           executeStepsSequentially();
         };
 
-        const runInitializationSteps = async (theme, stats, audio, workflows, pomo, repeating, sprint, flow, integration, siteBlocker) => {
+        const runInitializationSteps = async (theme, stats, audio, workflows, pomo, repeating, sprint, flow, healthMode, integration, siteBlocker) => {
             initializeDomElements(workflows.setupWorkflowEventListeners, workflows.setupWorkflowPresetsEventListeners);
             await Promise.all([
                 theme.initTheme(), stats.initStats(), audio.initAudio(), workflows.initWorkflows(),
                 pomo.initPomo(), repeating.initRepeating(), sprint.initSprint(), flow.initFlow(),
-                integration.setupIntegrationUI(), siteBlocker.initSiteBlocker()
+                healthMode, integration.setupIntegrationUI(), siteBlocker.initSiteBlocker()
             ]);
             initializeButtonListeners(repeating.initializeRepeatingButtonListeners);
             initializeCustomSoundpackListeners(

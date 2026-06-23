@@ -306,12 +306,13 @@ function updateRules(rules) {
             .then(() => {
                 runElevated('apply-file', [tempPath], (error) => {
                     if (error) {
+                        console.error('[BlockerService] apply-file failed:', error);
                         if (windowManager.mainWindow && !windowManager.mainWindow.isDestroyed()) {
-                            windowManager.mainWindow.webContents.send('blocker-error', error.message);
+                            windowManager.mainWindow.webContents.send('blocker-error', 'Failed to apply changes');
                         }
                         return;
-                    } 
-                    
+                    }
+
                     blocksApplied = domains.length > 0;
                     
                     if (allUrls.size > 0) {

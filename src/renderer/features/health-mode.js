@@ -15,7 +15,11 @@ if (startHealthBtn) {
         isHealthRunning = true;
         if (startHealthBtn) startHealthBtn.style.display = 'none';
         if (stopHealthBtn) stopHealthBtn.style.display = 'block';
-        if (healthStatus) healthStatus.style.display = 'block';
+        if (healthStatus) {
+            healthStatus.innerText = 'Health mode started';
+            healthStatus.style.display = 'block';
+            healthStatus.style.color = '#27ae60';
+        }
         setInputsLocked('config-health-mode', true);
 
         ipcRenderer.send('start-health-mode', {
