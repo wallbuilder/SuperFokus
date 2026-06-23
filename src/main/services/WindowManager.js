@@ -1,4 +1,4 @@
-const { BrowserWindow, screen, Menu, app, shell } = require('electron');
+const { BrowserWindow, screen, Menu, app, shell, Tray } = require('electron');
 const path = require('path');
 
 class WindowManager {
@@ -13,6 +13,7 @@ class WindowManager {
         this.currentPopupIsBlocking = false;
         this.isFocusLocked = false;
         this.canCloseFullscreen = () => true;
+        this.tray = null;
     }
 
     setFocusLock(locked) {
@@ -115,7 +116,51 @@ class WindowManager {
             }
         });
 
+        this.createTray();
+
         return this.mainWindow;
+    }
+
+    createTray() {
+        if (this.tray) return;
+
+        const iconPath = path.join(__dirname, '../../../assets/fokusicon.png');
+        try {
+            this.tray = new Tray(iconPath);
+            const contextMenu = Menu.buildFromTemplate([
+                { 
+                    label: 'Show SuperFokus', 
+                    click: () => {
+                        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+                            this.mainWindow.show();
+                            this.mainWindow.focus();
+                        }
+                    } 
+                },
+                { type: 'separator' },
+                { 
+                    label: 'Quit', 
+                    click: () => {
+                        this.isQuitting = true;
+                        app.quit();
+                    } 
+                }
+            ]);
+            this.tray.setToolTip('SuperFokus');
+            this.tray.setContextMenu(contextMenu);
+            this.tray.on('click', () => {
+                if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+                    if (this.mainWindow.isVisible()) {
+                        this.mainWindow.focus();
+                    } else {
+                        this.mainWindow.show();
+                        this.mainWindow.focus();
+                    }
+                }
+            });
+        } catch (err) {
+            console.error('[WindowManager] Tray creation failed:', err.message);
+        }
     }
 
     createApplicationMenu() {

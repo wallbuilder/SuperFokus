@@ -23,6 +23,9 @@ if (!isTestMode) {
     } else {
         app.on('second-instance', () => {
             if (windowManager.mainWindow) {
+                if (!windowManager.mainWindow.isVisible()) {
+                    windowManager.mainWindow.show();
+                }
                 if (windowManager.mainWindow.isMinimized()) windowManager.mainWindow.restore();
                 windowManager.mainWindow.focus();
             }

@@ -10,7 +10,12 @@ Each new edit to the file that documents new changes should also list the date a
 [DO NOT DELETE THIS TEXT, DELETE TEXT |BELOW| THIS LINE] >
 
 
-[insert documentation here]
+{6/23/2026 at 11:30 AM}
+    [Fixed Bugs]
+     - Resolved startup issue where launching SuperFokus exited immediately due to the single-instance lock being held by orphaned background processes.
+     - Fixed window restoration on launch: modified `second-instance` handler to call `mainWindow.show()` if the window is hidden, allowing the UI to re-appear when the user runs `npm start` again.
+    [New Features]
+     - Implemented system tray icon support (`assets/fokusicon.png`) with options to show/restore the window or cleanly quit the application, preventing orphaned background processes.
 
 
 < [DO NOT DELETE THIS TEXT, DELETE TEXT |ABOVE| THIS LINE]
