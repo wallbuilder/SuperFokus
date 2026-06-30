@@ -76,7 +76,7 @@ reminders, SuperFokus provides a comprehensive environment for deep work and min
 
   To contribute or build from source:
 
-    1. Clone the repository through your terminal (use the `cd` command to switch to a designated folder first) 
+    1. Clone the repository through your terminal (use the `cd` command to switch to a designated folder first, assuming you're using PowerShell)
     `git clone https://github.com/wallbuilder/SuperFokus.git`
     
     2. Install dependencies

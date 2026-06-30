@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "electron .",
-    "test": "playwright test tests/e2e",
+    "test": "playwright test tests/e2e --workers=1",
     "dist": "electron-builder --win",
     "dist:mac": "electron-builder --mac",
     "build": "npm run build:native",

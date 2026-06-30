@@ -387,6 +387,9 @@ function handlePhaseEnd() {
     const finishedPhase = pomoState.activePomoSequence[pomoState.currentPhaseIndex];
     
     if (pomoState.currentPhaseIndex >= pomoState.activePomoSequence.length - 1 && (!pomoInfiniteCheckbox || !pomoInfiniteCheckbox.checked) && pomoState.currentRepeatCount + 1 >= pomoState.totalRepeatsPlanned) {
+        if (finishedPhase && finishedPhase.type === 'work') {
+            recordFocusSession(Math.round(finishedPhase.totalSeconds / 60), 'Pomo Work');
+        }
         playChime('session-complete');
         showOSNotification('end');
         stopPomoStyle();
