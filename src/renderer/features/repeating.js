@@ -199,9 +199,84 @@ const cancelSaveRepeatingPresetBtn = document.getElementById('cancel-save-repeat
 
 let repeatingPresets = {};
 
+function showUpdateBtn(btnElement, show) {
+    if (!btnElement) return;
+    if (show) {
+        btnElement.style.background = '#27ae60';
+        btnElement.textContent = 'Update';
+        btnElement.classList.add('update-mode');
+    } else {
+        btnElement.style.background = 'var(--header-grad-1)';
+        btnElement.textContent = 'Save Preset';
+        btnElement.classList.remove('update-mode');
+    }
+}
+
+export function checkRepeatingPresetDeviation() {
+    if (!repeatingPresetsSelect || !saveRepeatingPresetBtn) return;
+    const val = repeatingPresetsSelect.value;
+    if (val === 'custom') {
+        showUpdateBtn(saveRepeatingPresetBtn, false);
+        return;
+    }
+    let pIntMins = 0, pIntSecs = 0, pRounds = 5, pMsg = '', pPopups = 1;
+    
+    if (val.startsWith('custom-preset-')) {
+        const key = val.replace('custom-preset-', '');
+        if (repeatingPresets[key]) {
+            const data = repeatingPresets[key];
+            pIntMins = data.intervalMins || 0;
+            pIntSecs = data.intervalSecs || 0;
+            pRounds = data.rounds || 5;
+            pMsg = data.message || '';
+            pPopups = data.popupsCount || 1;
+        }
+    } else {
+        if (val === 'concentration') {
+            pIntSecs = 30; pRounds = 5; pMsg = "Stay focused! Keep up the concentration.";
+        } else if (val === 'high-intensity') {
+            pIntSecs = 20; pRounds = 10; pMsg = "High-intensity work! Push through!";
+        } else if (val === 'quick-work') {
+            pIntMins = 1; pRounds = 5; pMsg = "Quick work sprint. Stay on task.";
+        }
+    }
+    
+    const curMins = reminderIntervalInput ? (parseInt(reminderIntervalInput.value, 10) || 0) : 0;
+    const curSecs = reminderIntervalSecondsInput ? (parseInt(reminderIntervalSecondsInput.value, 10) || 0) : 0;
+    const curRounds = reminderRoundsInput ? (parseInt(reminderRoundsInput.value, 10) || 5) : 5;
+    const curMsg = reminderMessageInput ? reminderMessageInput.value : '';
+    const curPopups = reminderPopupsCountInput ? (parseInt(reminderPopupsCountInput.value, 10) || 1) : 1;
+    
+    const isDifferent = curMins !== pIntMins || curSecs !== pIntSecs || curRounds !== pRounds || curMsg !== pMsg || curPopups !== pPopups;
+    showUpdateBtn(saveRepeatingPresetBtn, isDifferent);
+}
+
 export async function initRepeating() {
     repeatingPresets = await store.get('repeatingPresets', {});
     updateRepeatingPresetOptions();
+
+    if (reminderIntervalInput) {
+        reminderIntervalInput.addEventListener('input', checkRepeatingPresetDeviation);
+        reminderIntervalInput.addEventListener('change', checkRepeatingPresetDeviation);
+    }
+    if (reminderIntervalSecondsInput) {
+        reminderIntervalSecondsInput.addEventListener('input', checkRepeatingPresetDeviation);
+        reminderIntervalSecondsInput.addEventListener('change', checkRepeatingPresetDeviation);
+    }
+    if (reminderRoundsInput) {
+        reminderRoundsInput.addEventListener('input', checkRepeatingPresetDeviation);
+        reminderRoundsInput.addEventListener('change', checkRepeatingPresetDeviation);
+    }
+    if (reminderMessageInput) {
+        reminderMessageInput.addEventListener('input', checkRepeatingPresetDeviation);
+        reminderMessageInput.addEventListener('change', checkRepeatingPresetDeviation);
+    }
+    if (reminderPopupsCountInput) {
+        reminderPopupsCountInput.addEventListener('change', checkRepeatingPresetDeviation);
+    }
+    if (infiniteRoundsCheckbox) {
+        infiniteRoundsCheckbox.addEventListener('change', checkRepeatingPresetDeviation);
+    }
 }
 
 function updateRepeatingPresetOptions() {
@@ -223,6 +298,13 @@ if (repeatingPresetsSelect) {
     repeatingPresetsSelect.addEventListener('change', (e) => {
         const val = e.target.value;
         if (reminderPopupsCountInput) reminderPopupsCountInput.value = 1; // Default
+        
+        if (val !== 'custom') {
+            if (infiniteRoundsCheckbox) {
+                infiniteRoundsCheckbox.checked = false;
+                infiniteRoundsCheckbox.dispatchEvent(new Event('change'));
+            }
+        }
         
         if (deleteRepeatingPresetBtn) {
             deleteRepeatingPresetBtn.style.display = val.startsWith('custom-preset-') ? 'block' : 'none';
@@ -253,6 +335,7 @@ if (repeatingPresetsSelect) {
                 if (reminderPopupsCountInput) reminderPopupsCountInput.value = data.popupsCount || 1;
             }
         }
+        checkRepeatingPresetDeviation();
     });
 }
 
@@ -274,13 +357,38 @@ if (deleteRepeatingPresetBtn) {
 
 if (saveRepeatingPresetBtn) {
     saveRepeatingPresetBtn.addEventListener('click', () => {
-        if (infiniteRoundsCheckbox && infiniteRoundsCheckbox.checked) {
-            customAlert("Cannot save preset with 'Infinite Rounds' enabled.");
-            return;
-        }
-        if (saveRepeatingPresetContainer) {
-            saveRepeatingPresetContainer.style.display = 'flex';
-            if (repeatingPresetNameInput) repeatingPresetNameInput.focus();
+        if (saveRepeatingPresetBtn.classList.contains('update-mode')) {
+            const val = repeatingPresetsSelect.value;
+            let name = '';
+            if (val.startsWith('custom-preset-')) {
+                name = val.replace('custom-preset-', '');
+            } else {
+                name = repeatingPresetsSelect.options[repeatingPresetsSelect.selectedIndex].textContent.trim();
+            }
+            repeatingPresets[name] = {
+                intervalMins: reminderIntervalInput ? (parseInt(reminderIntervalInput.value, 10) || 0) : 0,
+                intervalSecs: reminderIntervalSecondsInput ? (parseInt(reminderIntervalSecondsInput.value, 10) || 0) : 0,
+                rounds: reminderRoundsInput ? (parseInt(reminderRoundsInput.value, 10) || 5) : 5,
+                message: reminderMessageInput ? reminderMessageInput.value : '',
+                popupsCount: reminderPopupsCountInput ? (parseInt(reminderPopupsCountInput.value, 10) || 1) : 1
+            };
+            store.set('repeatingPresets', repeatingPresets);
+            if (!val.startsWith('custom-preset-')) {
+                updateRepeatingPresetOptions();
+                repeatingPresetsSelect.value = `custom-preset-${name}`;
+                repeatingPresetsSelect.dispatchEvent(new Event('change'));
+            } else {
+                checkRepeatingPresetDeviation();
+            }
+        } else {
+            if (infiniteRoundsCheckbox && infiniteRoundsCheckbox.checked) {
+                customAlert("Cannot save preset with 'Infinite Rounds' enabled.");
+                return;
+            }
+            if (saveRepeatingPresetContainer) {
+                saveRepeatingPresetContainer.style.display = 'flex';
+                if (repeatingPresetNameInput) repeatingPresetNameInput.focus();
+            }
         }
     });
 }
@@ -299,7 +407,10 @@ if (confirmSaveRepeatingPresetBtn) {
             };
             store.set('repeatingPresets', repeatingPresets);
             updateRepeatingPresetOptions();
-            repeatingPresetsSelect.value = `custom-preset-${name.trim()}`;
+            if (repeatingPresetsSelect) {
+                repeatingPresetsSelect.value = `custom-preset-${name.trim()}`;
+                repeatingPresetsSelect.dispatchEvent(new Event('change'));
+            }
             repeatingPresetNameInput.value = '';
             if (saveRepeatingPresetContainer) saveRepeatingPresetContainer.style.display = 'none';
         }

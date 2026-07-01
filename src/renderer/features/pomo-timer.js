@@ -33,13 +33,87 @@ const savePresetContainer = document.getElementById('save-preset-container');
 const presetNameInput = document.getElementById('preset-name-input');
 const confirmSavePresetBtn = document.getElementById('confirm-save-preset-btn');
 const cancelSavePresetBtn = document.getElementById('cancel-save-preset-btn');
+const pomoRepeatsInput = document.getElementById('pomo-repeats');
+const pomoInfiniteCheckbox = document.getElementById('pomo-infinite');
 
 let customPresets = {};
+
+function showUpdateBtn(btnElement, show) {
+    if (!btnElement) return;
+    if (show) {
+        btnElement.style.background = '#27ae60';
+        btnElement.textContent = 'Update';
+        btnElement.classList.add('update-mode');
+    } else {
+        btnElement.style.background = 'var(--header-grad-1)';
+        btnElement.textContent = 'Save Preset';
+        btnElement.classList.remove('update-mode');
+    }
+}
+
+function sequencesEqual(seq1, seq2) {
+    if (!seq1 || !seq2) return false;
+    if (seq1.length !== seq2.length) return false;
+    for (let i = 0; i < seq1.length; i++) {
+        const p1 = seq1[i];
+        const p2 = seq2[i];
+        if (p1.type !== p2.type) return false;
+        if (p1.duration !== p2.duration) return false;
+        if ((p1.unit || 'mins') !== (p2.unit || 'mins')) return false;
+    }
+    return true;
+}
+
+export function checkPomoPresetDeviation() {
+    if (!pomoPresetsSelect || !savePomoPresetBtn) return;
+    const val = pomoPresetsSelect.value;
+    if (val === 'custom') {
+        showUpdateBtn(savePomoPresetBtn, false);
+        return;
+    }
+    let presetSeq = [];
+    let presetRepeats = 1;
+    
+    if (val.startsWith('custom-preset-')) {
+        const key = val.replace('custom-preset-', '');
+        if (customPresets[key]) {
+            const data = customPresets[key];
+            if (Array.isArray(data)) {
+                presetSeq = data;
+                presetRepeats = 1;
+            } else {
+                presetSeq = data.sequence || [];
+                presetRepeats = data.repeats || 1;
+            }
+        }
+    } else {
+        if (val === 'deep-work') {
+            presetSeq = [{ type: 'work', duration: 50 }, { type: 'break', duration: 10 }];
+        } else if (val === 'quick-study') {
+            presetSeq = [{ type: 'work', duration: 25 }, { type: 'break', duration: 5 }];
+        } else if (val === 'homework') {
+            presetSeq = [{ type: 'work', duration: 45 }, { type: 'break', duration: 15 }];
+        }
+    }
+    
+    const currentSeq = pomoState.pomoSequence;
+    const currentRepeats = pomoRepeatsInput ? pomoRepeatsInput.value : 1;
+    const isDifferent = !sequencesEqual(currentSeq, presetSeq) || String(currentRepeats) !== String(presetRepeats);
+    showUpdateBtn(savePomoPresetBtn, isDifferent);
+}
 
 export async function initPomo() {
     customPresets = await store.get('customPomoPresets', {});
     updatePresetOptions();
     renderSequence();
+
+    if (pomoRepeatsInput) {
+        pomoRepeatsInput.addEventListener('input', checkPomoPresetDeviation);
+        pomoRepeatsInput.addEventListener('change', checkPomoPresetDeviation);
+    }
+    if (pomoInfiniteCheckbox) {
+        pomoInfiniteCheckbox.addEventListener('change', checkPomoPresetDeviation);
+    }
 }
 
 function updatePresetOptions() {
@@ -67,25 +141,46 @@ if (pomoPresetsSelect) {
         }
         if (val === 'deep-work') {
             pomoState.pomoSequence = [{ type: 'work', duration: 50 }, { type: 'break', duration: 10 }];
+            if (pomoRepeatsInput) pomoRepeatsInput.value = 1;
+            if (pomoInfiniteCheckbox) {
+                pomoInfiniteCheckbox.checked = false;
+                pomoInfiniteCheckbox.dispatchEvent(new Event('change'));
+            }
         } else if (val === 'quick-study') {
             pomoState.pomoSequence = [{ type: 'work', duration: 25 }, { type: 'break', duration: 5 }];
+            if (pomoRepeatsInput) pomoRepeatsInput.value = 1;
+            if (pomoInfiniteCheckbox) {
+                pomoInfiniteCheckbox.checked = false;
+                pomoInfiniteCheckbox.dispatchEvent(new Event('change'));
+            }
         } else if (val === 'homework') {
             pomoState.pomoSequence = [{ type: 'work', duration: 45 }, { type: 'break', duration: 15 }];
+            if (pomoRepeatsInput) pomoRepeatsInput.value = 1;
+            if (pomoInfiniteCheckbox) {
+                pomoInfiniteCheckbox.checked = false;
+                pomoInfiniteCheckbox.dispatchEvent(new Event('change'));
+            }
         } else if (val.startsWith('custom-preset-')) {
             const key = val.replace('custom-preset-', '');
             if (customPresets[key]) {
                 const data = customPresets[key];
                 if (Array.isArray(data)) {
                     pomoState.pomoSequence = JSON.parse(JSON.stringify(data));
+                    if (pomoRepeatsInput) pomoRepeatsInput.value = 1;
                 } else if (data.sequence) {
                     pomoState.pomoSequence = JSON.parse(JSON.stringify(data.sequence));
-                    if (document.getElementById('pomo-repeats')) {
-                        document.getElementById('pomo-repeats').value = data.repeats || 1;
+                    if (pomoRepeatsInput) {
+                        pomoRepeatsInput.value = data.repeats || 1;
                     }
+                }
+                if (pomoInfiniteCheckbox) {
+                    pomoInfiniteCheckbox.checked = false;
+                    pomoInfiniteCheckbox.dispatchEvent(new Event('change'));
                 }
             }
         }
         renderSequence();
+        checkPomoPresetDeviation();
     });
 }
 
@@ -107,12 +202,37 @@ if (deletePomoPresetBtn) {
 
 if (savePomoPresetBtn) {
     savePomoPresetBtn.addEventListener('click', () => {
-        if (pomoState.pomoSequence.length === 0) {
-            customAlert('Add phases to sequence before saving as preset.');
-            return;
+        if (savePomoPresetBtn.classList.contains('update-mode')) {
+            const val = pomoPresetsSelect.value;
+            const repeatsVal = pomoRepeatsInput ? pomoRepeatsInput.value : 1;
+            let name = '';
+            if (val.startsWith('custom-preset-')) {
+                name = val.replace('custom-preset-', '');
+            } else {
+                name = pomoPresetsSelect.options[pomoPresetsSelect.selectedIndex].textContent.trim();
+            }
+            
+            customPresets[name] = {
+                sequence: JSON.parse(JSON.stringify(pomoState.pomoSequence)),
+                repeats: repeatsVal
+            };
+            store.set('customPomoPresets', customPresets);
+            
+            if (!val.startsWith('custom-preset-')) {
+                updatePresetOptions();
+                pomoPresetsSelect.value = `custom-preset-${name}`;
+                pomoPresetsSelect.dispatchEvent(new Event('change'));
+            } else {
+                checkPomoPresetDeviation();
+            }
+        } else {
+            if (pomoState.pomoSequence.length === 0) {
+                customAlert('Add phases to sequence before saving as preset.');
+                return;
+            }
+            savePresetContainer.style.display = 'flex';
+            presetNameInput.focus();
         }
-        savePresetContainer.style.display = 'flex';
-        presetNameInput.focus();
     });
 }
 
@@ -120,7 +240,7 @@ if (confirmSavePresetBtn) {
     confirmSavePresetBtn.addEventListener('click', () => {
         const name = presetNameInput.value;
         if (name && name.trim()) {
-            const repeatsVal = document.getElementById('pomo-repeats') ? document.getElementById('pomo-repeats').value : 1;
+            const repeatsVal = pomoRepeatsInput ? pomoRepeatsInput.value : 1;
             customPresets[name.trim()] = {
                 sequence: JSON.parse(JSON.stringify(pomoState.pomoSequence)),
                 repeats: repeatsVal
@@ -128,6 +248,7 @@ if (confirmSavePresetBtn) {
             store.set('customPomoPresets', customPresets);
             updatePresetOptions();
             pomoPresetsSelect.value = `custom-preset-${name.trim()}`;
+            pomoPresetsSelect.dispatchEvent(new Event('change'));
             presetNameInput.value = '';
             savePresetContainer.style.display = 'none';
         }
@@ -167,6 +288,7 @@ function renderSequence() {
         `;
         if (sequenceListEl) sequenceListEl.appendChild(div);
     });
+    checkPomoPresetDeviation();
 }
 
 export function updateSequenceDuration(idx, val, unit) {
@@ -211,6 +333,7 @@ if (sequenceListEl) {
                 }
             }
         }
+        checkPomoPresetDeviation();
     });
 
     sequenceListEl.addEventListener('click', (e) => {
@@ -231,8 +354,6 @@ const startPomoBtn = document.getElementById('start-pomo-btn');
 const pausePomoBtn = document.getElementById('pause-pomo-btn');
 const continuePomoBtn = document.getElementById('continue-pomo-btn');
 const pomoAutostartCheckbox = document.getElementById('pomo-autostart');
-const pomoInfiniteCheckbox = document.getElementById('pomo-infinite');
-const pomoRepeatsInput = document.getElementById('pomo-repeats');
 const pomoCyclesContainer = document.getElementById('pomo-cycles-container');
 const pomoInfiniteStatus = document.getElementById('pomo-infinite-status');
 

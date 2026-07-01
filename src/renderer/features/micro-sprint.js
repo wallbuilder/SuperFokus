@@ -40,15 +40,81 @@ const customSprintDurationInput = document.getElementById('custom-sprint-duratio
 
 let sprintPresets = {};
 
+function showUpdateBtn(btnElement, show) {
+    if (!btnElement) return;
+    if (show) {
+        btnElement.style.background = '#27ae60';
+        btnElement.textContent = 'Update';
+        btnElement.classList.add('update-mode');
+    } else {
+        btnElement.style.background = 'var(--header-grad-1)';
+        btnElement.textContent = 'Save Preset';
+        btnElement.classList.remove('update-mode');
+    }
+}
+
+export function checkSprintPresetDeviation() {
+    if (!sprintPresetsSelect || !saveSprintPresetBtn) return;
+    const val = sprintPresetsSelect.value;
+    if (val === 'custom') {
+        showUpdateBtn(saveSprintPresetBtn, false);
+        return;
+    }
+    let pDurationVal = '5';
+    let pCustomMins = null;
+    let pTasks = '';
+    let pAutostart = false;
+    
+    if (val.startsWith('custom-preset-')) {
+        const key = val.replace('custom-preset-', '');
+        if (sprintPresets[key]) {
+            const data = sprintPresets[key];
+            pDurationVal = data.durationVal || '5';
+            pCustomMins = data.customMins || null;
+            pTasks = data.tasks || '';
+            pAutostart = !!data.autostart;
+        }
+    } else if (val === 'quick-chores') {
+        pDurationVal = '5';
+        pTasks = "Clean desk\nCheck email\nStretch";
+        pAutostart = true;
+    }
+    
+    const currentDurationVal = sprintDurationSelect ? sprintDurationSelect.value : '5';
+    const currentCustomMins = (sprintDurationSelect && sprintDurationSelect.value === 'custom' && customSprintDurationInput) ? (parseInt(customSprintDurationInput.value, 10) || 5) : null;
+    const currentTasks = sprintTasksInput ? sprintTasksInput.value : '';
+    const currentAutostart = sprintAutostartCheckbox ? sprintAutostartCheckbox.checked : false;
+    
+    const isDifferent = currentDurationVal !== pDurationVal ||
+                        (currentDurationVal === 'custom' && String(currentCustomMins) !== String(pCustomMins)) ||
+                        currentTasks !== pTasks ||
+                        currentAutostart !== pAutostart;
+    showUpdateBtn(saveSprintPresetBtn, isDifferent);
+}
+
 export async function initSprint() {
     sprintPresets = await store.get('sprintPresets', {});
     if (sprintAutostartCheckbox) {
         sprintAutostartCheckbox.checked = await store.get('sprintAutostart', false);
     }
     updateSprintPresetOptions();
+
+    if (sprintDurationSelect) {
+        sprintDurationSelect.addEventListener('change', checkSprintPresetDeviation);
+    }
+    if (customSprintDurationInput) {
+        customSprintDurationInput.addEventListener('input', checkSprintPresetDeviation);
+        customSprintDurationInput.addEventListener('change', checkSprintPresetDeviation);
+    }
+    if (sprintTasksInput) {
+        sprintTasksInput.addEventListener('input', checkSprintPresetDeviation);
+        sprintTasksInput.addEventListener('change', checkSprintPresetDeviation);
+    }
+    if (sprintAutostartCheckbox) {
+        sprintAutostartCheckbox.addEventListener('change', checkSprintPresetDeviation);
+    }
 }
 
-// Load autostart preference listener
 if (sprintAutostartCheckbox) {
     sprintAutostartCheckbox.addEventListener('change', (e) => {
         store.set('sprintAutostart', e.target.checked);
@@ -111,6 +177,7 @@ if (sprintPresetsSelect) {
                 }
             }
         }
+        checkSprintPresetDeviation();
     });
 }
 
@@ -133,8 +200,32 @@ if (deleteSprintPresetBtn) {
 
 if (saveSprintPresetBtn) {
     saveSprintPresetBtn.addEventListener('click', () => {
-        if (saveSprintPresetContainer) saveSprintPresetContainer.style.display = 'flex';
-        if (sprintPresetNameInput) sprintPresetNameInput.focus();
+        if (saveSprintPresetBtn.classList.contains('update-mode')) {
+            const val = sprintPresetsSelect.value;
+            let name = '';
+            if (val.startsWith('custom-preset-')) {
+                name = val.replace('custom-preset-', '');
+            } else {
+                name = sprintPresetsSelect.options[sprintPresetsSelect.selectedIndex].textContent.trim();
+            }
+            sprintPresets[name] = {
+                durationVal: sprintDurationSelect ? sprintDurationSelect.value : '5',
+                customMins: (sprintDurationSelect && sprintDurationSelect.value === 'custom' && customSprintDurationInput) ? (parseInt(customSprintDurationInput.value, 10) || 20) : null,
+                tasks: sprintTasksInput ? sprintTasksInput.value : '',
+                autostart: sprintAutostartCheckbox ? sprintAutostartCheckbox.checked : false
+            };
+            store.set('sprintPresets', sprintPresets);
+            if (!val.startsWith('custom-preset-')) {
+                updateSprintPresetOptions();
+                sprintPresetsSelect.value = `custom-preset-${name}`;
+                sprintPresetsSelect.dispatchEvent(new Event('change'));
+            } else {
+                checkSprintPresetDeviation();
+            }
+        } else {
+            if (saveSprintPresetContainer) saveSprintPresetContainer.style.display = 'flex';
+            if (sprintPresetNameInput) sprintPresetNameInput.focus();
+        }
     });
 }
 
@@ -151,7 +242,10 @@ if (confirmSaveSprintPresetBtn) {
             };
             store.set('sprintPresets', sprintPresets);
             updateSprintPresetOptions();
-            if (sprintPresetsSelect) sprintPresetsSelect.value = `custom-preset-${name.trim()}`;
+            if (sprintPresetsSelect) {
+                sprintPresetsSelect.value = `custom-preset-${name.trim()}`;
+                sprintPresetsSelect.dispatchEvent(new Event('change'));
+            }
             sprintPresetNameInput.value = '';
             if (saveSprintPresetContainer) saveSprintPresetContainer.style.display = 'none';
         }

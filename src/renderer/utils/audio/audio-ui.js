@@ -139,7 +139,15 @@ export function updateCustomNotifsUI() {
         delBtn.style.background = '#e74c3c';
         delBtn.style.width = 'auto';
         delBtn.innerText = 'Delete';
-        delBtn.onclick = () => {
+        delBtn.onclick = async () => {
+            const soundSrc = customNotifs[idx];
+            if (window.electronAPI && soundSrc && soundSrc.startsWith('file://')) {
+                try {
+                    await window.electronAPI.invoke('delete-audio-file', soundSrc);
+                } catch (err) {
+                    console.error('Failed to delete custom audio file from disk:', err);
+                }
+            }
             customNotifs.splice(idx, 1);
             store.set('customNotifsData', customNotifs);
             updateCustomNotifsUI();
@@ -153,7 +161,7 @@ export function updateCustomNotifsUI() {
 
     const uploadBtn = document.getElementById('upload-chime-btn');
     if (uploadBtn) {
-        if (customNotifs.length >= 3) {
+        if (customNotifs.length >= 10) {
             uploadBtn.style.display = 'none';
         } else {
             uploadBtn.style.display = 'block';

@@ -90,17 +90,16 @@ function setupEventListeners() {
 
     if (uploadChimeBtn && chimeFileInput) {
         uploadChimeBtn.addEventListener('click', () => {
-            if (customNotifs.length < 3) {
+            if (customNotifs.length < 10) {
                 chimeFileInput.click();
             }
         });
 
-        chimeFileInput.addEventListener('change', (e) => {
+        chimeFileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (file) {
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    const dataUrl = ev.target.result;
+                try {
+                    const dataUrl = await loadFileAsDataURL(file);
                     customNotifs.push(dataUrl);
                     store.set('customNotifsData', customNotifs);
                     updateCustomNotifsUI();
@@ -110,8 +109,9 @@ function setupEventListeners() {
                     if (notifSelector) {
                         notifSelector.value = `custom-notif-${customNotifs.length - 1}`;
                     }
-                };
-                reader.readAsDataURL(file);
+                } catch (err) {
+                    console.error('Error uploading custom notification sound:', err);
+                }
             }
             e.target.value = '';
         });

@@ -57,9 +57,25 @@ function startSynthAmbient(type, vol) {
         if (type.startsWith('classic')) {
             output[i] = (lastOut + (0.02 * white)) / 1.02; // Brown noise
             lastOut = output[i];
-            output[i] *= 3.5;
         } else {
             output[i] = white * 0.5; // Pinkish
+        }
+    }
+
+    if (type.startsWith('classic')) {
+        let maxVal = 0;
+        for (let i = 0; i < bufferSize; i++) {
+            let absVal = Math.abs(output[i]);
+            if (absVal > maxVal) {
+                maxVal = absVal;
+            }
+        }
+        if (maxVal > 0) {
+            const targetPeak = 0.95;
+            const scaleFactor = targetPeak / maxVal;
+            for (let i = 0; i < bufferSize; i++) {
+                output[i] *= scaleFactor;
+            }
         }
     }
 
