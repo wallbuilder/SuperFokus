@@ -264,6 +264,29 @@ export function playChime(eventType = 'test') {
     
     const selectedNotif = notifSelector ? notifSelector.value : `${pack}-notif-1`;
 
+    if (selectedNotif && selectedNotif.startsWith('custom-notif-')) {
+        if (chimeAudio) {
+            const chimeVolumeInput = document.getElementById('chime-volume');
+            if (chimeVolumeInput) chimeAudio.volume = parseFloat(chimeVolumeInput.value);
+            const idx = parseInt(selectedNotif.split('-').pop(), 10);
+            if (customNotifs[idx]) {
+                const item = customNotifs[idx];
+                const soundSrc = (item && typeof item === 'object') ? item.src : item;
+                if (soundSrc) {
+                    chimeAudio.src = soundSrc;
+                    chimeAudio.currentTime = 0;
+                    chimeAudio.play().catch(e => {
+                        console.warn(`[Audio] Failed to play custom notification ${idx}, using fallback.`, e);
+                        playSynthChime(pack, eventType);
+                    });
+                    return;
+                }
+            }
+        }
+        playSynthChime(pack, eventType);
+        return;
+    }
+
     if (pack === 'classic') {
         playSynthChime(pack, eventType);
         return;
@@ -274,12 +297,8 @@ export function playChime(eventType = 'test') {
         if (chimeVolumeInput) chimeAudio.volume = parseFloat(chimeVolumeInput.value);
         if (selectedNotif.startsWith('custom-notif-')) {
             const idx = parseInt(selectedNotif.split('-').pop(), 10);
-            if (customNotifs[idx]) {
-                chimeAudio.src = customNotifs[idx];
-            } else {
-                playSynthChime(pack, eventType);
-                return;
-            }
+            const item = customNotifs[idx];
+            chimeAudio.src = (item && typeof item === 'object') ? item.src : item;
         } else {
             chimeAudio.src = `assets/sounds/${selectedNotif}.mp3`;
         }

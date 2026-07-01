@@ -75,7 +75,8 @@ export function updateSoundSelectors() {
             customNotifs.forEach((n, idx) => {
                 const opt = document.createElement('option');
                 opt.value = `custom-notif-${idx}`;
-                opt.innerText = `Custom Notification ${idx + 1}`;
+                const name = (n && typeof n === 'object') ? (n.name || `Custom Notification ${idx + 1}`) : `Custom Notification ${idx + 1}`;
+                opt.innerText = name;
                 notifSelector.appendChild(opt);
             });
 
@@ -130,7 +131,8 @@ export function updateCustomNotifsUI() {
         const label = document.createElement('span');
         label.style.flex = '1';
         label.style.fontSize = '0.9rem';
-        label.innerText = `Custom Notification ${idx + 1}`;
+        const name = (n && typeof n === 'object') ? (n.name || `Custom Notification ${idx + 1}`) : `Custom Notification ${idx + 1}`;
+        label.innerText = `Custom Notification ${idx + 1} (${name})`;
 
         const delBtn = document.createElement('button');
         delBtn.className = 'action-btn';
@@ -140,8 +142,9 @@ export function updateCustomNotifsUI() {
         delBtn.style.width = 'auto';
         delBtn.innerText = 'Delete';
         delBtn.onclick = async () => {
-            const soundSrc = customNotifs[idx];
-            if (window.electronAPI && soundSrc && soundSrc.startsWith('file://')) {
+            const item = customNotifs[idx];
+            const soundSrc = (item && typeof item === 'object') ? item.src : item;
+            if (window.electronAPI && soundSrc && typeof soundSrc === 'string' && soundSrc.startsWith('file://')) {
                 try {
                     await window.electronAPI.invoke('delete-audio-file', soundSrc);
                 } catch (err) {

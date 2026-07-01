@@ -34,7 +34,27 @@ import {
 export async function initAudio() {
     const savedCustomNotifs = await store.get('customNotifsData', []);
     if (Array.isArray(savedCustomNotifs)) {
-        setCustomNotifs(savedCustomNotifs);
+        const normalized = savedCustomNotifs.map((n, idx) => {
+            if (typeof n === 'string') {
+                let name = `Custom Notification ${idx + 1}`;
+                if (n.startsWith('file://')) {
+                    name = n.substring(n.lastIndexOf('/') + 1);
+                    const match = name.match(/^\d+-(.+)$/);
+                    if (match) {
+                        name = match[1];
+                    }
+                }
+                return { name, src: n };
+            }
+            if (n && typeof n === 'object' && n.name) {
+                const match = n.name.match(/^\d+-(.+)$/);
+                if (match) {
+                    n.name = match[1];
+                }
+            }
+            return n;
+        });
+        setCustomNotifs(normalized);
     }
     
     const savedCustomAmbient = await store.get('customAmbientData', null);
@@ -100,7 +120,7 @@ function setupEventListeners() {
             if (file) {
                 try {
                     const dataUrl = await loadFileAsDataURL(file);
-                    customNotifs.push(dataUrl);
+                    customNotifs.push({ name: file.name, src: dataUrl });
                     store.set('customNotifsData', customNotifs);
                     updateCustomNotifsUI();
                     updateSoundSelectors();
