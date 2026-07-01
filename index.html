@@ -447,6 +447,15 @@
         width: 100%; padding: 1.1rem; border: none; border-radius: 12px;
         font-size: 1.1rem; font-weight: 500; color: white; cursor: pointer;
         transition: all 0.3s ease; margin-top: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+      .action-btn svg {
+        width: 1.2rem;
+        height: 1.2rem;
+        flex-shrink: 0;
       }
       .start-btn { background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); }
       .start-btn:hover { background: linear-gradient(135deg, #219653 0%, #27ae60 100%); transform: translateY(-2px); }
@@ -1667,7 +1676,9 @@
 
         <div style="display: flex; gap: 10px;">
           <button class="action-btn start-btn" id="start-repeating-btn" style="flex: 2;">Start ▶</button>
-          <button class="action-btn" id="pause-repeating-btn" style="flex: 1; background: #f39c12; display: none;">Pause ⏸</button>
+          <button class="action-btn" id="pause-repeating-btn" style="flex: 1; background: #f39c12; display: none;" title="Pause">
+            Pause <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          </button>
         </div>
       </div>
 
@@ -1741,7 +1752,9 @@
 
         <div style="display: flex; gap: 10px;">
           <button class="action-btn start-btn" id="start-pomo-btn" style="flex: 2;">Start ▶</button>
-          <button class="action-btn" id="pause-pomo-btn" style="flex: 1; background: #f39c12; display: none;">Pause ⏸</button>
+          <button class="action-btn" id="pause-pomo-btn" style="flex: 1; background: #f39c12; display: none;" title="Pause">
+            Pause <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          </button>
         </div>
       </div>
 

@@ -40,7 +40,9 @@ test.describe('Timer Play/Pause Synchronization E2E Tests', () => {
 
     // Verify the main window's timer updates to the paused state
     const pausePomoBtn = window.locator('#pause-pomo-btn');
-    await expect(pausePomoBtn).toHaveText('Resume ▶');
+    await expect(pausePomoBtn).toHaveText('Resume');
+    await expect(pausePomoBtn).toHaveAttribute('title', 'Resume');
+    await expect(pausePomoBtn.locator('svg path')).toHaveAttribute('d', 'M8 5v14l11-7z');
     const pomoTimerDisplay = window.locator('#pomo-timer-display');
     await expect(pomoTimerDisplay).toHaveClass(/paused/);
 
@@ -49,7 +51,7 @@ test.describe('Timer Play/Pause Synchronization E2E Tests', () => {
     await expect(playPauseBtn).toHaveAttribute('title', 'Resume');
     await expect(playPauseBtn.locator('svg path')).toHaveAttribute('d', 'M8 5v14l11-7z');
 
-    // 6. Click "Resume ▶" on `#pause-pomo-btn` in the main window.
+    // 6. Click Resume on `#pause-pomo-btn` in the main window.
     await pausePomoBtn.click();
 
     // Verify the mini-timer window's play-pause button updates back to the running state
@@ -59,10 +61,12 @@ test.describe('Timer Play/Pause Synchronization E2E Tests', () => {
     await expect(miniTimerDisplay).not.toHaveClass(/paused/);
 
     // Verify main window has running styling
-    await expect(pausePomoBtn).toHaveText('Pause ▐▐');
+    await expect(pausePomoBtn).toHaveText('Pause');
+    await expect(pausePomoBtn).toHaveAttribute('title', 'Pause');
+    await expect(pausePomoBtn.locator('svg path')).toHaveAttribute('d', 'M6 19h4V5H6v14zm8-14v14h4V5h-4z');
     await expect(pomoTimerDisplay).not.toHaveClass(/paused/);
 
-    // 7. Click "Pause ▐▐" on `#pause-pomo-btn` in the main window.
+    // 7. Click Pause on `#pause-pomo-btn` in the main window.
     await pausePomoBtn.click();
 
     // Verify the mini-timer window updates to the paused state
@@ -74,7 +78,9 @@ test.describe('Timer Play/Pause Synchronization E2E Tests', () => {
     await playPauseBtn.click();
 
     // Verify the main window updates to the running state
-    await expect(pausePomoBtn).toHaveText('Pause ▐▐');
+    await expect(pausePomoBtn).toHaveText('Pause');
+    await expect(pausePomoBtn).toHaveAttribute('title', 'Pause');
+    await expect(pausePomoBtn.locator('svg path')).toHaveAttribute('d', 'M6 19h4V5H6v14zm8-14v14h4V5h-4z');
     await expect(pomoTimerDisplay).not.toHaveClass(/paused/);
 
     // Verify mini-timer window updates to running state

@@ -8,16 +8,17 @@ Each new edit to the file that documents new changes should also list the date a
 (Note: You must list ALL changes, including small ones. No detail is too small).
 
 [DO NOT DELETE THIS TEXT, DELETE TEXT |BELOW| THIS LINE] >
-
-
-{6/23/2026 at 11:30 AM}
-    [Fixed Bugs]
-     - Resolved startup issue where launching SuperFokus exited immediately due to the single-instance lock being held by orphaned background processes.
-     - Fixed window restoration on launch: modified `second-instance` handler to call `mainWindow.show()` if the window is hidden, allowing the UI to re-appear when the user runs `npm start` again.
+{7/1/2026 at 12:50 PM}
     [New Features]
-     - Implemented system tray icon support (`assets/fokusicon.png`) with options to show/restore the window or cleanly quit the application, preventing orphaned background processes.
-
-
+     - Replaced text-based play/pause indicators in the main window with clean SVG icons alongside "Pause" and "Resume" text labels for both Pomo Style and Repeating Reminders modes.
+     - Added title attributes to the play/pause buttons to show dynamic "Pause" and "Resume" hover tooltips.
+    [UX/Aesthetic Improvements]
+     - Enlarged play/pause SVG icons inside the pomo timer window (to 75% of the button size) to maximize visibility.
+     - Updated `.action-btn` in `index.html` to center SVGs and text perfectly using flexbox properties.
+    [Fixed Bugs]
+     - Switched to `closest()` event delegation in `pomo-timer.js` to ensure click handler triggers correctly when clicking child SVG/path elements.
+    [Tests]
+     - Updated Playwright E2E timer sync tests in `timer-sync.spec.js` to assert titles, button text, and SVG paths.
 < [DO NOT DELETE THIS TEXT, DELETE TEXT |ABOVE| THIS LINE]
 
 Sample chunk of documentation: {

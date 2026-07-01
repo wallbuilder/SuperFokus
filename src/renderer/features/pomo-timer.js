@@ -450,20 +450,29 @@ ipcRenderer.on('timer-event', (payload) => {
         case 'paused':
             pomoState.pomoTimer = payload.data;
             pomoState.isPomoPaused = true;
-            if (pausePomoBtn) pausePomoBtn.innerText = 'Resume ▶';
+            if (pausePomoBtn) {
+                pausePomoBtn.innerHTML = 'Resume <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+                pausePomoBtn.title = 'Resume';
+            }
             if (timerDisplay) timerDisplay.classList.add('paused');
             updatePomoDisplay();
             break;
         case 'resumed':
             pomoState.isPomoPaused = false;
-            if (pausePomoBtn) pausePomoBtn.innerText = 'Pause ▐▐';
+            if (pausePomoBtn) {
+                pausePomoBtn.innerHTML = 'Pause <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+                pausePomoBtn.title = 'Pause';
+            }
             if (timerDisplay) timerDisplay.classList.remove('paused');
             updatePomoDisplay();
             break;
         case 'stopped':
             pomoState.pomoTimer = 0;
             pomoState.isPomoPaused = false;
-            if (pausePomoBtn) pausePomoBtn.innerText = 'Pause ▐▐';
+            if (pausePomoBtn) {
+                pausePomoBtn.innerHTML = 'Pause <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+                pausePomoBtn.title = 'Pause';
+            }
             if (timerDisplay) timerDisplay.classList.remove('paused');
             updatePomoDisplay();
             break;
@@ -553,7 +562,8 @@ export function stopPomoStyle() {
     if (continuePomoBtn) continuePomoBtn.style.display = 'none';
     if(pausePomoBtn) {
         pausePomoBtn.style.display = 'none';
-        pausePomoBtn.innerText = 'Pause ▐▐';
+        pausePomoBtn.innerHTML = 'Pause <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+        pausePomoBtn.title = 'Pause';
     }
     ipcRenderer.send('close-timer-window');
     ipcRenderer.send('close-popup');
@@ -587,7 +597,8 @@ export function startPomoStyle() {
         if (pomoTimerDisplay) pomoTimerDisplay.classList.remove('hidden');
         if(pausePomoBtn) {
             pausePomoBtn.style.display = 'block';
-            pausePomoBtn.innerText = 'Pause ▐▐';
+            pausePomoBtn.innerHTML = 'Pause <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+            pausePomoBtn.title = 'Pause';
         }
         ipcRenderer.send('open-timer-window', 'pomo');
         startPomoPhase();
@@ -610,20 +621,23 @@ if (startPomoBtn) {
 
 // More robust pause button handling for Pomo Style using event delegation
 document.addEventListener('click', (e) => {
-    if (e.target.id === 'pause-pomo-btn') {
+    const btn = e.target.closest('#pause-pomo-btn');
+    if (btn) {
         // Allow pause/resume if timer has been started, regardless of current state
         if (!pomoState.isPomoPaused) {
             ipcRenderer.send('pause-timer', 'pomo');
             pomoState.isPomoPaused = true;
             const timerDisplay = document.getElementById('pomo-timer-display');
             if (timerDisplay) timerDisplay.classList.add('paused');
-            e.target.innerText = 'Resume ▶';
+            btn.innerHTML = 'Resume <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+            btn.title = 'Resume';
         } else {
             ipcRenderer.send('resume-timer', 'pomo');
             pomoState.isPomoPaused = false;
             const timerDisplay = document.getElementById('pomo-timer-display');
             if (timerDisplay) timerDisplay.classList.remove('paused');
-            e.target.innerText = 'Pause ▐▐';
+            btn.innerHTML = 'Pause <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+            btn.title = 'Pause';
         }
     }
 });

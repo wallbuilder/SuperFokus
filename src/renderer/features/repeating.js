@@ -153,7 +153,8 @@ export function startRepeatingReminders() {
     if (repeatingTimerDisplay) repeatingTimerDisplay.classList.remove('hidden');
     if (pauseRepeatingBtn) {
         pauseRepeatingBtn.style.display = 'block';
-        pauseRepeatingBtn.innerText = 'Pause ▐▐';
+        pauseRepeatingBtn.innerHTML = 'Pause <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+        pauseRepeatingBtn.title = 'Pause';
     }
     updateRepeatingDisplay();
 
@@ -169,7 +170,8 @@ export function stopRepeatingReminders() {
     if (repeatingTimerDisplay) repeatingTimerDisplay.classList.add('hidden');
     if (pauseRepeatingBtn) {
         pauseRepeatingBtn.style.display = 'none';
-        pauseRepeatingBtn.innerText = 'Pause ▐▐';
+        pauseRepeatingBtn.innerHTML = 'Pause <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+        pauseRepeatingBtn.title = 'Pause';
     }
     ipcRenderer.send('close-popup');
 }
@@ -435,13 +437,15 @@ export function initializeRepeatingButtonListeners() {
           repeatingState.isRepeatingPaused = true;
           const repeatingDisplay = document.getElementById('repeating-timer-display');
           if (repeatingDisplay) repeatingDisplay.classList.add('paused');
-          btn.innerText = 'Resume ▶';
+          btn.innerHTML = 'Resume <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+          btn.title = 'Resume';
         } else {
           ipcRenderer.send('resume-timer', 'repeating');
           repeatingState.isRepeatingPaused = false;
           const repeatingDisplay = document.getElementById('repeating-timer-display');
           if (repeatingDisplay) repeatingDisplay.classList.remove('paused');
-          btn.innerText = 'Pause ▐▐';
+          btn.innerHTML = 'Pause <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+          btn.title = 'Pause';
         }
       }
     });
