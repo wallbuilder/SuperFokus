@@ -58,18 +58,22 @@ function init() {
 
     ipcMain.on('start-timer', (event, data) => {
         if (!windowManager.isOriginSafe(event)) return;
+        if (!data || typeof data !== 'object') return;
         const { id, seconds } = data;
-        const durationMs = seconds * 1000;
+        if (typeof id !== 'string' || !id || id.length > 64) return;
+        const numSeconds = Number(seconds);
+        if (!Number.isFinite(numSeconds) || numSeconds <= 0) return;
+        const durationMs = numSeconds * 1000;
         const endTime = Date.now() + durationMs;
 
         timers[id] = {
-            totalSeconds: seconds,
-            remainingSeconds: seconds,
+            totalSeconds: numSeconds,
+            remainingSeconds: numSeconds,
             endTime: endTime,
             isRunning: true
         };
 
-        windowManager.broadcastToWindows('timer-event', { event: 'started', type: id, data: { id, endTime, seconds } });
+        windowManager.broadcastToWindows('timer-event', { event: 'started', type: id, data: { id, endTime, seconds: numSeconds } });
         startTimerService();
     });
 
@@ -110,6 +114,7 @@ function init() {
 
     ipcMain.on('show-break-popup', (event, data) => {
         if (!windowManager.isOriginSafe(event)) return;
+        if (!data || typeof data !== 'object') return;
         if (data.fullScreen) {
             windowManager.createFullscreenWindow(data);
         } else {

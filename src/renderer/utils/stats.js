@@ -25,20 +25,45 @@ export function renderHistory() {
     const sessionHistoryLog = document.getElementById('session-history-log');
     if (!sessionHistoryLog) return;
 
+    sessionHistoryLog.textContent = '';
+
     if (sessionHistory.length === 0) {
-        sessionHistoryLog.innerHTML = '<div style="color: var(--timer-subtext); text-align: center;">No history yet.</div>';
+        const emptyDiv = document.createElement('div');
+        emptyDiv.style.color = 'var(--timer-subtext)';
+        emptyDiv.style.textAlign = 'center';
+        emptyDiv.textContent = 'No history yet.';
+        sessionHistoryLog.appendChild(emptyDiv);
         return;
     }
-    
-    sessionHistoryLog.innerHTML = sessionHistory.slice().reverse().map(session => `
-        <div style="border-bottom: 1px solid var(--border-color); padding: 8px 0;">
-            <div style="font-weight: bold; color: var(--timer-text);">${session.mode}</div>
-            <div style="display: flex; justify-content: space-between; color: var(--timer-subtext); font-size: 0.8rem;">
-                <span>${new Date(session.time).toLocaleString()}</span>
-                <span>${session.duration}m focused</span>
-            </div>
-        </div>
-    `).join('');
+
+    sessionHistory.slice().reverse().forEach(session => {
+        const row = document.createElement('div');
+        row.style.borderBottom = '1px solid var(--border-color)';
+        row.style.padding = '8px 0';
+
+        const modeDiv = document.createElement('div');
+        modeDiv.style.fontWeight = 'bold';
+        modeDiv.style.color = 'var(--timer-text)';
+        modeDiv.textContent = String(session.mode || 'Focus Session');
+
+        const metaDiv = document.createElement('div');
+        metaDiv.style.display = 'flex';
+        metaDiv.style.justifyContent = 'space-between';
+        metaDiv.style.color = 'var(--timer-subtext)';
+        metaDiv.style.fontSize = '0.8rem';
+
+        const timeSpan = document.createElement('span');
+        timeSpan.textContent = new Date(session.time).toLocaleString();
+
+        const durationSpan = document.createElement('span');
+        durationSpan.textContent = `${Number(session.duration) || 0}m focused`;
+
+        metaDiv.appendChild(timeSpan);
+        metaDiv.appendChild(durationSpan);
+        row.appendChild(modeDiv);
+        row.appendChild(metaDiv);
+        sessionHistoryLog.appendChild(row);
+    });
 }
 
 export function recordFocusSession(minutes, mode = 'Focus Session') {

@@ -34,23 +34,10 @@ export async function initSiteBlocker() {
 
     if (!elements.saveBtn) return;
 
-    // Load saved state
-    const saved = await store.get('blocker-rules');
-    if (saved) {
-        blockerState.isBlockerActive = saved.active || false;
-        blockerState.blockerMode = saved.mode || 'block';
-        blockerState.alwaysRun = saved.alwaysRun || false;
-        blockerState.domains = saved.domains || [];
-        blockerState.urls = saved.urls || [];
-
-        if (elements.enabledCheck) elements.enabledCheck.checked = blockerState.isBlockerActive;
-        if (elements.modeSelect) elements.modeSelect.value = blockerState.blockerMode;
-        if (elements.alwaysRunCheck) elements.alwaysRunCheck.checked = blockerState.alwaysRun;
-        if (elements.domainInput) elements.domainInput.value = (saved.rawDomains || []).join('\n');
-        if (elements.urlInput) elements.urlInput.value = (saved.rawUrls || []).join('\n');
-    }
-    
-    updateUIVisibility();
+    // Register IPC status/error listeners and DOM event handlers synchronously BEFORE awaiting store.get
+    // so turning on the Site Blocker immediately after app startup never races with initialization.
+    ipcRenderer.on('blocker-status', (msg) => updateStatus(msg, '#2ecc71'));
+    ipcRenderer.on('blocker-error', (err) => updateStatus(err, '#e74c3c'));
 
     elements.modeSelect.addEventListener('change', () => {
         updateUIVisibility();
@@ -64,6 +51,29 @@ export async function initSiteBlocker() {
     if (elements.alwaysRunCheck) elements.alwaysRunCheck.addEventListener('change', markBlockerUnsaved);
     if (elements.domainInput) elements.domainInput.addEventListener('input', markBlockerUnsaved);
     if (elements.urlInput) elements.urlInput.addEventListener('input', markBlockerUnsaved);
+
+    updateUIVisibility();
+
+    // Load saved state (without overwriting any fields the user already modified during startup)
+    const saved = await store.get('blocker-rules');
+    if (saved && !hasUnsavedBlockerChanges) {
+        blockerState.isBlockerActive = Boolean(saved.active && saved.alwaysRun);
+        blockerState.blockerMode = saved.mode || 'block';
+        blockerState.alwaysRun = saved.alwaysRun || false;
+        blockerState.domains = saved.domains || [];
+        blockerState.urls = saved.urls || [];
+
+        if (elements.enabledCheck) elements.enabledCheck.checked = blockerState.isBlockerActive;
+        if (elements.modeSelect) elements.modeSelect.value = blockerState.blockerMode;
+        if (elements.alwaysRunCheck) elements.alwaysRunCheck.checked = blockerState.alwaysRun;
+        if (elements.domainInput && !elements.domainInput.value) {
+            elements.domainInput.value = (saved.rawDomains || []).join('\n');
+        }
+        if (elements.urlInput && !elements.urlInput.value) {
+            elements.urlInput.value = (saved.rawUrls || []).join('\n');
+        }
+        updateUIVisibility();
+    }
 
     // Global interception for exiting with unsaved changes
     document.addEventListener('click', (e) => {
@@ -98,9 +108,6 @@ export async function initSiteBlocker() {
             }
         }
     }, true);
-
-    ipcRenderer.on('blocker-status', (msg) => updateStatus(msg, '#2ecc71'));
-    ipcRenderer.on('blocker-error', (err) => updateStatus(err, '#e74c3c'));
 }
 
 function updateUIVisibility() {

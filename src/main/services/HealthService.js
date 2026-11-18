@@ -15,6 +15,7 @@ let healthConfig = {
 function init() {
     ipcMain.on('start-health-mode', (event, data) => {
         if (!windowManager.isOriginSafe(event)) return;
+        if (!data || typeof data !== 'object') return;
         if (healthIntervals.eye) clearInterval(healthIntervals.eye);
         if (healthIntervals.posture) clearInterval(healthIntervals.posture);
         

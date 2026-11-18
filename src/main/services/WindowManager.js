@@ -1,5 +1,8 @@
 const { BrowserWindow, screen, Menu, app, shell, Tray } = require('electron');
 const path = require('path');
+const { fileURLToPath } = require('url');
+
+const APP_ROOT = path.resolve(__dirname, '../../..');
 
 class WindowManager {
     constructor() {
@@ -36,7 +39,15 @@ class WindowManager {
     isOriginSafe(event) {
         try {
             if (!event || !event.senderFrame || !event.senderFrame.url) return false;
-            return new URL(event.senderFrame.url).protocol === 'file:';
+            const parsed = new URL(event.senderFrame.url);
+            if (parsed.protocol !== 'file:') return false;
+            const resolvedPath = path.resolve(fileURLToPath(parsed));
+            const normalizedRoot = APP_ROOT.endsWith(path.sep) ? APP_ROOT : APP_ROOT + path.sep;
+            const isCaseInsensitive = process.platform === 'win32' || process.platform === 'darwin';
+            if (isCaseInsensitive) {
+                return resolvedPath.toLowerCase().startsWith(normalizedRoot.toLowerCase());
+            }
+            return resolvedPath.startsWith(normalizedRoot);
         } catch (e) {
             return false;
         }
@@ -53,6 +64,10 @@ class WindowManager {
 
     setupNavigationHandlers(window) {
         if (!window) return;
+
+        window.webContents.on('will-attach-webview', (event) => {
+            event.preventDefault();
+        });
         
         window.webContents.setWindowOpenHandler(({ url }) => {
             if (this.isSafeExternalUrl(url)) {
@@ -62,10 +77,8 @@ class WindowManager {
         });
 
         window.webContents.on('will-navigate', (event, url) => {
-            if (!this.isSafeExternalUrl(url)) {
-                event.preventDefault();
-            } else {
-                event.preventDefault();
+            event.preventDefault();
+            if (this.isSafeExternalUrl(url)) {
                 shell.openExternal(url);
             }
         });

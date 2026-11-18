@@ -72,6 +72,17 @@ async function setMacProxyAsync(enable, service = 'Wi-Fi') {
     });
 }
 
+async function ensureHostsWritable() {
+    try {
+        await fs.chmod(HOSTS_FILE, 0o666);
+    } catch (e) {}
+    if (process.platform === 'win32') {
+        await new Promise((resolve) => {
+            execFile('attrib', ['-R', HOSTS_FILE], () => resolve());
+        });
+    }
+}
+
 async function clearBlocksAsync(retries = 3) {
     let attempts = 0;
     while (attempts < retries) {
@@ -81,7 +92,8 @@ async function clearBlocksAsync(retries = 3) {
             let content = await fs.readFile(HOSTS_FILE, 'utf-8');
             const startIndex = content.indexOf(START_MARKER);
             const endIndex = content.indexOf(END_MARKER);
-            if (startIndex !== -1 && endIndex !== -1) {
+            if (startIndex !== -1 && endIndex !== -1 && endIndex >= startIndex) {
+                await ensureHostsWritable();
                 content = content.substring(0, startIndex).trimEnd() + "\n" + content.substring(endIndex + END_MARKER.length).trimStart();
                 await fs.writeFile(HOSTS_FILE, content.trim() + "\n", 'utf-8');
             }
@@ -97,32 +109,36 @@ async function clearBlocksAsync(retries = 3) {
 
 async function applyBlocksAsync(domains, retries = 3) {
     const domainSet = new Set();
-    domains.forEach(raw => {
-        if (!raw || typeof raw !== 'string') return;
-        const host = raw.trim().toLowerCase();
-        if (validateDomain(host)) {
-            domainSet.add(host);
-            if (host.startsWith('www.')) domainSet.add(host.replace(/^www\./, ''));
-            else domainSet.add('www.' + host);
-        }
-    });
+    if (Array.isArray(domains)) {
+        domains.forEach(raw => {
+            if (!raw || typeof raw !== 'string') return;
+            const host = raw.trim().toLowerCase();
+            if (validateDomain(host) && host !== 'localhost' && host !== '127.0.0.1' && host !== '0.0.0.0' && host !== '::1') {
+                domainSet.add(host);
+                if (host.startsWith('www.')) domainSet.add(host.replace(/^www\./, ''));
+                else domainSet.add('www.' + host);
+            }
+        });
+    }
     const validatedDomains = Array.from(domainSet).filter(d => validateDomain(d));
 
     let attempts = 0;
     while (attempts < retries) {
         try {
+            if (!fsSync.existsSync(HOSTS_FILE)) throw new Error('Hosts file not found');
             await backupHostsFile();
+            await ensureHostsWritable();
             let content = await fs.readFile(HOSTS_FILE, 'utf-8');
             const startIndex = content.indexOf(START_MARKER);
             const endIndex = content.indexOf(END_MARKER);
-            if (startIndex !== -1 && endIndex !== -1) {
+            if (startIndex !== -1 && endIndex !== -1 && endIndex >= startIndex) {
                 content = content.substring(0, startIndex).trimEnd() + "\n" + content.substring(endIndex + END_MARKER.length).trimStart();
             }
             content = content.trimEnd();
             if (validatedDomains.length > 0) {
                 content += "\n\n" + START_MARKER + "\n";
                 validatedDomains.forEach(d => {
-                    content += "0.0.0.0 " + d + "\n::1 " + d + "\n";
+                    content += "127.0.0.1 " + d + "\n0.0.0.0 " + d + "\n::1 " + d + "\n";
                 });
                 content += END_MARKER + "\n";
             }
@@ -138,6 +154,8 @@ async function applyBlocksAsync(domains, retries = 3) {
 }
 
 (async () => {
+    // Immediately write to stdout so @vscode/sudo-prompt on Windows detects an active stdout file on cold start
+    process.stdout.write('SuperFokus Helper Ready\n');
     const action = process.argv[2];
     const base64Data = process.argv[3];
     let commandArgs = [];
@@ -152,15 +170,21 @@ async function applyBlocksAsync(domains, retries = 3) {
         if (action === 'clear') { await clearBlocksAsync(); }
         else if (action === 'apply') { await applyBlocksAsync(commandArgs[0]?.split(',').filter(Boolean) || []); }
         else if (action === 'apply-file') {
-            const domains = JSON.parse(await fs.readFile(commandArgs[0], 'utf-8'));
+            const filePath = path.resolve(String(commandArgs[0] || ''));
+            const domains = JSON.parse(await fs.readFile(filePath, 'utf-8'));
             await applyBlocksAsync(domains);
         }
         else if (action === 'set-mac-proxy') {
-            const { enable, services } = commandArgs[0];
-            for (const service of services) {
-                await setMacProxyAsync(enable, service);
+            const { enable, services } = commandArgs[0] || {};
+            if (Array.isArray(services)) {
+                for (const service of services) {
+                    if (typeof service === 'string' && /^[a-zA-Z0-9 _-]+$/.test(service)) {
+                        await setMacProxyAsync(Boolean(enable), service);
+                    }
+                }
             }
         }
+        process.stdout.write('OK\n');
         process.exit(0);
     } catch (e) {
         console.error(e.message);
